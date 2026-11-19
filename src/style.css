@@ -1,0 +1,299 @@
+/* ============================================================
+   STUNT MOTO — стили HUD и меню
+   ============================================================ */
+:root {
+  --accent: #3fd0ff;
+  --accent-warm: #ffb020;
+  --danger: #ff3b30;
+  --ok: #35e08c;
+  --panel: rgba(12, 17, 26, 0.72);
+  --panel-border: rgba(120, 190, 235, 0.22);
+  --text: #e8f4ff;
+  --text-dim: #8ba2b8;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #0b0e14;
+  font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game-canvas {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.hidden { display: none !important; }
+
+/* ============ панели HUD ============ */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+
+.hud-panel {
+  position: absolute;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 10px 16px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 6px 28px rgba(0,0,0,.45);
+}
+
+.hud-label { font-size: 10px; letter-spacing: 3px; color: var(--text-dim); font-weight: 700; }
+
+.hud-score-panel { top: 18px; left: 18px; min-width: 210px; }
+.hud-score {
+  font-size: 38px; font-weight: 900; font-variant-numeric: tabular-nums;
+  line-height: 1; color: #fff; text-shadow: 0 0 18px rgba(63,208,255,.35);
+}
+.hud-subrow { display: flex; gap: 14px; margin-top: 6px; align-items: baseline; }
+.hud-combo {
+  font-weight: 900; font-size: 14px; color: var(--accent-warm);
+  letter-spacing: .5px; transition: transform .12s;
+}
+.hud-combo.pop { transform: scale(1.45); }
+.hud-best { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+.hud-best b { color: var(--text); }
+
+.hud-topright {
+  top: 18px; right: 18px; display: flex; align-items: center; gap: 10px;
+  pointer-events: auto;
+}
+.hud-record { font-size: 10px; letter-spacing: 2px; color: var(--text-dim); }
+.hud-record b { color: #fff; font-size: 13px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--panel-border);
+  background: rgba(255,255,255,.06); color: var(--text); font-size: 18px; cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.icon-btn:hover { background: rgba(255,255,255,.14); }
+.icon-btn:active { transform: scale(.92); }
+
+/* ============ спидометр ============ */
+.hud-speed-panel {
+  bottom: 22px; right: 18px; text-align: right; min-width: 190px;
+}
+.hud-speed { display: flex; align-items: baseline; justify-content: flex-end; gap: 8px; }
+.hud-speed #hud-speed {
+  font-size: 64px; font-weight: 900; line-height: .95; font-variant-numeric: tabular-nums;
+  color: #fff; text-shadow: 0 0 24px rgba(63,208,255,.4);
+}
+.hud-unit { font-size: 13px; color: var(--text-dim); font-weight: 700; letter-spacing: 1px; }
+.hud-gear-row { font-size: 11px; letter-spacing: 2px; color: var(--text-dim); margin: 2px 0 6px; }
+.hud-gear-row b { color: var(--accent); font-size: 17px; margin-left: 4px; }
+.hud-rpm { width: 170px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.09); overflow: hidden; margin-left: auto; }
+#hud-rpm-fill { height: 100%; width: 10%; background: linear-gradient(90deg, var(--ok), var(--accent-warm) 60%, var(--danger)); transition: width .06s linear; }
+
+/* ============ дуга угла уили ============ */
+.wheelie-gauge {
+  position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
+  text-align: center; opacity: .92; filter: drop-shadow(0 6px 18px rgba(0,0,0,.6));
+}
+.wheelie-gauge svg { display: block; margin: 0 auto; overflow: visible; }
+.wheelie-gauge.critical svg { animation: gauge-shake .18s infinite; }
+@keyframes gauge-shake {
+  0%,100% { transform: translate(0,0); }
+  25% { transform: translate(-2px,1px); }
+  75% { transform: translate(2px,-1px); }
+}
+.wheelie-state {
+  margin-top: -30px; font-size: 12px; font-weight: 900; letter-spacing: 5px; color: #223;
+  color: rgba(160,220,255,.0); transition: color .25s;
+}
+.wheelie-state.active { color: var(--ok); text-shadow: 0 0 14px rgba(53,224,140,.6); }
+.wheelie-state.danger { color: var(--danger); text-shadow: 0 0 14px rgba(255,59,48,.7); }
+
+/* ============ подсказка / предупреждение ============ */
+.wheelie-hint {
+  position: absolute; left: 50%; bottom: 205px; transform: translateX(-50%);
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
+  padding: 8px 18px; font-size: 13px; color: var(--text); white-space: nowrap;
+  animation: hint-in .35s ease;
+}
+@keyframes hint-in { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.hint-key {
+  display: inline-block; background: rgba(63,208,255,.18); border: 1px solid rgba(63,208,255,.4);
+  border-radius: 6px; padding: 1px 8px; font-weight: 800; color: var(--accent); font-size: 11px;
+}
+
+.loopout-warning {
+  position: absolute; left: 50%; top: 22%; transform: translateX(-50%);
+  font-size: 44px; font-weight: 900; letter-spacing: 4px; color: var(--danger);
+  text-shadow: 0 0 30px rgba(255,59,48,.75), 0 2px 0 #400;
+  animation: warning-blink .28s infinite;
+}
+@keyframes warning-blink { 50% { opacity: .35; transform: translateX(-50%) scale(1.06); } }
+
+/* ============ тасты (всплывающие очки) ============ */
+#toast-layer {
+  position: absolute; left: 50%; top: 34%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
+}
+.toast {
+  font-size: 30px; font-weight: 900; color: var(--ok);
+  text-shadow: 0 0 18px rgba(53,224,140,.55), 0 2px 0 #031;
+  animation: toast-pop 1.6s ease forwards; white-space: nowrap;
+}
+.toast.bad { color: var(--danger); text-shadow: 0 0 18px rgba(255,59,48,.55), 0 2px 0 #200; }
+.toast.gold { color: var(--accent-warm); text-shadow: 0 0 22px rgba(255,176,32,.6), 0 2px 0 #310; }
+@keyframes toast-pop {
+  0% { opacity: 0; transform: translateY(16px) scale(.6); }
+  14% { opacity: 1; transform: translateY(0) scale(1.25); }
+  30% { transform: translateY(0) scale(1); }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-26px) scale(.92); }
+}
+
+/* ============ клавиатурная подсказка ============ */
+.keys-hint {
+  position: absolute; left: 18px; bottom: 22px; display: flex; flex-direction: column; gap: 4px;
+  font-size: 11px; color: var(--text-dim); background: rgba(12,17,26,.5);
+  padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(120,190,235,.12);
+  transition: opacity 1.2s;
+}
+.keys-hint b { color: var(--accent); }
+.keys-hint.fade { opacity: 0; }
+
+/* ============ ТАЧ-КОНТРОЛЫ ============ */
+.touch-controls { display: none; }
+body.touch-mode .touch-controls { display: block; }
+body.touch-mode .keys-hint { display: none; }
+.touch-btn {
+  position: absolute; z-index: 6; pointer-events: auto;
+  border: 1px solid rgba(255,255,255,.25); background: rgba(20,28,40,.55);
+  color: #dff2ff; border-radius: 18px; font-family: inherit; font-weight: 800;
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  font-size: 15px; letter-spacing: 1px; touch-action: none;
+}
+.touch-btn:active { background: rgba(63,208,255,.35); }
+.touch-steer { width: 84px; height: 84px; font-size: 30px; bottom: 120px; }
+#tc-left { left: 14px; }
+#tc-right { left: 116px; }
+.touch-lean { width: 66px; height: 60px; font-size: 10px; bottom: 32px; line-height: 1.35; }
+#tc-leanback { left: 10px; }
+#tc-leanfwd { left: 88px; }
+.touch-gas { width: 96px; height: 130px; right: 14px; bottom: 170px; background: rgba(20,60,40,.55); border-color: rgba(53,224,140,.45); }
+.touch-brake { width: 96px; height: 74px; right: 14px; bottom: 88px; background: rgba(70,20,20,.55); border-color: rgba(255,59,48,.45); }
+.touch-wheelie {
+  width: 150px; height: 96px; right: 122px; bottom: 30px; font-size: 21px;
+  background: rgba(64,44,10,.6); border-color: rgba(255,176,32,.55); color: #ffd97a;
+  border-radius: 22px;
+}
+.touch-wheelie:active { background: rgba(255,176,32,.4); }
+body.touch-mode .hud-speed-panel { bottom: 220px; right: 12px; transform: scale(.8); transform-origin: bottom right; }
+body.touch-mode .wheelie-gauge { left: 50%; bottom: 148px; transform: translateX(-50%) scale(.78); }
+
+/* ============ экран крушения ============ */
+.crash-overlay {
+  position: fixed; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(60,0,0,.25) 0%, rgba(5,5,8,.78) 75%);
+  animation: crash-fade .35s ease;
+}
+@keyframes crash-fade { from { opacity: 0; } }
+.crash-card { text-align: center; animation: crash-card-in .45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes crash-card-in { from { transform: scale(.5); opacity: 0; } }
+.crash-title {
+  font-size: 84px; font-weight: 900; font-style: italic; color: var(--danger);
+  text-shadow: 0 0 60px rgba(255,59,48,.6), 0 4px 0 #300; letter-spacing: 2px;
+}
+.crash-sub { font-size: 16px; color: var(--text); margin: 6px 0 12px; }
+.crash-penalty { font-size: 17px; color: var(--accent-warm); font-weight: 800; margin-bottom: 22px; letter-spacing: 1px; }
+
+/* ============ кнопки ============ */
+.btn {
+  pointer-events: auto; cursor: pointer; border: none; border-radius: 14px;
+  font-family: inherit; font-weight: 900; letter-spacing: 2px; color: #04121c;
+  background: linear-gradient(180deg, #5ee7ff, #1fb6e6);
+  box-shadow: 0 6px 0 #0b7a9e, 0 14px 34px rgba(31,182,230,.35);
+  padding: 18px 54px; font-size: 22px; transition: transform .1s, box-shadow .2s;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #0b7a9e, 0 18px 44px rgba(31,182,230,.45); }
+.btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #0b7a9e; }
+
+/* ============================================================
+   ГЛАВНОЕ МЕНЮ
+   ============================================================ */
+.menu { position: fixed; inset: 0; z-index: 10; overflow: hidden; }
+.menu-bg-gradient {
+  position: absolute; inset: 0;
+  background: linear-gradient(100deg, rgba(5,8,14,.92) 0%, rgba(5,8,14,.72) 34%, rgba(5,8,14,.05) 62%, rgba(5,8,14,.35) 100%);
+}
+.menu-content {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4vw; gap: 2vw;
+}
+.menu-left { display: flex; flex-direction: column; gap: 18px; max-width: 560px; }
+.menu-right { display: flex; flex-direction: column; justify-content: center; }
+
+.game-logo { line-height: .9; }
+.game-logo-top {
+  font-size: 92px; font-weight: 900; font-style: italic; letter-spacing: -2px;
+  color: #fff; text-shadow: 0 0 40px rgba(63,208,255,.25);
+}
+.game-logo-bottom {
+  font-size: 92px; font-weight: 900; font-style: italic; letter-spacing: -2px;
+  color: var(--accent); text-shadow: 0 0 50px rgba(63,208,255,.55);
+}
+.game-logo-bottom span { color: var(--accent-warm); }
+.game-logo-tagline { margin-top: 10px; font-size: 11px; letter-spacing: 6px; color: var(--text-dim); font-weight: 700; }
+
+.menu-section-title { font-size: 12px; letter-spacing: 4px; color: var(--text-dim); font-weight: 800; }
+
+.bike-cards { display: flex; gap: 14px; }
+.bike-card {
+  cursor: pointer; text-align: left; width: 216px; padding: 14px 16px 12px;
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px;
+  color: var(--text); font-family: inherit; transition: border-color .2s, transform .15s, box-shadow .2s;
+}
+.bike-card:hover { transform: translateY(-3px); }
+.bike-card.selected {
+  border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 34px rgba(63,208,255,.22);
+}
+.bike-card-name { font-size: 14px; letter-spacing: 1px; color: var(--text-dim); font-weight: 800; }
+.bike-card-name b { color: #fff; font-size: 17px; }
+.bike-card-desc { font-size: 10px; color: var(--text-dim); margin: 4px 0 10px; min-height: 26px; }
+.bike-stat { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.bike-stat span { font-size: 9px; width: 48px; color: var(--text-dim); letter-spacing: 1px; }
+.bike-stat .bar { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; }
+.bike-stat .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #9be7ff); border-radius: 3px; }
+
+.btn-start { font-size: 30px; padding: 20px 0; width: 100%; }
+.menu-best { font-size: 12px; letter-spacing: 2px; color: var(--text-dim); }
+.menu-best b { color: var(--accent-warm); font-size: 15px; }
+
+.controls-card {
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
+  padding: 20px 24px; max-width: 430px; backdrop-filter: blur(8px);
+}
+.controls-list { list-style: none; margin: 12px 0; display: flex; flex-direction: column; gap: 9px; font-size: 12.5px; color: #c9dcec; }
+.controls-list b { color: #fff; }
+.key {
+  display: inline-block; min-width: 26px; text-align: center; padding: 2px 7px; margin: 0 2px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.22);
+  border-bottom-width: 3px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #fff;
+}
+.key-wide { padding: 2px 14px; }
+.controls-tip {
+  font-size: 11.5px; line-height: 1.55; color: #ffd98a; border-top: 1px solid rgba(255,255,255,.12);
+  padding-top: 12px;
+}
+.controls-tip b { color: #fff; }
+
+@media (max-width: 1100px) {
+  .menu-right { display: none; }
+}
+@media (max-width: 720px) {
+  .menu-content { padding: 0 16px; align-items: flex-start; padding-top: 5vh; overflow-y: auto; }
+  .game-logo-top, .game-logo-bottom { font-size: 56px; }
+  .menu-left { max-width: 100%; }
+  .bike-cards { flex-direction: column; }
+  .bike-card { width: 100%; }
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b0e14" />
+  <title>STUNT MOTO — Уличные мото-трюки: уили и мотокросс</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🏍️</text></svg>" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+
+  <!-- =======================  игровой холст  ======================= -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- =======================  HUD  ======================= -->
+  <div id="hud" class="hidden">
+
+    <!-- Верхняя левая: счёт -->
+    <div class="hud-panel hud-score-panel">
+      <div class="hud-label">СЧЁТ</div>
+      <div class="hud-score" id="hud-score">0</div>
+      <div class="hud-subrow">
+        <span class="hud-combo" id="hud-combo">КОМБО ×1</span>
+        <span class="hud-best">ЛУЧШИЙ УИЛИ <b id="hud-best-wheelie">0 м</b></span>
+      </div>
+    </div>
+
+    <!-- Верхняя правая: рекорд / звук / пауза -->
+    <div class="hud-panel hud-topright">
+      <button class="icon-btn" id="btn-mute" title="Звук (M)">🔊</button>
+      <button class="icon-btn" id="btn-respawn" title="Респаун (R)">↺</button>
+      <div class="hud-record">РЕКОРД <b id="hud-highscore">0</b></div>
+    </div>
+
+    <!-- Центр-низ: дуга-индикатор угла уили -->
+    <div id="wheelie-gauge" class="wheelie-gauge">
+      <svg viewBox="0 0 300 178" width="300" height="178" aria-hidden="true">
+        <!-- фоновая дуга: от -10° до 90° (дуги строятся из центра 150,160) -->
+        <g id="gauge-zones"></g>
+        <!-- критическая отметка 72° -->
+        <g id="gauge-crit"></g>
+        <!-- стрелка -->
+        <g id="gauge-needle">
+          <line x1="150" y1="160" x2="150" y2="46" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+          <line x1="150" y1="160" x2="150" y2="46" stroke="#111" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+          <circle cx="150" cy="160" r="13" fill="#111823" stroke="#3fd0ff" stroke-width="3"/>
+        </g>
+        <!-- цифровое значение -->
+        <text id="gauge-angle-text" x="150" y="132" text-anchor="middle" fill="#e8f4ff"
+              font-size="22" font-weight="800" font-family="inherit">0°</text>
+        <text x="150" y="176" text-anchor="middle" fill="#7f93a8" font-size="10"
+              letter-spacing="2" font-family="inherit">УГОЛ НАКЛОНА</text>
+      </svg>
+      <div id="wheelie-state" class="wheelie-state">WHEELIE</div>
+    </div>
+
+    <!-- Подсказка при входе в уили -->
+    <div id="wheelie-hint" class="wheelie-hint hidden">
+      <span class="hint-key">ГАЗ</span> добавляет угол —
+      <span class="hint-key">отпусти</span>, чтобы опустить колесо
+    </div>
+
+    <!-- Предупреждение о критическом угле -->
+    <div id="loopout-warning" class="loopout-warning hidden">СБРОСЬ ГАЗ!</div>
+
+    <!-- Скорость и передача -->
+    <div class="hud-panel hud-speed-panel">
+      <div class="hud-speed"><span id="hud-speed">0</span><span class="hud-unit">км/ч</span></div>
+      <div class="hud-gear-row">ПЕРЕДАЧА <b id="hud-gear">1</b></div>
+      <div class="hud-rpm"><div id="hud-rpm-fill"></div></div>
+    </div>
+
+    <!-- Всплывающие сообщения -->
+    <div id="toast-layer"></div>
+
+    <!-- =======================  Тач-управление  ======================= -->
+    <div id="touch-controls" class="touch-controls">
+      <button class="touch-btn touch-steer" id="tc-left">◀</button>
+      <button class="touch-btn touch-steer" id="tc-right">▶</button>
+
+      <button class="touch-btn touch-lean" id="tc-leanback">НАЗАД<br>⤺</button>
+      <button class="touch-btn touch-lean" id="tc-leanfwd">ВПЕРЁД<br>⤻</button>
+
+      <button class="touch-btn touch-gas" id="tc-gas">ГАЗ</button>
+      <button class="touch-btn touch-brake" id="tc-brake">ТОРМОЗ</button>
+      <button class="touch-btn touch-wheelie" id="tc-wheelie">WHEELIE</button>
+    </div>
+
+    <!-- Подсказка по клавишам (исчезает через некоторое время) -->
+    <div id="keys-hint" class="keys-hint">
+      <span><b>W</b> газ</span><span><b>S</b> тормоз</span><span><b>A/D</b> руль</span>
+      <span><b>Shift</b> WHEELIE (удерживать)</span><span><b>Z/X</b> вес назад / вперёд</span>
+      <span><b>R</b> респаун</span><span><b>M</b> звук</span>
+    </div>
+  </div>
+
+  <!-- Экран крушения -->
+  <div id="crash-overlay" class="crash-overlay hidden">
+    <div class="crash-card">
+      <div class="crash-title" id="crash-title">LOOP OUT!</div>
+      <div class="crash-sub" id="crash-sub">Газ был сильнее тебя — байк перекинуло назад</div>
+      <div class="crash-penalty" id="crash-penalty">−250 · комбо потеряно</div>
+      <button class="btn btn-primary" id="btn-respawn-crash">Заново (R)</button>
+    </div>
+  </div>
+
+  <!-- =======================  ГЛАВНОЕ МЕНЮ  ======================= -->
+  <div id="menu" class="menu">
+    <div class="menu-bg-gradient"></div>
+    <div class="menu-content">
+      <div class="menu-left">
+        <div class="game-logo">
+          <div class="game-logo-top">STUNT</div>
+          <div class="game-logo-bottom">MOTO<span>.</span></div>
+          <div class="game-logo-tagline">MOTOCROSS · WHEELIE · ЗАДНЕЕ КОЛЕСО</div>
+        </div>
+
+        <div class="menu-section-title">ВЫБЕРИ МОТОЦИКЛ</div>
+        <div class="bike-cards">
+          <button class="bike-card selected" id="card-450" data-bike="yz450f">
+            <div class="bike-card-name">YAMAHA <b>YZ450F</b></div>
+            <div class="bike-card-desc">450 см³ · 4-тактник · 2023–24</div>
+            <div class="bike-stat"><span>МОЩЬ</span><div class="bar"><i style="width:96%"></i></div></div>
+            <div class="bike-stat"><span>ВЕС</span><div class="bar"><i style="width:52%"></i></div></div>
+            <div class="bike-stat"><span>ПОДЪЁМ</span><div class="bar"><i style="width:70%"></i></div></div>
+          </button>
+          <button class="bike-card" id="card-300" data-bike="yz300">
+            <div class="bike-card-name">YAMAHA <b>YZ300</b></div>
+            <div class="bike-card-desc">300 см³ · 2-тактник · expansion chamber</div>
+            <div class="bike-stat"><span>МОЩЬ</span><div class="bar"><i style="width:84%"></i></div></div>
+            <div class="bike-stat"><span>ВЕС</span><div class="bar"><i style="width:40%"></i></div></div>
+            <div class="bike-stat"><span>ПОДЪЁМ</span><div class="bar"><i style="width:88%"></i></div></div>
+          </button>
+        </div>
+
+        <button class="btn btn-start" id="btn-start">ПОЕХАЛИ</button>
+        <div class="menu-best">РЕКОРД: <b id="menu-highscore">0</b></div>
+      </div>
+
+      <div class="menu-right">
+        <div class="controls-card">
+          <div class="menu-section-title">УПРАВЛЕНИЕ</div>
+          <ul class="controls-list">
+            <li><span class="key">W</span> / <span class="key">↑</span> газ — удерживай, чтобы разгоняться и балансировать</li>
+            <li><span class="key">S</span> / <span class="key">↓</span> тормоз (передний + задний)</li>
+            <li><span class="key">A</span><span class="key">D</span> / <span class="key">←</span><span class="key">→</span> руль</li>
+            <li><span class="key key-wide">Shift</span> <b>WHEELIE</b> — удерживать, чтобы поднять переднее колесо. Работает только на скорости &gt; ~15 км/ч</li>
+            <li><span class="key">Z</span> вес тела назад — помогает поднять и держать уили</li>
+            <li><span class="key">X</span> вес тела вперёд — опускает переднее колесо</li>
+            <li><span class="key">R</span> респаун на старте · <span class="key">M</span> звук · <span class="key">Esc</span> меню</li>
+          </ul>
+          <div class="controls-tip">
+            ⚡ Зона баланса уили: <b>25–55°</b>. Выше <b>72°</b> — <b>LOOP OUT</b> (падение).<br>
+            Без газа уили быстро падает. Передний тормоз убивает уили мгновенно.<br>
+            На кочках и гравии держать сложнее. В повороте руль выбивает из равновесия.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
