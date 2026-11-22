@@ -58,6 +58,8 @@ var crash_count := 0
 ## Причина последнего падения — остаётся после респауна, удобно для логов.
 var last_crash_reason := ""
 var max_pitch_deg := 0.0
+var stuck_time := 0.0
+var _fall_speed := 0.0
 var crash_timer := 0.0
 var input_enabled := true
 
@@ -268,10 +270,15 @@ func _update_kinematics(delta: float) -> void:
 		if air_time > 0.15:
 			last_air_time = air_time
 			landing_counter += 1
+			# Жёсткое приземление ломает самокат — падаем, но не от каждого трамплина.
+			if _fall_speed > GameConfig.HARD_IMPACT_SPEED:
+				crash("Жёсткое приземление")
+			_fall_speed = 0.0
 		air_time = 0.0
 	else:
 		air_time += delta
 		max_air_time = maxf(max_air_time, air_time)
+		_fall_speed = maxf(_fall_speed, -linear_velocity.y)
 
 	if wheelie != null and wheelie.in_balance_zone:
 		wheelie_balance_time += delta
@@ -467,8 +474,20 @@ func _check_failures() -> void:
 		crash("Loop out — переворот через заднее колесо")
 	elif absf(roll_deg) > GameConfig.FALL_ROLL_ANGLE:
 		crash("Потеря равновесия")
-	elif pitch_deg < GameConfig.ENDO_CRASH_ANGLE:
+	elif (is_grounded() and brake_front_input > 0.5 and speed_kmh() > 20.0
+			and pitch_deg < GameConfig.ENDO_CRASH_ANGLE):
+		# Раньше endo срабатывал в воздухе: любой прыжок в городе считался
+		# падением через руль, потому что нос в полёте опускается ниже -26°.
 		crash("Endo — через руль")
+
+	# Застрял в стене с полным газом — сами возвращаем на трассу.
+	if throttle_input > 0.85 and absf(speed_mps) < 0.6 and is_grounded():
+		stuck_time += get_physics_process_delta_time()
+		if stuck_time > 4.0:
+			stuck_time = 0.0
+			crash("Застрял — авто-респаун")
+	else:
+		stuck_time = maxf(0.0, stuck_time - get_physics_process_delta_time() * 3.0)
 
 
 func crash(reason: String) -> void:
@@ -500,6 +519,8 @@ func respawn() -> void:
 	crash_reason = ""
 	current_force = 0.0
 	air_time = 0.0
+	stuck_time = 0.0
+	_fall_speed = 0.0
 	throttle_input = 0.0
 	brake_front_input = 0.0
 	brake_rear_input = 0.0
