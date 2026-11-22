@@ -17,7 +17,7 @@ set -uo pipefail
 # могут «съесть» его кусок — симптом: `bash: line N: M: command not found`.
 # Поэтому при запуске из pipe переисполняем себя из временного файла со stdin из /dev/null.
 if [ ! -r "$0" ]; then
-  tmp="$(mktemp /tmp/unityhub-cloudshell.XXXXXX.sh)"
+  tmp="$(mktemp /tmp/uh-cloudshell.XXXXXX.sh)"
   cat > "$tmp"
   exec bash "$tmp" "$@" < /dev/null
 fi
@@ -130,11 +130,11 @@ pgrep -f websockify >/dev/null 2>&1 || { say "[warn] websockify не запус�
 
 # --- 5. Unity Hub ----------------------------------------------------------
 say "[5/5] Запускаю Unity Hub ($HUB_BIN)..."
-if ! pgrep -f "unityhub" >/dev/null 2>&1; then
+if ! pgrep -f "$HUB_BIN" >/dev/null 2>&1; then
   ( DISPLAY="$DISP" LIBGL_ALWAYS_SOFTWARE=1 nohup "$HUB_BIN" --no-sandbox >/tmp/unityhub.log 2>&1 & )
   sleep 4
 fi
-if pgrep -f "unityhub" >/dev/null 2>&1; then
+if pgrep -f "$HUB_BIN" >/dev/null 2>&1; then
   say "[ok] Hub запущен."
 else
   say "[warn] Hub не стартовал, хвост лога:"; tail -n 15 /tmp/unityhub.log 2>/dev/null
