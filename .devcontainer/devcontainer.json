@@ -1,0 +1,36 @@
+{
+  // Облачная среда для получения Unity-лицензии (.ulf) вообще без своего ПК.
+  // Открывается как GitHub Codespace: Code -> Codespaces -> Create codespace on <эту ветку>.
+  "name": "Kugoo Freeride — Unity licence helper",
+
+  // Небольшой базовый образ (легче квоты Codespaces, быстрее старт).
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+
+  "features": {
+    // Готовый VNC-десктоп: Xvfb/TigerVNC + Fluxbox + noVNC на порту 6080.
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "unity",
+      "webPort": "6080",
+      "vncPort": "5901"
+    },
+    // gh нужен, чтобы записать секреты в репозиторий одной командой.
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // 2 ядра / 8 ГБ — ровно то, что даёт бесплатная квота Codespaces.
+  "hostRequirements": { "cpus": 2 },
+
+  // Один раз при создании: скачать и распаковать Unity Hub.
+  "postCreateCommand": "bash tools/license/install-unityhub.sh",
+
+  // При каждом старте контейнера: поднять Hub в десктопе.
+  "postStartCommand": "bash tools/license/start-unityhub.sh || true",
+
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": {
+      "label": "Unity licence desktop (noVNC)",
+      "onAutoForward": "notify"
+    }
+  }
+}

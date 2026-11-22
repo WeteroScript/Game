@@ -41,3 +41,8 @@ crashlytics-build.properties
 # ---- OS ----
 .DS_Store
 Thumbs.db
+
+# never commit a Unity licence (secret!) or local licence helper state
+*.ulf
+*.alf
+Unity_lic.*

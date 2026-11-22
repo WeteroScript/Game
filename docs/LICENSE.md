@@ -38,38 +38,25 @@ Unity Editor ставить **не нужно**, нужен только Unity H
 6. **Выйти из аккаунта в Unity Hub** (Sign out). В Hub 3.7+ для Personal это и есть «вернуть лицензию»:
    иначе локальная машина держит место, и CI не сможет активироваться.
 
-### Путь B (полностью с телефона) — облачный рабочий стол в браузере
+### Путь B (совсем нет ПК) — облачный рабочий стол в браузере телефона
 
-Если совсем нет доступа к чужому компьютеру, Unity Hub можно запустить в облаке и управлять им из браузера
-телефона. Дольше и капризнее, но реально:
+**Готовая, автоматизированная инструкция: [`LICENSE-PHONE.md`](LICENSE-PHONE.md).**
+Коротко, что сделано в репозитории, чтобы не набирать команды на телефоне:
 
-1. Откройте репозиторий на github.com → кнопка **Code** → вкладка **Codespaces** → **Create codespace**.
-   Бесплатный лимит GitHub даёт несколько десятков часов в месяц.
-2. В терминале Codespace поднимите простой рабочий стол с VNC:
+| Файл | Зачем |
+|---|---|
+| `.devcontainer/devcontainer.json` | Codespace сам поднимает VNC-десктоп (порт 6080) и запускает Unity Hub |
+| `tools/license/install-unityhub.sh` | скачивает и распаковывает Unity Hub (AppImage) |
+| `tools/license/start-unityhub.sh` | открывает Hub в десктопе (в т.ч. после «сна» Codespace) |
+| `tools/license/set-secrets.sh` | находит `.ulf` и пишет три секрета через `gh` |
 
-   ```bash
-   sudo apt-get update
-   sudo apt-get install -y xfce4 x11vnc novnc websockify unzip libfuse2 wget
-   x11vnc -display :1 -nopw -listen localhost -xkb -forever &
-   websockify --web=/usr/share/novnc 6080 localhost:5900 &
-   # второй терминал:
-   Xvfb :1 -screen 0 1600x900x24 &
-   DISPLAY=:1 startxfce4 &
-   ```
-3. В портах Codespace сделайте порт `6080` публичным и откройте `https://<codespace>-6080.app.github.dev/vnc.html`.
-   Это рабочий стол в браузере телефона.
-4. Скачайте и запустите Unity Hub (Linux AppImage с <https://unity.com/download>):
+Порядок в двух словах: репозиторий → **Code → Codespaces → Create codespace** (ветка с этими файлами) →
+порт **6080** в браузере (пароль VNC `unity`) → в Hub `Preferences → Licenses → Add → Get a free personal
+license` → в терминале `bash tools/license/set-secrets.sh ваш@e-mail` → **Sign out** из Hub → удалить Codespace.
 
-   ```bash
-   wget -O ~/UnityHub.AppImage "https://public-cdn.cloud.unity3d.com/hub/prod/UnityHub.AppImage"
-   chmod +x ~/UnityHub.AppImage
-   DISPLAY=:1 ~/UnityHub.AppImage --no-sandbox
-   ```
-5. Дальше — как в пути A: вход, `Preferences → Licenses → Add → Get a free personal license`,
-   затем файл `~/.local/share/unity3d/Unity/Unity_lic.ulf` (в терминале: `cat ~/.local/share/unity3d/Unity/Unity_lic.ulf`).
-
-> Честно: путь B занимает 20–40 минут и требует аккуратности. Если есть возможность взять чужой
-> ноутбук на 10 минут — путь A проще.
+Ограничения: бесплатная квота Codespaces — 120 core-часов и 15 ГБ в месяц (машина на 2 ядра = 60 часов),
+Codespace засыпает через 30 минут простоя. Лицензия Unity Personal привязана к аккаунту, а не к машине —
+поэтому «облачный» `.ulf` для GameCI ничем не хуже локального.
 
 ### Путь C (вообще без лицензии) — Unity Build Automation
 
