@@ -25,7 +25,9 @@ Assets/Settings.meta
 
 # ---- IDE / project files ----
 .vs/
-.vscode/
+.vscode/*
+# но кнопки-задачи для телефонного сценария оставляем в репозитории
+!.vscode/tasks.json
 .idea/
 *.csproj
 *.unityproj

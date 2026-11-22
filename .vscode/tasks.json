@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1. Записать секреты Unity в GitHub",
+      "type": "shell",
+      "command": "bash tools/license/set-secrets.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "2. Показать ссылку на рабочий стол (порт 6080)",
+      "type": "shell",
+      "command": "bash tools/license/start-unityhub.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "3. Переустановить Unity Hub",
+      "type": "shell",
+      "command": "bash tools/license/install-unityhub.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "4. Показать лицензию для ручной вставки",
+      "type": "shell",
+      "command": "bash tools/license/set-secrets.sh --print",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    }
+  ]
+}

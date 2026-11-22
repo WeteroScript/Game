@@ -64,20 +64,24 @@
 
 ## Шаг 5. Записать секреты
 
-Вернитесь из десктопа в **терминал веб-VS Code** (панель Terminal, не в VNC) и выполните одну команду:
+Вернитесь из десктопа в **терминал веб-VS Code** (панель Terminal, не в VNC).
+
+**Самый простой способ — без набора путей:** меню `≡` → **Terminal → Run Task** →
+**«1. Записать секреты Unity в GitHub»**.
+Ручной вариант той же команды:
 
 ```bash
-bash tools/license/set-secrets.sh you@example.com
+bash tools/license/set-secrets.sh
 ```
 
-Скрипт сам найдёт `.ulf`, проверит его и запишет три секрета:
-`UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` (пароль спросит один раз, ввод не отображается).
+Скрипт сам найдёт `.ulf`, проверит его, спросит e-mail и пароль Unity (пароль — ввод скрыт) и запишет три
+секрета: `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD`.
 
 Если появится `403` / «нет прав на secrets» — токен Codespaces ограничен. Тогда:
 
 ```bash
 gh auth login --web     # введите код на github.com/login/device (это удобно с телефона)
-bash tools/license/set-secrets.sh you@example.com
+bash tools/license/set-secrets.sh
 ```
 
 Совсем запасной путь (ручная вставка): `bash tools/license/set-secrets.sh --print`, затем скопировать
@@ -117,7 +121,7 @@ bash tools/license/set-secrets.sh you@example.com
 | «There was a problem activating a new personal license» | В терминале десктопа: `pkill -9 -f Unity.Licensing.Client`, удалить старый `~/.local/share/unity3d/Unity/Unity_lic.ulf`, перезапустить Hub и повторить **Add**. Лог: `~/.config/unity3d/Unity/Unity.Licensing.Client.log` |
 | Лицензия есть в Hub, а `.ulf` нет | Нажать **Add** ещё раз (см. предупреждение в шаге 4) |
 | `set-secrets.sh`: `.ulf` не найден | Та же причина: лицензия без нажатия **Add**. Либо искать вручную: `find ~ -name '*.ulf'` |
-| `set-secrets.sh`: 403 | `gh auth login --web`, затем повторить; либо вариант с `--print` |
+| `set-secrets.sh`: 403 | `gh auth login --web`, затем повторить; либо `--print` и вставка руками |
 | CI: «No valid Unity license» | Секрет `UNITY_LICENSE` обрезан или записан не целиком |
 | CI: «A license is already in use» | Остался вход в Hub (шаг 6) либо параллельно идёт другая сборка — workflow уже ограничен `concurrency` |
 | Codespace «stopped» после паузы | Он засыпает после 30 минут простоя. Откройте его снова — Hub поднимется автоматически |
