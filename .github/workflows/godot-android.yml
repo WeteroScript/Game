@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   # нужно, чтобы при падении сборки запостить лог ошибок комментарием в PR
   pull-requests: write
 
@@ -169,3 +169,17 @@ jobs:
           path: build/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      # На main дополнительно публикуем APK в Releases: оттуда файл
+      # скачивается с телефона одной ссылкой, без распаковки архива.
+      - name: Publish an APK release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="build-$(date -u +%Y%m%d-%H%M%S)"
+          gh release create "$tag" build/KugooFreeride.apk \
+            --title "Kugoo Freeride APK $tag" \
+            --notes "Автоматическая сборка из коммита $GITHUB_SHA. Android 7+ (arm64), отладочная подпись. Скачайте KugooFreeride.apk и установите на телефон."
+          echo "Релиз: https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag"
+
