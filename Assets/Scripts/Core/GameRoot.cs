@@ -177,11 +177,25 @@ namespace ScooterGame
                 ? GameConfig.FreestyleDuration
                 : (mode == GameMode.TimeAttack ? GameConfig.TimeAttackLimit : float.MaxValue);
 
-            _world = WorldBuilder.Build(map);
+            try
+            {
+                _world = WorldBuilder.Build(map);
 
-            ScooterSpec spec = ScooterSpec.Get(scooterId);
-            _scooter = ScooterFactory.Build(spec, _world.Root, _world.SpawnPosition, _world.SpawnRotation);
-            _scooter.SetRespawnPoint(_world.SpawnPosition, _world.SpawnRotation);
+                ScooterSpec spec = ScooterSpec.Get(scooterId);
+                _scooter = ScooterFactory.Build(spec, _world.Root, _world.SpawnPosition, _world.SpawnRotation);
+                _scooter.SetRespawnPoint(_world.SpawnPosition, _world.SpawnRotation);
+            }
+            catch (System.Exception exception)
+            {
+                // A broken world build must not lock the game: log it and go back to the menu.
+                Debug.LogException(exception);
+                TeardownWorld();
+                if (_gameLayer != null) _gameLayer.SetActive(false);
+                if (_menu != null) _menu.Show();
+                _running = false;
+                return;
+            }
+
             _scooter.OnCrash += HandleCrash;
             _scooter.OnRespawn += HandleRespawn;
 
