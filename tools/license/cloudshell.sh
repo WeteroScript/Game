@@ -31,7 +31,8 @@ HUB_BIN=""
 say() { printf '%s\n' "$*"; }
 die() { say ""; say "[fail] $*"; exit 1; }
 
-say "=== Unity Hub в Google Cloud Shell ==="
+SCRIPT_VERSION="2026-11-22c"
+say "=== Unity Hub в Google Cloud Shell (скрипт $SCRIPT_VERSION) ==="
 
 # --- 1. Пакеты --------------------------------------------------------------
 say "[1/5] Ставлю рабочий стол (2-4 минуты)..."
@@ -96,10 +97,10 @@ fi
 
 if [ -z "$HUB_BIN" ] || [ ! -x "$HUB_BIN" ]; then
   say "  -> apt не сработал, беру AppImage (~150 МБ)..."
-  img="/tmp/UnityHub-x86_64.AppImage"
+  img="${HUB_APPIMAGE:-/tmp/UnityHub-x86_64.AppImage}"
   if [ ! -f "$img" ] || [ "$(stat -c%s "$img" 2>/dev/null || echo 0)" -lt 50000000 ]; then
     curl -fL --retry 2 --connect-timeout 20 -o "$img" "$APPIMAGE_URL" \
-      || die "Не скачался AppImage ($APPIMAGE_URL). Скачайте на телефоне с https://unity.com/download, загрузите сюда через меню Cloud Shell (⋮ -> Upload) и повторите."
+      || die "Не скачался AppImage ($APPIMAGE_URL). Скачайте файл на телефоне с https://unity.com/download (Linux), загрузите его в Cloud Shell (меню ⋮ -> Upload) и запустите: HUB_APPIMAGE=/путь/UnityHub.AppImage bash /tmp/u.sh < /dev/null"
   fi
   [ "$(head -c 4 "$img")" = "$(printf '\x7fELF')" ] || die "Скачался не бинарник"
   chmod +x "$img"

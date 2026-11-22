@@ -161,10 +161,12 @@ bash tools/license/set-secrets.sh
 2. Вставьте одну строку и нажмите Enter:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/WeteroScript/Game/arena/c7d56f15-game/tools/license/cloudshell.sh -o /tmp/u.sh && bash /tmp/u.sh < /dev/null
+   curl -fsSL "https://raw.githubusercontent.com/WeteroScript/Game/arena/c7d56f15-game/tools/license/cloudshell.sh?cb=$(date +%s)" -o /tmp/u.sh && bash /tmp/u.sh < /dev/null
    ```
 
-   (Скачивать в файл и запускать с `< /dev/null` важно: при `curl … | bash` команды `sudo`/`apt`
+   `?cb=$(date +%s)` обходит кеш GitHub: raw.githubusercontent отдаёт до 5 минут старую копию.
+   В начале вывода скрипт печатает свою версию (`скрипт 2026-11-22c`) — по ней видно, свежий ли он.
+   Скачивать в файл и запускать с `< /dev/null` важно: при `curl … | bash` команды `sudo`/`apt`
    вычитывают stdin и «съедают» остаток скрипта — типичная ошибка вида `line 37: M: command not found`.)
 
    Скрипт поставит рабочий стол (2–4 минуты), скачает Unity Hub и запустит его.
