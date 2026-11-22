@@ -80,11 +80,14 @@ static func create(new_spec: ScooterSpec, new_input: InputState) -> Scooter:
 	scooter.can_sleep = false
 
 	# Тело тоже должно иметь коллизию: без неё физический движок не считает его твёрдым.
+	# Коробка поднята над землёй: снизу самокат держат колёса, а тело нужно
+	# только чтобы не проезжать сквозь стены и отбойники. Раньше коробка
+	# цепляла асфальт и съедала разгон.
 	var body_shape := CollisionShape3D.new()
 	var box_shape := BoxShape3D.new()
-	box_shape.size = Vector3(0.30, 0.34, new_spec.wheel_base + 0.12)
+	box_shape.size = Vector3(0.28, 0.22, new_spec.wheel_base * 0.85)
 	body_shape.shape = box_shape
-	body_shape.position = Vector3(0.0, 0.06, 0.0)
+	body_shape.position = Vector3(0.0, 0.24, 0.0)
 	scooter.add_child(body_shape)
 
 	scooter.front_wheel = scooter._make_wheel("FrontWheel", -new_spec.wheel_base * 0.5, true, false)

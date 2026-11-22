@@ -208,16 +208,33 @@ func _start_smoke() -> void:
 	_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.FREE_RIDE)
 
 
+func _telemetry() -> String:
+	if scooter == null:
+		return "no scooter"
+	return "speed=%.1f km/h dist=%.1f m throttle=%.2f force=%.0f grounded=%s battery=%.0f%% crashes=%d" % [
+		scooter.speed_kmh(), scooter.distance_meters, scooter.throttle_input,
+		scooter.current_force, str(scooter.is_grounded()), scooter.battery_percent(),
+		scooter.crash_count,
+	]
+
+
 func _tick_smoke(delta: float) -> void:
 	_smoke_timer += delta
 
 	# Фаза 1: G4 на трассе. Фаза 2: F3 Pro Max в городе с полным приводом.
-	if _smoke_phase == 0 and _smoke_timer > 9.0:
+	if _smoke_phase == 0 and _smoke_timer > 8.0:
 		_smoke_phase = 1
+		print("SMOKE phase 1 end: %s" % _telemetry())
 		_start_run("f3_pro_max", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
 		if scooter != null:
+			print("SMOKE phase 2: F3 Pro Max, city, drive=%d (AWD=1)" % scooter.drive_mode)
 			scooter.toggle_drive()
-			print("SMOKE phase 2: F3 Pro Max, city, drive=%d" % scooter.drive_mode)
+			print("SMOKE phase 2: after toggle drive=%d (RWD=0)" % scooter.drive_mode)
+			scooter.toggle_drive()
+			print("SMOKE phase 2: after toggle back drive=%d" % scooter.drive_mode)
+
+	if fmod(_smoke_timer, 2.0) < delta:
+		print("SMOKE t=%.1f %s" % [_smoke_timer, _telemetry()])
 
 	if state != State.RUNNING:
 		return
@@ -231,13 +248,9 @@ func _tick_smoke(delta: float) -> void:
 		scooter.crash("smoke test")
 		print("SMOKE forced crash")
 
-	if _smoke_timer > 18.0:
-		print("SMOKE OK speed=%.1f km/h distance=%.1f m score=%d tricks=%d crashes=%d state=%d" % [
-			scooter.speed_kmh() if scooter != null else 0.0,
-			scooter.distance_meters if scooter != null else 0.0,
-			tricks.score, tricks.trick_count,
-			scooter.crash_count if scooter != null else 0,
-			state,
+	if _smoke_timer > 16.0:
+		print("SMOKE OK %s score=%d tricks=%d state=%d" % [
+			_telemetry(), tricks.score, tricks.trick_count, state,
 		])
 		get_tree().quit()
 
