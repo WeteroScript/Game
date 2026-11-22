@@ -1,0 +1,112 @@
+# Сборка APK без Unity: Godot 4 + Android SDK прямо на runner'е.
+# Никаких секретов не требуется — keystore отладочный и генерируется в этом же job'е.
+name: Build Android APK (Godot)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: godot-android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.3.0
+  EXPORT_PRESET: Android
+  PROJECT_PATH: godot
+
+jobs:
+  build:
+    name: Build APK (Godot 4.3 · Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot + export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: true
+
+      - name: Check Godot
+        run: godot --version
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platform-tools" "build-tools;34.0.0" "platforms;android-34"
+
+      - name: Generate debug keystore
+        run: |
+          rm -f /tmp/debug.keystore
+          keytool -keyalg RSA -genkeypair \
+            -alias androiddebugkey -keypass android \
+            -keystore /tmp/debug.keystore -storepass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -validity 9999 -deststoretype pkcs12
+
+      - name: Point Godot editor settings at the SDK/JDK
+        run: |
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-4.3.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF
+          cat "$HOME/.config/godot/editor_settings-4.3.tres"
+
+      - name: Import project resources
+        run: godot --headless --path "$PROJECT_PATH" --import || true
+
+      - name: Check every GDScript file
+        run: |
+          set +e
+          failed=0
+          while IFS= read -r file; do
+            rel="${file#$PROJECT_PATH/}"
+            echo "--- $rel"
+            godot --headless --path "$PROJECT_PATH" --check-only --script "res://$rel" 2>&1 | tail -5
+            if [ "${PIPESTATUS[0]}" -ne 0 ]; then failed=1; fi
+          done < <(find "$PROJECT_PATH/scripts" -name '*.gd' | sort)
+          exit $failed
+
+      - name: Smoke run (3 seconds of headless gameplay)
+        run: |
+          timeout 25 godot --headless --path "$PROJECT_PATH" --quit-after 180 2>&1 | tee /tmp/run.log
+          if grep -qE "SCRIPT ERROR|Parse Error|Invalid call" /tmp/run.log; then
+            echo "::error::Ошибка в рантайме, смотрите лог выше"
+            exit 1
+          fi
+
+      - name: Export APK
+        run: |
+          mkdir -p build
+          godot --headless --path "$PROJECT_PATH" --export-debug "$EXPORT_PRESET" "$GITHUB_WORKSPACE/build/KugooFreeride.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: KugooFreeride-apk
+          path: build/*.apk
+          if-no-files-found: error
+          retention-days: 30
