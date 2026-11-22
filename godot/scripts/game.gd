@@ -216,10 +216,17 @@ func _telemetry() -> String:
 		str(scooter.front_wheel.is_in_contact() if scooter.front_wheel != null else false),
 		str(scooter.rear_wheel.is_in_contact() if scooter.rear_wheel != null else false),
 	]
-	return "speed=%.1f km/h dist=%.1f m y=%.2f contact=%s throttle=%.2f force=%.0f grounded=%s battery=%.0f%% crashes=%d" % [
-		scooter.speed_kmh(), scooter.distance_meters, pos.y, contact,
-		scooter.throttle_input, scooter.current_force, str(scooter.is_grounded()),
-		scooter.battery_percent(), scooter.crash_count,
+	var wheelie_state := "off"
+	if scooter.wheelie != null:
+		wheelie_state = "on" if scooter.wheelie.active else "off"
+		if scooter.wheelie.in_balance_zone:
+			wheelie_state = "zone"
+	return "%s speed=%.1f km/h dist=%.1f m y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s throttle=%.2f force=%.0f grounded=%s battery=%.0f%% crashes=%d last=%s" % [
+		scooter.spec.id, scooter.speed_kmh(), scooter.distance_meters, pos.y,
+		scooter.pitch_deg, scooter.max_pitch_deg, scooter.roll_deg, contact,
+		wheelie_state, scooter.throttle_input, scooter.current_force,
+		str(scooter.is_grounded()), scooter.battery_percent(),
+		scooter.crash_count, scooter.last_crash_reason,
 	]
 
 
@@ -230,7 +237,7 @@ func _tick_smoke(delta: float) -> void:
 	if _smoke_phase == 0 and _smoke_timer > 8.0:
 		_smoke_phase = 1
 		print("SMOKE phase 1 end: %s" % _telemetry())
-		_start_run("f3_pro_max", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
+		_start_run("f3", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
 		if scooter != null:
 			print("SMOKE phase 2: F3 Pro Max, city, drive=%d (AWD=1)" % scooter.drive_mode)
 			scooter.toggle_drive()

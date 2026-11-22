@@ -55,6 +55,9 @@ var stoppie_time := 0.0
 var is_crashed := false
 var crash_reason := ""
 var crash_count := 0
+## Причина последнего падения — остаётся после респауна, удобно для логов.
+var last_crash_reason := ""
+var max_pitch_deg := 0.0
 var crash_timer := 0.0
 var input_enabled := true
 
@@ -233,6 +236,7 @@ func _update_kinematics(delta: float) -> void:
 
 	var fwd := -basis.z
 	pitch_deg = rad_to_deg(atan2(fwd.y, Vector2(fwd.x, fwd.z).length()))
+	max_pitch_deg = maxf(max_pitch_deg, pitch_deg)
 	roll_deg = rad_to_deg(asin(clampf(basis.x.y, -1.0, 1.0)))
 	# Положительный pitch_rate — нос идёт вверх (вращение вокруг локальной +X).
 	pitch_rate = angular_velocity.dot(basis.x)
@@ -471,6 +475,7 @@ func crash(reason: String) -> void:
 	is_crashed = true
 	crash_count += 1
 	crash_reason = reason
+	last_crash_reason = reason
 	crash_timer = 0.0
 	set_input_enabled(false)
 	if wheelie != null:

@@ -114,9 +114,9 @@ static func create_g4() -> ScooterSpec:
 
 	# RWD: легче поднять, сложнее удержать баланс.
 	s.wheelie_lift_time = 0.75
-	s.wheelie_balance_gain = 128.0
-	s.wheelie_balance_damping = 7.5
-	s.wheelie_max_torque = 470.0
+	s.wheelie_balance_gain = 700.0
+	s.wheelie_balance_damping = 220.0
+	s.wheelie_max_torque = 300.0
 	s.wheelie_equilibrium = 37.0
 
 	s.frame_color = Color(0.085, 0.088, 0.095)
@@ -167,9 +167,9 @@ static func create_f3_pro_max() -> ScooterSpec:
 
 	# AWD: передний мотор тянет вниз — поднимать тяжелее, но баланс стабильнее.
 	s.wheelie_lift_time = 0.8
-	s.wheelie_balance_gain = 168.0
-	s.wheelie_balance_damping = 14.0
-	s.wheelie_max_torque = 430.0
+	s.wheelie_balance_gain = 780.0
+	s.wheelie_balance_damping = 240.0
+	s.wheelie_max_torque = 280.0
 	s.wheelie_equilibrium = 39.0
 
 	s.frame_color = Color(0.10, 0.10, 0.105)
