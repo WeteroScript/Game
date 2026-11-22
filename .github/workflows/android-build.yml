@@ -1,9 +1,8 @@
 name: Build Android APK
 
+# Unity-путь выведен из автозапуска: рабочая сборка теперь в godot-android.yml.
+# Этот workflow оставлен только для ручного запуска, если понадобится Unity-версия.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
