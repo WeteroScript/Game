@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: read
+  # нужно, чтобы при падении сборки запостить лог ошибок комментарием в PR
+  pull-requests: write
 
 concurrency:
   group: godot-android-${{ github.ref }}
@@ -91,18 +93,36 @@ jobs:
         run: |
           set +e
           failed=0
+          : > /tmp/report.md
+          echo "### Ошибки GDScript" >> /tmp/report.md
+          echo '```' >> /tmp/report.md
           while IFS= read -r file; do
             rel="${file#$PROJECT_PATH/}"
-            echo "--- $rel"
-            godot --headless --path "$PROJECT_PATH" --check-only --script "res://$rel" 2>&1 | tail -5
-            if [ "${PIPESTATUS[0]}" -ne 0 ]; then failed=1; fi
+            out=$(godot --headless --path "$PROJECT_PATH" --check-only --script "res://$rel" 2>&1)
+            code=$?
+            if [ "$code" -ne 0 ]; then
+              failed=1
+              printf '\n--- %s\n%s\n' "$rel" "$out" >> /tmp/report.md
+              printf '\n--- %s\n%s\n' "$rel" "$out"
+            fi
           done < <(find "$PROJECT_PATH/scripts" -name '*.gd' | sort)
-          exit $failed
+          echo '```' >> /tmp/report.md
+          if [ "$failed" -ne 0 ]; then
+            echo "Есть ошибки — см. /tmp/report.md"
+            exit 1
+          fi
+          echo "Все скрипты разобраны без ошибок"
 
       - name: Smoke run (3 seconds of headless gameplay)
         run: |
-          timeout 25 godot --headless --path "$PROJECT_PATH" --quit-after 180 2>&1 | tee /tmp/run.log
-          if grep -qE "SCRIPT ERROR|Parse Error|Invalid call" /tmp/run.log; then
+          timeout 40 godot --headless --path "$PROJECT_PATH" --quit-after 240 2>&1 | tee /tmp/run.log
+          if grep -qE "SCRIPT ERROR|Parse Error|Invalid call|Cannot call method|Nonexistent function" /tmp/run.log; then
+            {
+              echo "### Ошибки при запуске игры"
+              echo '```'
+              grep -nE "SCRIPT ERROR|Parse Error|Invalid call|Cannot call method|Nonexistent function|at: " /tmp/run.log | head -60
+              echo '```'
+            } > /tmp/report.md
             echo "::error::Ошибка в рантайме, смотрите лог выше"
             exit 1
           fi
@@ -111,6 +131,15 @@ jobs:
         run: |
           mkdir -p build
           godot --headless --path "$PROJECT_PATH" --export-debug "$EXPORT_PRESET" "$GITHUB_WORKSPACE/build/KugooFreeride.apk"
+
+      - name: Report failure in the pull request
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -s /tmp/report.md ]; then
+            gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/report.md
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
