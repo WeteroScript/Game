@@ -24,6 +24,8 @@
    Официальные доки GameCI: <https://game.ci/docs/github/activation>
    **Не хотите вообще заводить секреты?** Варианты без них (Unity Build Automation, разовая сборка
    в Codespace) разобраны в [`docs/BUILD-WITHOUT-SECRETS.md`](docs/BUILD-WITHOUT-SECRETS.md).
+   **Совсем не получается активировать лицензию с телефона?** Готовая пошаговая инструкция для
+   Unity Build Automation (APK без лицензии и без секретов): [`docs/BUILD-UBA.md`](docs/BUILD-UBA.md).
 
 2. Запушьте в `main` (или запустите workflow вручную: **Actions → Build Android APK → Run workflow**).
 3. Дождитесь зелёного прогона → **Actions → выбранный run → Artifacts → `AndroidBuild`** → внутри `KugooFreeride.apk`.
