@@ -44,6 +44,11 @@ func _mat(color: Color, metallic: float, roughness: float, emission := false) ->
 
 ## Возвращает словарь с точкой старта: {"spawn": Vector3, "basis": Basis}.
 func build(map_id: int, parent: Node3D) -> Dictionary:
+	# Одна огромная «земля» под обеими картами: раньше доехавший дальше конца
+	# трассы игрок просто падал в пустоту.
+	_solid(parent, Vector3(2400.0, 0.3, 2400.0), Vector3(0.0, -0.55, -400.0),
+		_grass, Vector3.ZERO, true)
+
 	if map_id == GameConfig.MapId.CITY:
 		return _build_city(parent)
 	return _build_straight_track(parent)

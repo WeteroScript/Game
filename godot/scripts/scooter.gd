@@ -480,6 +480,10 @@ func _check_failures() -> void:
 		# падением через руль, потому что нос в полёте опускается ниже -26°.
 		crash("Endo — через руль")
 
+	# Уехал за край мира — возвращаем на трассу.
+	if global_position.y < -6.0:
+		crash("Улетел за карту")
+
 	# Застрял в стене с полным газом — сами возвращаем на трассу.
 	if throttle_input > 0.85 and absf(speed_mps) < 0.6 and is_grounded():
 		stuck_time += get_physics_process_delta_time()
