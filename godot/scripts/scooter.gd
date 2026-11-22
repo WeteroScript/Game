@@ -405,7 +405,9 @@ func _apply_balance() -> void:
 	var lean_factor := clampf(speed_abs / GameConfig.LEAN_INTO_TURN_FULL_SPEED, 0.0, 1.0)
 	var target_roll := -steer_input * GameConfig.LEAN_INTO_TURN_MAX_ANGLE * lean_factor
 	var roll_error := deg_to_rad(target_roll - roll_deg)
-	var roll_rate := angular_velocity.dot(-global_transform.basis.z)
+	# Момент крена положителен вокруг локальной +Z, поэтому и скорость крена
+	# считаем по +Z: со знаком минус демпфирование превращалось в раскачку.
+	var roll_rate := angular_velocity.dot(global_transform.basis.z)
 	var support := 1.0 if is_grounded() else 0.12
 
 	var roll_torque := roll_error * GameConfig.ROLL_STABILITY_GAIN - roll_rate * GameConfig.ROLL_STABILITY_DAMPING

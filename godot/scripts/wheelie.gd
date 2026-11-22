@@ -74,12 +74,17 @@ func tick(delta: float, held: bool, throttle: float, body_pitch_input: float,
 	target = clampf(target * clampf(lift_progress, 0.0, 1.0), 0.0, 80.0)
 	target_pitch = target
 
-	# Только PD по углу: постоянный «гравитационный» момент раньше переворачивал
-	# самокат за долю секунды, потому что его нечем было уравновесить.
+	# Статический момент: столько нужно, чтобы держать раму поднятой.
+	# Раньше он был без демпфирования и переворачивал самокат — теперь PD
+	# с почти критическим демпфированием гасит разгон.
+	var pivot_distance := 0.5
+	var gravity_torque := spec.mass_kg * GameConfig.GRAVITY * pivot_distance \
+		* cos(deg_to_rad(clampf(pitch, 0.0, 89.0)))
+
 	var error := deg_to_rad(target - pitch)
 	var rate: float = _scooter.pitch_rate
 
-	var torque: float = error * spec.wheelie_balance_gain - rate * spec.wheelie_balance_damping
+	var torque: float = gravity_torque + error * spec.wheelie_balance_gain - rate * spec.wheelie_balance_damping
 	torque = clampf(torque, -spec.wheelie_max_torque, spec.wheelie_max_torque)
 	_scooter.apply_nose_up_torque(torque)
 
