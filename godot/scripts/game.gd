@@ -197,6 +197,10 @@ func _back_to_menu() -> void:
 
 
 # ---- автотест ---------------------------------------------------------------
+# Сценарий для CI (`godot --headless --fixed-fps 60 -- --smoke`):
+#   1) G4 на прямой трассе: разгон, удержание вилли, принудительное падение;
+#   2) F3 Pro Max в городе с AWD: переключение привода, езда до финиша Freestyle;
+#   3) экран результатов, затем выход с итоговыми числами.
 func _start_smoke() -> void:
 	_smoke = true
 	_smoke_timer = 0.0
@@ -221,11 +225,11 @@ func _telemetry() -> String:
 		wheelie_state = "on" if scooter.wheelie.active else "off"
 		if scooter.wheelie.in_balance_zone:
 			wheelie_state = "zone"
-	return "%s speed=%.1f km/h dist=%.1f m y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s throttle=%.2f force=%.0f grounded=%s battery=%.0f%% crashes=%d last=%s" % [
+	return "%s speed=%.1f dist=%.1f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s gas=%.2f score=%d combo=%.2f battery=%.0f%% crashes=%d last=%s" % [
 		scooter.spec.id, scooter.speed_kmh(), scooter.distance_meters, pos.y,
 		scooter.pitch_deg, scooter.max_pitch_deg, scooter.roll_deg, contact,
-		wheelie_state, scooter.throttle_input, scooter.current_force,
-		str(scooter.is_grounded()), scooter.battery_percent(),
+		wheelie_state, scooter.throttle_input, tricks.score,
+		tricks.combo_multiplier(), scooter.battery_percent(),
 		scooter.crash_count, scooter.last_crash_reason,
 	]
 
@@ -233,38 +237,48 @@ func _telemetry() -> String:
 func _tick_smoke(delta: float) -> void:
 	_smoke_timer += delta
 
-	# Фаза 1: G4 на трассе. Фаза 2: F3 Pro Max в городе с полным приводом.
-	if _smoke_phase == 0 and _smoke_timer > 8.0:
+	# Фаза 1 → фаза 2: другой самокат, другая карта, режим с таймером.
+	if _smoke_phase == 0 and _smoke_timer > 12.0:
 		_smoke_phase = 1
 		print("SMOKE phase 1 end: %s" % _telemetry())
 		_start_run("f3", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
 		if scooter != null:
-			print("SMOKE phase 2: F3 Pro Max, city, drive=%d (AWD=1)" % scooter.drive_mode)
+			print("SMOKE phase 2: drive=%d (AWD=1)" % scooter.drive_mode)
 			scooter.toggle_drive()
 			print("SMOKE phase 2: after toggle drive=%d (RWD=0)" % scooter.drive_mode)
 			scooter.toggle_drive()
-			print("SMOKE phase 2: after toggle back drive=%d" % scooter.drive_mode)
+		return
 
-	if fmod(_smoke_timer, 2.0) < delta:
-		print("SMOKE t=%.1f %s" % [_smoke_timer, _telemetry()])
+	# Фаза 2 → финиш: ждём, пока истечёт таймер Freestyle, и проверяем результаты.
+	if _smoke_phase == 1 and state == State.FINISHED:
+		_smoke_phase = 2
+		print("SMOKE finished: %s results_visible=%s time_left=%.1f" % [
+			_telemetry(), str(results_root != null and results_root.visible), time_left,
+		])
+		print("SMOKE OK %s" % _telemetry())
+		get_tree().quit()
+		return
+
+	if _smoke_timer > 150.0:
+		print("SMOKE TIMEOUT %s" % _telemetry())
+		get_tree().quit(1)
+		return
 
 	if state != State.RUNNING:
 		return
 
 	input_state.touch_throttle = 1.0
-	input_state.touch_steer = sin(_smoke_timer * 0.9) * 0.7
-	input_state.touch_wheelie = _smoke_timer > 3.0 and _smoke_timer < 6.0
+	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35
 
-	if not _smoke_crashed and _smoke_timer > 7.0 and scooter != null:
-		_smoke_crashed = true
-		scooter.crash("smoke test")
-		print("SMOKE forced crash")
+	if _smoke_phase == 0:
+		input_state.touch_wheelie = _smoke_timer > 3.0 and _smoke_timer < 9.5
+		if not _smoke_crashed and _smoke_timer > 10.5 and scooter != null:
+			_smoke_crashed = true
+			scooter.crash("smoke test")
+			print("SMOKE forced crash")
 
-	if _smoke_timer > 16.0:
-		print("SMOKE OK %s score=%d tricks=%d state=%d" % [
-			_telemetry(), tricks.score, tricks.trick_count, state,
-		])
-		get_tree().quit()
+	if fmod(_smoke_timer, 3.0) < delta:
+		print("SMOKE t=%.1f %s" % [_smoke_timer, _telemetry()])
 
 
 # ---- кадр -------------------------------------------------------------------
