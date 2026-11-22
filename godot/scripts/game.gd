@@ -211,10 +211,15 @@ func _start_smoke() -> void:
 func _telemetry() -> String:
 	if scooter == null:
 		return "no scooter"
-	return "speed=%.1f km/h dist=%.1f m throttle=%.2f force=%.0f grounded=%s battery=%.0f%% crashes=%d" % [
-		scooter.speed_kmh(), scooter.distance_meters, scooter.throttle_input,
-		scooter.current_force, str(scooter.is_grounded()), scooter.battery_percent(),
-		scooter.crash_count,
+	var pos := scooter.global_position
+	var contact := "%s/%s" % [
+		str(scooter.front_wheel.is_in_contact() if scooter.front_wheel != null else false),
+		str(scooter.rear_wheel.is_in_contact() if scooter.rear_wheel != null else false),
+	]
+	return "speed=%.1f km/h dist=%.1f m y=%.2f contact=%s throttle=%.2f force=%.0f grounded=%s battery=%.0f%% crashes=%d" % [
+		scooter.speed_kmh(), scooter.distance_meters, pos.y, contact,
+		scooter.throttle_input, scooter.current_force, str(scooter.is_grounded()),
+		scooter.battery_percent(), scooter.crash_count,
 	]
 
 

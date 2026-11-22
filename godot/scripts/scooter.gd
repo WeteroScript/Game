@@ -85,9 +85,9 @@ static func create(new_spec: ScooterSpec, new_input: InputState) -> Scooter:
 	# цепляла асфальт и съедала разгон.
 	var body_shape := CollisionShape3D.new()
 	var box_shape := BoxShape3D.new()
-	box_shape.size = Vector3(0.28, 0.22, new_spec.wheel_base * 0.85)
+	box_shape.size = Vector3(0.26, 0.18, new_spec.wheel_base * 0.8)
 	body_shape.shape = box_shape
-	body_shape.position = Vector3(0.0, 0.24, 0.0)
+	body_shape.position = Vector3(0.0, 0.25, 0.0)
 	scooter.add_child(body_shape)
 
 	scooter.front_wheel = scooter._make_wheel("FrontWheel", -new_spec.wheel_base * 0.5, true, false)

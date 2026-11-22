@@ -27,7 +27,10 @@ const COUNTDOWN_SECONDS := 3.0
 
 # ---- Подвеска ---------------------------------------------------------------
 const SUSPENSION_TRAVEL := 0.09
-const SUSPENSION_STIFFNESS := 38.0
+## Bullet умножает жёсткость пружины на массу шасси, поэтому для 37-килограммового
+## самоката 38 — это «мягкий диван»: подвеска пробивалась и тело ложилось на асфальт.
+## 160 даёт ~50 % хода под весом самоката.
+const SUSPENSION_STIFFNESS := 160.0
 const SUSPENSION_MAX_FORCE := 22000.0
 const DAMPING_COMPRESSION := 2.6
 const DAMPING_RELAXATION := 3.4
