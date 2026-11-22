@@ -17,7 +17,9 @@
    | `UNITY_EMAIL` | e-mail аккаунта Unity |
    | `UNITY_PASSWORD` | пароль аккаунта Unity |
 
-   Инструкция по получению `.ulf`: <https://game.ci/docs/github/activation>
+   **Подробная инструкция, где это взять (в том числе если нет ПК): [`docs/LICENSE.md`](docs/LICENSE.md).**
+   Кратко: Unity ID регистрируется с телефона, а `.ulf` создаётся Unity Hub один раз на любом компьютере
+   (Editor ставить не нужно, хватит 10 минут). Официальные доки GameCI: <https://game.ci/docs/github/activation>
 
 2. Запушьте в `main` (или запустите workflow вручную: **Actions → Build Android APK → Run workflow**).
 3. Дождитесь зелёного прогона → **Actions → выбранный run → Artifacts → `AndroidBuild`** → внутри `KugooFreeride.apk`.
