@@ -139,7 +139,47 @@ bash tools/license/set-secrets.sh
 | CI: «No valid Unity license» | Секрет `UNITY_LICENSE` обрезан или записан не целиком |
 | CI: «A license is already in use» | Остался вход в Hub (шаг 6) либо параллельно идёт другая сборка — workflow уже ограничен `concurrency` |
 | Codespace «stopped» после паузы | Он засыпает после 30 минут простоя. Откройте его снова — Hub поднимется автоматически |
-| Закончилась квота Codespaces | 120 core-часов/15 ГБ в месяц на личный аккаунт; удалите ненужные Codespaces, квота обновится в новый расчётный период |
+| Закончилась квота Codespaces («You are out of monthly free usage…») | Смотрите раздел ниже — тот же рабочий стол поднимается в Google Cloud Shell, без квоты GitHub |
+
+## Если квота Codespaces закончилась (или Codespaces недоступны)
+
+Сообщение «You are out of monthly free usage or have exceeded your budget for Codespaces» значит, что
+израсходованы 120 core-часов (60 часов на машине с 2 ядрами) или 15 ГБ·мес хранилища. Обнулится в новый
+расчётный период. Что можно сделать бесплатно:
+
+1. **Удалить старые Codespaces** — они продолжают занимать хранилище:
+   <https://github.com/codespaces> → `...` → **Delete**. Иногда этого хватает, чтобы доступ вернулся.
+2. Поставить короткий таймаут простоя: <https://github.com/settings/codespaces> → **Default idle timeout** → 10 минут.
+3. Дождаться нового месяца — либо идти путём ниже, он не использует квоту GitHub вообще.
+
+### Путь без Codespaces: Google Cloud Shell
+
+Бесплатно, без банковской карты, только Google-аккаунт. Даёт root-терминал в браузере и «Web Preview»,
+который открывает порт прямо на телефоне — то же самое, что даёт Codespaces.
+
+1. Откройте <https://shell.cloud.google.com> и разрешите доступ (первый запуск ~1 минута).
+2. Вставьте одну строку и нажмите Enter:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/WeteroScript/Game/arena/c7d56f15-game/tools/license/cloudshell.sh | bash
+   ```
+
+   Скрипт поставит рабочий стол (2–4 минуты), скачает Unity Hub и запустит его.
+3. Кнопка **Web Preview** (иконка глаза в панели инструментов) → **Change port** → **8080** → **Preview**.
+   Откроется рабочий стол с уже запущенным Unity Hub, пароль не нужен.
+4. В Hub: вход → `Preferences → Licenses → Add → Get a free personal license → Agree`.
+5. Вернитесь в терминал Cloud Shell и запишите секреты:
+
+   ```bash
+   git clone -b arena/c7d56f15-game https://github.com/WeteroScript/Game Game
+   cd Game && bash tools/license/set-secrets.sh
+   ```
+
+   Если `gh` попросит вход — `gh auth login --web` и введите код на <https://github.com/login/device>.
+6. В Hub: аватар → **Sign out** (возврат лицензии).
+
+Ограничения Cloud Shell: сессия завершается после ~20 минут бездействия (лицензия в домашней папке
+сохраняется, скрипт можно запустить снова), лимит ~50 часов в неделю. Домашняя папка — 5 ГБ, этого хватает.
 
 ## Чего я не смог проверить
 
