@@ -25,10 +25,24 @@
 
 ## Шаг 2. Создать Codespace
 
-1. Откройте <https://github.com/WeteroScript/Game>.
-2. Переключите ветку на **`arena/c7d56f15-game`** (кнопка с названием ветки слева над списком файлов) —
+**Самый короткий путь — прямая ссылка (кнопку искать не нужно):**
+
+```text
+https://codespaces.new/WeteroScript/Game/tree/arena/c7d56f15-game
+```
+
+Открывайте её **в браузере** (Chrome/Safari), а не в приложении GitHub: в мобильном приложении
+Codespaces нет вообще. На странице останется нажать **Create codespace** (или «New with options» →
+машина 2 ядра). Формат ссылки официальный: `codespaces.new/OWNER/REPO/tree/BRANCH`.
+
+Через интерфейс это выглядит так:
+
+1. Откройте <https://github.com/WeteroScript/Game> и войдите в аккаунт.
+2. Переключите ветку на **`arena/c7d56f15-game`** (кнопка с названием ветки над списком файлов) —
    в `main` файлов для этого пути ещё нет.
 3. Зелёная кнопка **Code** → вкладка **Codespaces** → **Create codespace on arena/c7d56f15-game**.
+   Если вкладки нет: <https://github.com/codespaces> → кнопка **New codespace** → выберите
+   репозиторий `WeteroScript/Game` и ветку `arena/c7d56f15-game`.
 4. Подождите 3–6 минут. В логе установки видно шаги `[1/4] … [4/4]`:
    поднимается VNC-десктоп, скачивается Unity Hub.
 
