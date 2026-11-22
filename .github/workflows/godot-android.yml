@@ -113,24 +113,45 @@ jobs:
           fi
           echo "Все скрипты разобраны без ошибок"
 
-      - name: Smoke run (3 seconds of headless gameplay)
+      - name: Smoke run (автопилот проезжает заезд)
         run: |
-          timeout 40 godot --headless --path "$PROJECT_PATH" --quit-after 240 2>&1 | tee /tmp/run.log
-          if grep -qE "SCRIPT ERROR|Parse Error|Invalid call|Cannot call method|Nonexistent function" /tmp/run.log; then
+          timeout 180 godot --headless --path "$PROJECT_PATH" --fixed-fps 60 -- --smoke 2>&1 | tee /tmp/run.log
+          status=0
+          if ! grep -q "SMOKE OK" /tmp/run.log; then
+            echo "::error::Автотест не дошёл до конца заезда"
+            status=1
+          fi
+          if grep -qE "SCRIPT ERROR|Parse Error|Invalid call|Cannot call method|Nonexistent function|Invalid access" /tmp/run.log; then
+            echo "::error::Ошибка в рантайме, смотрите лог выше"
+            status=1
+          fi
+          if [ "$status" -ne 0 ]; then
             {
               echo "### Ошибки при запуске игры"
               echo '```'
-              grep -nE "SCRIPT ERROR|Parse Error|Invalid call|Cannot call method|Nonexistent function|at: " /tmp/run.log | head -60
+              grep -nE "SMOKE|SCRIPT ERROR|Parse Error|Invalid call|Cannot call method|Nonexistent function|Invalid access|at: " /tmp/run.log | head -80
               echo '```'
             } > /tmp/report.md
-            echo "::error::Ошибка в рантайме, смотрите лог выше"
-            exit 1
           fi
+          exit $status
 
       - name: Export APK
         run: |
           mkdir -p build
           godot --headless --path "$PROJECT_PATH" --export-debug "$EXPORT_PRESET" "$GITHUB_WORKSPACE/build/KugooFreeride.apk"
+
+      - name: Report smoke numbers in the pull request
+        if: success() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "### Автотест заезда"
+            echo '```'
+            grep -E "SMOKE" /tmp/run.log || echo "нет строк SMOKE"
+            echo '```'
+          } > /tmp/smoke.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/smoke.md
 
       - name: Report failure in the pull request
         if: failure() && github.event_name == 'pull_request'

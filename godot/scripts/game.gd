@@ -30,6 +30,13 @@ var time_left := 0.0
 var menu_angle := 0.0
 var _go_timer := 0.0
 
+# Автотест для CI: `godot --headless --fixed-fps 60 -- --smoke` проезжает
+# заезд за игрока (газ, руль, вилли, падение) и печатает SMOKE OK.
+var _smoke := false
+var _smoke_timer := 0.0
+var _smoke_crashed := false
+var _smoke_phase := 0
+
 
 func _ready() -> void:
 	randomize()
@@ -58,6 +65,9 @@ func _ready() -> void:
 
 	_build_world(selected_map, selected_spec_id)
 	_enter_menu()
+
+	if OS.get_cmdline_user_args().has("--smoke"):
+		_start_smoke()
 
 
 # ---- окружение --------------------------------------------------------------
@@ -186,8 +196,57 @@ func _back_to_menu() -> void:
 	_enter_menu()
 
 
+# ---- автотест ---------------------------------------------------------------
+func _start_smoke() -> void:
+	_smoke = true
+	_smoke_timer = 0.0
+	_smoke_crashed = false
+	_smoke_phase = 0
+	# HUD в автотесте не должен перебивать виртуальные касания нулями.
+	hud.set_process(false)
+	print("SMOKE start")
+	_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.FREE_RIDE)
+
+
+func _tick_smoke(delta: float) -> void:
+	_smoke_timer += delta
+
+	# Фаза 1: G4 на трассе. Фаза 2: F3 Pro Max в городе с полным приводом.
+	if _smoke_phase == 0 and _smoke_timer > 9.0:
+		_smoke_phase = 1
+		_start_run("f3_pro_max", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
+		if scooter != null:
+			scooter.toggle_drive()
+			print("SMOKE phase 2: F3 Pro Max, city, drive=%d" % scooter.drive_mode)
+
+	if state != State.RUNNING:
+		return
+
+	input_state.touch_throttle = 1.0
+	input_state.touch_steer = sin(_smoke_timer * 0.9) * 0.7
+	input_state.touch_wheelie = _smoke_timer > 3.0 and _smoke_timer < 6.0
+
+	if not _smoke_crashed and _smoke_timer > 7.0 and scooter != null:
+		_smoke_crashed = true
+		scooter.crash("smoke test")
+		print("SMOKE forced crash")
+
+	if _smoke_timer > 18.0:
+		print("SMOKE OK speed=%.1f km/h distance=%.1f m score=%d tricks=%d crashes=%d state=%d" % [
+			scooter.speed_kmh() if scooter != null else 0.0,
+			scooter.distance_meters if scooter != null else 0.0,
+			tricks.score, tricks.trick_count,
+			scooter.crash_count if scooter != null else 0,
+			state,
+		])
+		get_tree().quit()
+
+
 # ---- кадр -------------------------------------------------------------------
 func _process(delta: float) -> void:
+	if _smoke:
+		_tick_smoke(delta)
+
 	input_state.poll_keyboard()
 
 	match state:
