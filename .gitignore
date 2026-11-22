@@ -48,3 +48,9 @@ Thumbs.db
 *.ulf
 *.alf
 Unity_lic.*
+
+# ---- Godot (порт без Unity) ----
+godot/.godot/
+godot/android/
+godot/build/
+export_presets.cfg.bak
