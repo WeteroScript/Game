@@ -131,7 +131,7 @@ bash tools/license/set-secrets.sh
 | Чёрный экран в noVNC | Нажать **Connect**, ввести пароль `unity`; обновить страницу; Scaling → Remote |
 | Нет курсора/сложно попасть по кнопкам | Иконка мыши в панели noVNC → **Touch mode**, затем Scaling → Remote |
 | Окно Hub не появилось | В терминале VS Code: `bash tools/license/start-unityhub.sh`, лог — `/tmp/unityhub.log` |
-| Hub не устанавливается (`[fail]`) | `bash tools/license/install-unityhub.sh` ещё раз; если CDN недоступен — скачайте Linux-версию с <https://unity.com/download> и положите файл как `/tmp/UnityHub.AppImage`, затем повторите |
+| Hub не устанавливается (`[fail]`) | Скрипт сначала ставит Hub из официального apt-репозитория Unity, потом качает `UnityHub-x86_64.AppImage`. Если не вышло — скачайте Linux-версию с <https://unity.com/download> и загрузите файл в Cloud Shell (меню `⋮` → **Upload**) |
 | «There was a problem activating a new personal license» | В терминале десктопа: `pkill -9 -f Unity.Licensing.Client`, удалить старый `~/.local/share/unity3d/Unity/Unity_lic.ulf`, перезапустить Hub и повторить **Add**. Лог: `~/.config/unity3d/Unity/Unity.Licensing.Client.log` |
 | Лицензия есть в Hub, а `.ulf` нет | Нажать **Add** ещё раз (см. предупреждение в шаге 4) |
 | `set-secrets.sh`: `.ulf` не найден | Та же причина: лицензия без нажатия **Add**. Либо искать вручную: `find ~ -name '*.ulf'` |
@@ -161,8 +161,11 @@ bash tools/license/set-secrets.sh
 2. Вставьте одну строку и нажмите Enter:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/WeteroScript/Game/arena/c7d56f15-game/tools/license/cloudshell.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/WeteroScript/Game/arena/c7d56f15-game/tools/license/cloudshell.sh -o /tmp/u.sh && bash /tmp/u.sh < /dev/null
    ```
+
+   (Скачивать в файл и запускать с `< /dev/null` важно: при `curl … | bash` команды `sudo`/`apt`
+   вычитывают stdin и «съедают» остаток скрипта — типичная ошибка вида `line 37: M: command not found`.)
 
    Скрипт поставит рабочий стол (2–4 минуты), скачает Unity Hub и запустит его.
 3. Кнопка **Web Preview** (иконка глаза в панели инструментов) → **Change port** → **8080** → **Preview**.
@@ -172,7 +175,7 @@ bash tools/license/set-secrets.sh
 
    ```bash
    git clone -b arena/c7d56f15-game https://github.com/WeteroScript/Game Game
-   cd Game && bash tools/license/set-secrets.sh
+   bash Game/tools/license/set-secrets.sh
    ```
 
    Если `gh` попросит вход — `gh auth login --web` и введите код на <https://github.com/login/device>.

@@ -10,7 +10,7 @@
 # ---------------------------------------------------------------------------
 set -uo pipefail
 
-HUB_URL="https://public-cdn.cloud.unity3d.com/hub/prod/UnityHub.AppImage"
+HUB_URL="https://public-cdn.cloud.unity3d.com/hub/prod/UnityHub-x86_64.AppImage"
 APP_DIR="$HOME/.unityhub-app"
 IMG="/tmp/UnityHub.AppImage"
 LOG="/tmp/unityhub-install.log"
@@ -42,8 +42,40 @@ for pkg in libgtk-3-0 libnss3 libgbm1 libxss1 libsecret-1-0 libnotify4 \
   sudo apt-get install -y --no-install-recommends "$pkg" >/dev/null 2>&1 || true
 done
 
-# --- 2. Скачивание AppImage ------------------------------------------------
-say "[2/4] Скачиваю Unity Hub (~150 МБ) с официального CDN Unity..."
+# --- 2. Установка: сначала официальный apt-репозиторий Unity, потом AppImage ---
+say "[2/4] Ставлю Unity Hub (apt-репозиторий Unity, при неудаче — AppImage)..."
+
+# Официальный способ для Ubuntu (док Unity: install-hub-linux). Проверено 2026-11.
+if ! command -v unityhub >/dev/null 2>&1; then
+  sudo install -d /etc/apt/keyrings
+  if curl -fsSL https://hub.unity3d.com/linux/keys/public \
+       | sudo gpg --dearmor -o /etc/apt/keyrings/unityhub.gpg 2>/dev/null; then
+    sudo tee /etc/apt/sources.list.d/unityhub.sources >/dev/null <<'EOF'
+Types: deb
+URIs: https://hub.unity3d.com/linux/repos/deb
+Suites: stable
+Components: main
+Signed-By: /etc/apt/keyrings/unityhub.gpg
+EOF
+    sudo apt-get update -qq || true
+    sudo apt-get install -y unityhub || true
+  fi
+fi
+
+if command -v unityhub >/dev/null 2>&1; then
+  say "[ok] Unity Hub установлен из apt: $(command -v unityhub)"
+  cat > "$HOME/unityhub" <<WRAP
+#!/usr/bin/env bash
+export DISPLAY="\${DISPLAY:-:1}"
+export LIBGL_ALWAYS_SOFTWARE=1
+export ELECTRON_DISABLE_SECURITY_WARNINGS=1
+exec $(command -v unityhub) --no-sandbox "\$@"
+WRAP
+  chmod +x "$HOME/unityhub"
+  exit 0
+fi
+
+say "  -> apt не сработал, беру AppImage..."
 if ! curl -fL --retry 3 --connect-timeout 20 --progress-bar -o "$IMG" "$HUB_URL"; then
   say ""
   say "[fail] Не удалось скачать $HUB_URL"
