@@ -52,7 +52,7 @@ var landing_counter := 0
 var wheelie_balance_time := 0.0
 var stoppie_time := 0.0
 
-var crashed := false
+var is_crashed := false
 var crash_reason := ""
 var crash_count := 0
 var crash_timer := 0.0
@@ -206,7 +206,7 @@ func _physics_process(delta: float) -> void:
 
 	_update_kinematics(delta)
 
-	if crashed:
+	if is_crashed:
 		_process_crash(delta)
 		_update_wheel_visuals(delta)
 		return
@@ -432,7 +432,7 @@ func _tick_wheelie(delta: float) -> void:
 	if wheelie == null:
 		return
 	wheelie.tick(delta, input.wheelie, throttle_input, input.body_pitch,
-		speed_kmh(), drive_mode, spec, is_grounded(), crashed)
+		speed_kmh(), drive_mode, spec, is_grounded(), is_crashed)
 
 
 func _update_battery(delta: float) -> void:
@@ -463,9 +463,9 @@ func _check_failures() -> void:
 
 
 func crash(reason: String) -> void:
-	if crashed:
+	if is_crashed:
 		return
-	crashed = true
+	is_crashed = true
 	crash_count += 1
 	crash_reason = reason
 	crash_timer = 0.0
@@ -485,7 +485,7 @@ func _process_crash(delta: float) -> void:
 
 
 func respawn() -> void:
-	crashed = false
+	is_crashed = false
 	crash_timer = 0.0
 	crash_reason = ""
 	current_force = 0.0

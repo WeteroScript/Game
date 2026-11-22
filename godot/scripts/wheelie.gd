@@ -63,7 +63,7 @@ func tick(delta: float, held: bool, throttle: float, body_pitch_input: float,
 			target_pitch = 0.0
 			return
 
-	var pitch := _scooter.pitch_deg
+	var pitch: float = _scooter.pitch_deg
 	var throttle_factor := 0.55 + 0.45 * clampf(throttle, 0.0, 1.0)
 	# Наклон назад осознанно выводит за зону баланса — только так можно дойти
 	# до переворота на 70–80 градусах.
@@ -79,9 +79,9 @@ func tick(delta: float, held: bool, throttle: float, body_pitch_input: float,
 		* cos(deg_to_rad(clampf(pitch, 0.0, 89.0)))
 
 	var error := deg_to_rad(target - pitch)
-	var rate := _scooter.pitch_rate
+	var rate: float = _scooter.pitch_rate
 
-	var torque := gravity_torque + error * spec.wheelie_balance_gain - rate * spec.wheelie_balance_damping
+	var torque: float = gravity_torque + error * spec.wheelie_balance_gain - rate * spec.wheelie_balance_damping
 	torque = clampf(torque, -spec.wheelie_max_torque, spec.wheelie_max_torque)
 	_scooter.apply_nose_up_torque(torque)
 

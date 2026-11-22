@@ -51,7 +51,7 @@ func _tick_wheelie(delta: float, scooter: Scooter) -> void:
 			_last_wheelie_floors = floors
 			_add_score("WHEELIE", 10)
 	else:
-		if _wheelie_accum >= 0.45 and not scooter.crashed:
+		if _wheelie_accum >= 0.45 and not scooter.is_crashed:
 			var points := int(round(_wheelie_accum * 35.0))
 			_add_score("WHEELIE %.1f c" % _wheelie_accum, points)
 		_wheelie_accum = 0.0
@@ -66,7 +66,7 @@ func _tick_stoppie(delta: float, scooter: Scooter) -> void:
 			_last_stoppie_floors = floors
 			_add_score("STOPPIE", 12)
 	else:
-		if _stoppie_accum >= 0.35 and not scooter.crashed:
+		if _stoppie_accum >= 0.35 and not scooter.is_crashed:
 			var points := int(round(_stoppie_accum * 45.0))
 			_add_score("STOPPIE %.1f c" % _stoppie_accum, points)
 		_stoppie_accum = 0.0

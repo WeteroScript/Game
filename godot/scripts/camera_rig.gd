@@ -32,7 +32,7 @@ func _process(delta: float) -> void:
 		return
 
 	var target_yaw := rad_to_deg(target.global_rotation.y)
-	var yaw_speed := 1.5 if target.crashed else 3.2
+	var yaw_speed := 1.5 if target.is_crashed else 3.2
 	_yaw = lerp_angle(deg_to_rad(_yaw), deg_to_rad(target_yaw), clampf(delta * yaw_speed, 0.0, 1.0))
 	_yaw = rad_to_deg(_yaw)
 
@@ -52,7 +52,7 @@ func _process(delta: float) -> void:
 	var dir := look_point - global_position
 	if dir.length() > 0.05:
 		var wanted_basis := Basis.looking_at(dir.normalized(), Vector3.UP)
-		var blend := clampf(delta * 7.0 * (1.6 if target.crashed else 1.0), 0.0, 1.0)
+		var blend := clampf(delta * 7.0 * (1.6 if target.is_crashed else 1.0), 0.0, 1.0)
 		var new_transform := global_transform
 		new_transform.basis = new_transform.basis.slerp(wanted_basis, blend).orthonormalized()
 		global_transform = new_transform
