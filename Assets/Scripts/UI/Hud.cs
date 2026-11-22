@@ -184,7 +184,10 @@ namespace ScooterGame
 
             if (_timeText != null)
             {
-                _timeText.text = FormatTime(scooter.RunTime);
+                bool countdown = root != null && root.Mode == GameMode.Freestyle && !root.RunFinished;
+                _timeText.text = countdown
+                    ? "ОСТАЛОСЬ " + FormatTime(root.TimeRemaining)
+                    : FormatTime(scooter.RunTime);
             }
 
             if (root != null)

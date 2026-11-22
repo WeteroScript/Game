@@ -55,6 +55,12 @@ namespace ScooterGame
                 TextAnchor.MiddleCenter, accent,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-700f, -196f), new Vector2(700f, -158f));
 
+            UiFactory.Label(root, "ControlsHint",
+                "тач: ◀ ▶ · ГАЗ · ПЕРЕД./ЗАД. ТОРМОЗ · WHEELIE · НОС ↑↓      " +
+                "клавиатура: WASD · L.Shift · Space · Q/E · Tab · 1/2/3 · R · Esc",
+                21, TextAnchor.MiddleCenter, new Color(0.55f, 0.6f, 0.68f),
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-760f, -252f), new Vector2(760f, -218f));
+
             // ---- scooter cards ----
             _cardG4 = BuildCard(root, 0, 100f, 900f, "KugooKirin G4", "2026 · задний привод RWD",
                 "• 2000 Вт (пик 2400 Вт), один задний хаб-мотор\n" +

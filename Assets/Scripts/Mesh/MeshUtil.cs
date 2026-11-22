@@ -51,6 +51,12 @@ namespace ScooterGame
 
         /// <summary>Like <see cref="Cylinder"/> but keeps the primitive collider.</summary>
         public static GameObject SolidCylinder(Transform parent, string name, Vector3 localPos, float radius, float height,
+            Material mat)
+        {
+            return SolidCylinder(parent, name, localPos, radius, height, mat, Quaternion.identity);
+        }
+
+        public static GameObject SolidCylinder(Transform parent, string name, Vector3 localPos, float radius, float height,
             Material mat, Quaternion localRot)
         {
             GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);

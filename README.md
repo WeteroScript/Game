@@ -147,6 +147,9 @@ docs/                        технические заметки, ТТХ, ра
 * Постобработка: bloom всегда; motion blur + DOF только при `systemMemorySize ≥ 2600 МБ`.
 * Отключены тени у точечных источников, у солнца — soft shadows, дистанция теней 70 м.
 * Ограничение: `Application.targetFrameRate = 60`, VSync выключен, экран не гаснет.
+* **LOD сознательно не используется**: процедурные модели низкополигональные, LOD-группы нечего упрощать.
+  При замене на меши 15–40k трис добавьте `LOD Group` и убедитесь, что `Shader` не вырезан
+  (см. `Always Included Shaders` в `docs/TECHNICAL.md`).
 
 Тюнинг качества: `GameConfig.PostProcessingEnabled`, `Assets/Editor/ProjectSetup.cs` (`m_ShadowDistance`, `m_MSAA`).
 
