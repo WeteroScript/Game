@@ -45,6 +45,7 @@ var _bar_left: Node3D
 var _bar_right: Node3D
 var _time := 0.0
 var _crash_blend := 0.0
+var _wheelie := 0.0
 
 
 static func create(new_deck_top: float, new_accent: Color, bar_left: Node3D, bar_right: Node3D) -> RiderModel:
@@ -175,20 +176,38 @@ func _limb(side: float, length: float, limb_radius: float, mat: Material) -> Nod
 
 # ---- поза --------------------------------------------------------------------
 func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
-		grounded: bool, crashed: bool, pitch_deg := 0.0) -> void:
+		grounded: bool, crashed: bool, pitch_deg := 0.0, wheelie := 0.0,
+		throttle := 0.0, pitch_rate := 0.0) -> void:
 	_time += delta
 	_crash_blend = move_toward(_crash_blend, 1.0 if crashed else 0.0, delta * 3.0)
+	# Поза станта включается быстро и чуть пружинит: райдер реагирует на угол
+	# сразу, как тряпичная кукла, но продолжает стоять на деке.
+	_wheelie = move_toward(_wheelie, clampf(wheelie, 0.0, 1.0), delta * 6.0)
+	var w := clampf(_wheelie, 0.0, 1.0)
 
 	var brake_clamped := clampf(brake, 0.0, 1.0)
 	var speed_factor := clampf(speed_kmh / 55.0, 0.0, 1.0)
 	var crouch := clampf(brake_clamped * 0.9 + speed_factor * 0.2 + _crash_blend, 0.0, 1.0)
+	crouch *= 1.0 - 0.5 * w
 
-	# Наклон корпуса: чем быстрее и чем сильнее тормоз — тем ниже райдер.
-	var lean_deg := LEAN_BASE_DEG + speed_factor * 6.0 + crouch * 8.0
+	# На станте райдер распрямляется относительно земли: компенсируем большую
+	# часть тангажа самоката, иначе кажется, что его выбрасывает за руль.
+	var upright := lerpf(0.65, 0.74, w)
+	var pitch_comp := deg_to_rad(clampf(-pitch_deg * upright, -52.0, 52.0) * (1.0 - _crash_blend))
+	var body_basis := Basis(Vector3.RIGHT, pitch_comp)
+	# Точки деки живут в системе самоката — переводим их в систему райдера,
+	# иначе при поднятом носе ступни уезжают с деки.
+	var to_body := body_basis.inverse()
+
+	# Наклон корпуса: на станте райдер откидывается назад, к заднему колесу.
+	var lean_deg := lerpf(LEAN_BASE_DEG + speed_factor * 6.0 + crouch * 8.0, -16.0, w)
 	var lean := deg_to_rad(lean_deg)
 
-	var hip_y := deck_top + HIP_HEIGHT - crouch * 0.10 + sin(_time * 6.0) * 0.004
-	var hip_pos := Vector3(0.0, hip_y, 0.07)
+	var hip_y := deck_top + HIP_HEIGHT - crouch * 0.10 - 0.05 * w + sin(_time * 6.0) * 0.004
+	var hip_z := lerpf(0.07, 0.30, w)
+	# Чувствительность: резкий набор угла качнёт корпус назад.
+	hip_z += clampf(-pitch_rate * 0.018, -0.05, 0.09) * w
+	var hip_pos := Vector3(0.0, hip_y, hip_z)
 	_hips.transform = Transform3D(Basis(Vector3.RIGHT, -lean * 0.35), hip_pos)
 
 	var neck_pos := hip_pos + Vector3(0.0, cos(lean) * TORSO_LENGTH, -sin(lean) * TORSO_LENGTH)
@@ -204,8 +223,6 @@ func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
 		Vector3(steer * 0.015, neck_pos.y + HEAD_OFFSET, neck_pos.z - 0.02))
 
 	# Рюкзак за спиной, наклоняется вместе с корпусом.
-	# Рюкзак ставим вдоль спины: середина корпуса плюс пол-толщины и пол-рюкзака
-	# по нормали назад, иначе он висел в воздухе за спиной.
 	var torso_mid := hip_pos + Vector3(0.0, cos(lean) * TORSO_LENGTH * 0.55, -sin(lean) * TORSO_LENGTH * 0.55)
 	var back_dir := Vector3(0.0, sin(lean), cos(lean))
 	var pack_back := 0.185 * 0.5 + 0.12 * 0.5 + 0.015
@@ -224,19 +241,27 @@ func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
 	_solve_arm("l", shoulder_l, left_hand, Vector3(-1.0, 0.25, 0.7))
 	_solve_arm("r", shoulder_r, right_hand, Vector3(1.0, 0.25, 0.7))
 
-	# Ноги: стопы на деке, колени чуть вперёд и сгибаются при торможении.
-	var foot_l := Vector3(-0.075, deck_top + 0.035, -0.02)
-	var foot_r := Vector3(0.075, deck_top + 0.035, 0.17)
+	# Ноги. На станте опорная (левая) стоит на деке ближе к корме, а правая
+	# уходит в воздух и машет, ловя баланс.
+	var support_deck := Vector3(-0.075, deck_top + 0.035, lerpf(-0.02, 0.11, w))
+	var free_deck := Vector3(0.075, deck_top + 0.035, 0.17)
+	var foot_l := to_body * support_deck
+	var foot_r := to_body * free_deck
+	if w > 0.01:
+		var wave := sin(_time * 4.6) * (0.45 + 0.55 * clampf(throttle, 0.0, 1.0))
+		wave += clampf(pitch_rate * 0.10, -0.5, 0.5)
+		var free_air := Vector3(0.155 + 0.02 * wave, deck_top + 0.34 + 0.15 * wave, -0.30 + 0.07 * wave)
+		foot_r = foot_r.lerp(free_air, w)
 	_solve_leg("l", Vector3(-0.095, hip_y - 0.02, hip_pos.z), foot_l)
 	_solve_leg("r", Vector3(0.095, hip_y - 0.02, hip_pos.z), foot_r)
-	_foot["l"].transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-4.0)), foot_l + Vector3(0.0, -0.01, -0.05))
-	_foot["r"].transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-4.0)), foot_r + Vector3(0.0, -0.01, -0.05))
+	var foot_tilt := -4.0 - 26.0 * w
+	_foot["l"].transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-4.0)),
+		foot_l + Vector3(0.0, -0.01, -0.05))
+	_foot["r"].transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(foot_tilt)),
+		foot_r + Vector3(0.0, -0.01, -0.05))
 
 	# Корпус поворачивается и наклоняется в поворот, падение — отдельная поза.
-	# На вилли и в прыжке райдер выпрямляется относительно земли: компенсируем
-	# большую часть тангажа самоката, иначе он «прибит» к деке.
-	var pitch_comp := clampf(-pitch_deg * 0.65, -35.0, 35.0) * (1.0 - _crash_blend)
-	rotation = Vector3(deg_to_rad(pitch_comp), -steer * deg_to_rad(4.0),
+	rotation = Vector3(pitch_comp, -steer * deg_to_rad(4.0),
 		deg_to_rad(-steer * 4.0) * (1.0 - _crash_blend) + deg_to_rad(40.0) * _crash_blend)
 	position.y = sin(_time * 8.0) * 0.008 if not grounded and _crash_blend < 0.5 else 0.0
 

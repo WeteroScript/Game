@@ -8,6 +8,7 @@ signal menu_pressed
 signal drive_toggled
 signal speed_mode_changed(mode: int)
 signal respawn_pressed
+signal view_toggled
 
 const DESIGN_WIDTH := 1280.0
 
@@ -33,6 +34,7 @@ var _zones := {}
 var _zone_rects := {}
 var _zone_rect_nodes := {}
 var _active_touch := {}
+var _wheelie_active := false
 
 var _base_color := Color(0.12, 0.14, 0.18, 0.45)
 var _active_color := Color(1.0, 0.62, 0.15, 0.75)
@@ -137,31 +139,17 @@ func _build_center(root: Control) -> void:
 	UiFactory.place(_crash_label, 240.0, 300.0, 800.0, 80.0)
 	root.add_child(_crash_label)
 
-	_hint_label = UiFactory.label("ГАЗ, ТОРМОЗ, РУЛЬ — кнопки · ВИЛЛИ — нажатие включает/выключает · камера — свайп по экрану",
+	_hint_label = UiFactory.label("ВИЛЛИ — одно нажатие и газ · камера — свайп · ВИД — первое лицо",
 		16, UiFactory.MUTED_COLOR, HORIZONTAL_ALIGNMENT_CENTER)
 	UiFactory.place(_hint_label, 240.0, 668.0, 800.0, 24.0)
 	root.add_child(_hint_label)
 
-	# Кнопки-события: режим, привод, респаун, меню.
-	var mode_button := UiFactory.button("РЕЖИМ", 18, Vector2(140.0, 40.0))
-	UiFactory.place(mode_button, 18.0, 182.0, 142.0, 40.0)
-	mode_button.pressed.connect(_on_mode_button)
-	root.add_child(mode_button)
-
-	var drive_button := UiFactory.button("AWD/RWD", 18, Vector2(140.0, 40.0))
-	UiFactory.place(drive_button, 176.0, 182.0, 142.0, 40.0)
-	drive_button.pressed.connect(_on_drive_button)
-	root.add_child(drive_button)
-
-	var respawn_button := UiFactory.button("РЕСПАУН", 18, Vector2(140.0, 40.0))
-	UiFactory.place(respawn_button, 18.0, 230.0, 142.0, 40.0)
-	respawn_button.pressed.connect(_on_respawn_button)
-	root.add_child(respawn_button)
-
-	var menu_button := UiFactory.button("МЕНЮ", 18, Vector2(140.0, 40.0))
-	UiFactory.place(menu_button, 176.0, 230.0, 142.0, 40.0)
-	menu_button.pressed.connect(_on_menu_button)
-	root.add_child(menu_button)
+	# Кнопки-события: режим, привод, респаун, меню и вид камеры.
+	_add_zone(root, "mode", Rect2(18.0, 182.0, 142.0, 40.0), "РЕЖИМ")
+	_add_zone(root, "drive", Rect2(176.0, 182.0, 142.0, 40.0), "AWD/RWD")
+	_add_zone(root, "respawn", Rect2(18.0, 230.0, 142.0, 40.0), "РЕСПАУН")
+	_add_zone(root, "menu", Rect2(176.0, 230.0, 142.0, 40.0), "МЕНЮ")
+	_add_zone(root, "view", Rect2(18.0, 278.0, 142.0, 40.0), "ВИД")
 
 
 func _build_touch_controls(root: Control) -> void:
@@ -194,25 +182,35 @@ func _add_zone(root: Control, zone_id: String, rect: Rect2, caption: String) -> 
 
 ## Нажатие попало в экранную кнопку? Нужно камере, чтобы свайп по пустому
 ## месту крутил обзор, а не сбивал управление.
+## Сбросить зажатые кнопки (ставим на паузу — иначе газ остаётся вжатым).
+func release_touches() -> void:
+	_active_touch.clear()
+	if input != null:
+		input.clear_touch()
+
+
 func is_over_controls(point: Vector2) -> bool:
 	return _zone_at(point) != ""
 
 
 func _input(event: InputEvent) -> void:
+	# В меню и на паузе интерфейс не должен ловить касания.
+	if not visible:
+		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			var zone_id := _zone_at(event.position)
 			if zone_id != "":
 				_active_touch[event.index] = zone_id
-				if zone_id == "wheelie" and input != null:
-					input.request_wheelie_toggle()
+				_handle_press(zone_id)
 		else:
 			_active_touch.erase(event.index)
 	elif event is InputEventMouseButton:
-		# На десктопе мышью тоже можно нажать ВИЛЛИ.
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed \
-				and _zone_at(event.position) == "wheelie" and input != null:
-			input.request_wheelie_toggle()
+		# На десктопе мышью тоже можно нажимать экранные кнопки.
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			var zone_id := _zone_at(event.position)
+			if zone_id != "":
+				_handle_press(zone_id)
 	elif event is InputEventScreenDrag:
 		var zone_id := _zone_at(event.position)
 		if _active_touch.has(event.index):
@@ -220,6 +218,24 @@ func _input(event: InputEvent) -> void:
 				_active_touch.erase(event.index)
 			else:
 				_active_touch[event.index] = zone_id
+
+
+## Разовые действия по нажатию экранной кнопки.
+func _handle_press(zone_id: String) -> void:
+	match zone_id:
+		"wheelie":
+			if input != null:
+				input.request_wheelie_toggle()
+		"respawn":
+			respawn_pressed.emit()
+		"menu":
+			menu_pressed.emit()
+		"drive":
+			drive_toggled.emit()
+		"mode":
+			speed_mode_changed.emit(-1)
+		"view":
+			view_toggled.emit()
 
 
 func _zone_at(point: Vector2) -> String:
@@ -238,6 +254,8 @@ func _zone_held(zone_id: String) -> bool:
 
 
 func _process(delta: float) -> void:
+	if not visible:
+		return
 	if _trick_timer > 0.0:
 		_trick_timer -= delta
 		if _trick_timer <= 0.0:
@@ -259,26 +277,10 @@ func _process(delta: float) -> void:
 	for zone_id in _zone_rect_nodes.keys():
 		var node: ColorRect = _zone_rect_nodes[zone_id]
 		var lit := _zone_held(zone_id)
-		# Кнопка ВИЛЛИ — защёлка: подсвечена, пока вилли включено.
+		# ВИЛЛИ светится, только пока ждёт газ. На поднятом носу — гаснет.
 		if zone_id == "wheelie":
-			lit = input.wheelie
+			lit = input.wheelie_armed and not _wheelie_active
 		node.color = _active_color if lit else _base_color
-
-
-func _on_mode_button() -> void:
-	speed_mode_changed.emit(-1)
-
-
-func _on_drive_button() -> void:
-	drive_toggled.emit()
-
-
-func _on_respawn_button() -> void:
-	respawn_pressed.emit()
-
-
-func _on_menu_button() -> void:
-	menu_pressed.emit()
 
 
 # ---- данные на экране -------------------------------------------------------
@@ -296,6 +298,7 @@ func update_stats(scooter: Scooter, tricks: TrickSystem, time_left: float, show_
 	_distance_label.text = "%.2f км" % (scooter.distance_meters / 1000.0)
 	_time_label.text = _format_time(scooter.run_time if not show_timer else time_left)
 
+	_wheelie_active = scooter.wheelie != null and scooter.wheelie.active
 	_score_label.text = "%d" % tricks.score
 	if tricks.combo > 1:
 		_combo_label.text = "КОМБО x%.2f · %.1f с" % [tricks.combo_multiplier(), tricks.combo_time_left]

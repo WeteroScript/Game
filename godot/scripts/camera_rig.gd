@@ -1,20 +1,29 @@
-## Плавная камера от третьего лица со FOV, зависящим от скорости.
-## Камеру можно крутить вручную: перетаскивание мышью (ЛКМ) или свайп по экрану
-## в любом месте, где нет экранных кнопок. Через пару секунд после отпускания
-## камера плавно возвращается за спину самоката.
+## Камера: третье лицо со свободной орбитой и вид от первого лица.
+##
+## Третье лицо — плавная камера за спиной, FOV растёт со скоростью. Камеру можно
+## крутить мышью (ЛКМ), свайпом по экрану или стиком-свайпом, а через пару секунд
+## без ввода она сама возвращается за спину.
+##
+## Первое лицо — камера на уровне шлема: поворот мышью/свайпом смотрит вокруг,
+## райдер скрыт, чтобы не загораживать обзор.
 class_name CameraRig
 extends Camera3D
 
-## Через сколько секунд без ввода камера начинает возвращаться назад.
+## Через сколько секунд без ввода камера от третьего лица возвращается назад.
 const ORBIT_IDLE_TIME := 2.5
 const ORBIT_PITCH_MIN := -0.30
 const ORBIT_PITCH_MAX := 1.00
+const FP_PITCH_LIMIT := 1.15
+const FP_EYE_HEIGHT := 1.44
+const FP_EYE_FORWARD := -0.12
+const FP_FOV := 78.0
 
 var target: Scooter
 var current_fov := GameConfig.CAMERA_FOV_BASE
 ## Смещение камеры вокруг самоката (радианы): yaw — по кругу, pitch — вверх.
 var orbit_yaw := 0.0
 var orbit_pitch := 0.0
+var first_person := false
 
 var _yaw := 0.0
 var _smooth_position := Vector3.ZERO
@@ -29,12 +38,36 @@ func setup(scooter: Scooter) -> void:
 		orbit_pitch = 0.0
 		_orbit_idle = ORBIT_IDLE_TIME
 		snap_behind()
+		apply_view()
 
 
-## Поворот камеры вручную (радианы за кадр перетаскивания).
-func orbit_input(delta_yaw: float, delta_pitch: float) -> void:
-	orbit_yaw = wrapf(orbit_yaw + delta_yaw, -PI, PI)
-	orbit_pitch = clampf(orbit_pitch + delta_pitch, ORBIT_PITCH_MIN, ORBIT_PITCH_MAX)
+## Синхронизирует видимость райдера с текущим видом (после пересборки мира).
+func apply_view() -> void:
+	if target != null and target.rider != null:
+		target.rider.visible = not first_person
+
+
+## Переключение вида. Возвращает true, если включился вид от первого лица.
+func toggle_view() -> bool:
+	first_person = not first_person
+	orbit_yaw = 0.0
+	orbit_pitch = 0.0
+	_orbit_idle = ORBIT_IDLE_TIME
+	if target != null and target.rider != null:
+		target.rider.visible = not first_person
+	if first_person and target != null:
+		_smooth_position = target.global_position
+		_yaw = rad_to_deg(target.global_rotation.y)
+	return first_person
+
+
+## Крутить камеру: dy > 0 — взгляд вправо, dp > 0 — взгляд вверх.
+func orbit_input(dy: float, dp: float) -> void:
+	orbit_yaw = wrapf(orbit_yaw - dy, -PI, PI)
+	if first_person:
+		orbit_pitch = clampf(orbit_pitch + dp, -FP_PITCH_LIMIT, FP_PITCH_LIMIT)
+	else:
+		orbit_pitch = clampf(orbit_pitch + dp, ORBIT_PITCH_MIN, ORBIT_PITCH_MAX)
 	_orbit_idle = 0.0
 
 
@@ -64,6 +97,10 @@ func _process(delta: float) -> void:
 	_yaw = lerp_angle(deg_to_rad(_yaw), deg_to_rad(target_yaw), clampf(delta * yaw_speed, 0.0, 1.0))
 	_yaw = rad_to_deg(_yaw)
 
+	if first_person:
+		_process_first_person(delta)
+		return
+
 	# Автовозврат: отпустил — камера сама встаёт за спину.
 	_orbit_idle += delta
 	if _orbit_idle > ORBIT_IDLE_TIME:
@@ -72,7 +109,6 @@ func _process(delta: float) -> void:
 		orbit_pitch = lerpf(orbit_pitch, 0.0, back)
 
 	var speed_factor := clampf(target.speed_kmh() / 65.0, 0.0, 1.0)
-	var distance := GameConfig.CAMERA_DISTANCE + speed_factor * 0.9
 	var yaw_total := deg_to_rad(_yaw) + orbit_yaw
 	var yaw_basis := Basis(Vector3.UP, yaw_total)
 
@@ -104,4 +140,25 @@ func _process(delta: float) -> void:
 
 	var target_fov: float = lerpf(GameConfig.CAMERA_FOV_BASE, GameConfig.CAMERA_FOV_MAX, speed_factor)
 	current_fov = lerpf(current_fov, target_fov, clampf(delta * 3.0, 0.0, 1.0))
+	fov = current_fov
+
+
+## Вид от первого лица: камера на уровне шлема, смотрит туда, куда повернул игрок.
+func _process_first_person(delta: float) -> void:
+	var basis := target.global_transform.basis
+	var eye_local := Vector3(0.0, FP_EYE_HEIGHT, FP_EYE_FORWARD)
+	var desired := target.global_position + basis * eye_local
+	_smooth_position = desired
+	global_position = _smooth_position
+
+	# Наклон головы вслед за тангажом самоката: на вилли видно небо, но не
+	# полностью — иначе теряется горизонт.
+	var body_pitch := deg_to_rad(clampf(target.pitch_deg, -40.0, 70.0) * 0.55)
+	var yaw_total := deg_to_rad(_yaw) + orbit_yaw
+	var view_basis := Basis(Vector3.UP, yaw_total) \
+		* Basis(Vector3.RIGHT, orbit_pitch + body_pitch)
+	global_transform = Transform3D(view_basis, _smooth_position)
+
+	var speed_factor := clampf(target.speed_kmh() / 65.0, 0.0, 1.0)
+	current_fov = lerpf(current_fov, FP_FOV + speed_factor * 8.0, clampf(delta * 4.0, 0.0, 1.0))
 	fov = current_fov

@@ -31,7 +31,7 @@ const SUSPENSION_TRAVEL := 0.09
 ## самоката 38 — это «мягкий диван»: подвеска пробивалась и тело ложилось на асфальт.
 ## 160 даёт ~50 % хода под весом самоката.
 const SUSPENSION_STIFFNESS := 160.0
-const SUSPENSION_MAX_FORCE := 22000.0
+const SUSPENSION_MAX_FORCE := 28000.0
 const DAMPING_COMPRESSION := 2.6
 const DAMPING_RELAXATION := 3.4
 

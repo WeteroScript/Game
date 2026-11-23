@@ -15,7 +15,6 @@ func _build_body(root: Node3D) -> void:
 	_rear_step(root)
 	_rear_fender(root)
 	_battery_box(root)
-	_kickstand(root)
 	_wheel(root, Vector3(0.0, 0.0, base * 0.5), "RearWheel", true, 1.0, _rim)
 	_marker(root, "FootLeft", Vector3(-0.068, deck_top + 0.020, -0.09))
 	_marker(root, "FootRight", Vector3(0.068, deck_top + 0.020, 0.10))
@@ -66,12 +65,18 @@ func _battery_box(root: Node3D) -> void:
 
 
 func _rear_arm(root: Node3D) -> void:
-	var pivot := Vector3(ARM_X, deck_top * 0.74, deck_len * 0.5 - 0.05)
+	var pivot_z := deck_len * 0.5 - 0.05
+	var pivot := Vector3(ARM_X, deck_top * 0.74, pivot_z)
 	var axle := Vector3(ARM_X, 0.0, base * 0.5)
-	# Оранжевый рычаг: балка + косынка + усиление.
+	# Оранжевый маятник с двух сторон: балки, косынки, распорка у шарнира.
 	_plate_between(root, pivot, axle, 0.054, 0.021, _accent)
+	_plate_between(root, Vector3(-ARM_X, deck_top * 0.74, pivot_z),
+		Vector3(-ARM_X, 0.0, base * 0.5), 0.054, 0.021, _accent)
 	_plate_between(root, pivot + Vector3(0.0, 0.0, 0.10), axle + Vector3(0.0, 0.035, 0.0),
 		0.026, 0.013, _accent)
+	_cyl_between(root, pivot, Vector3(-ARM_X, deck_top * 0.74, pivot_z), 0.017, _rim)
+	_cyl_between(root, Vector3(ARM_X - 0.03, 0.0, base * 0.5),
+		Vector3(-ARM_X + 0.03, 0.0, base * 0.5), 0.014, _alu)
 	_cyl(root, 0.022, 0.056, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(root, 0.017, 0.062, axle, _alu, Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Красный суппорт сбоку колеса.
@@ -107,13 +112,6 @@ func _rear_fender(root: Node3D) -> void:
 	_fender(root, center, radius + 0.012, radius + 0.020, -18.0, 130.0, _plastic, 18, 0.014)
 	_plate_between(root, Vector3(ARM_X - 0.006, 0.050, base * 0.5 + 0.10),
 		Vector3(0.0, radius + 0.028, base * 0.5 + 0.06), 0.028, 0.012, _rim)
-
-
-func _kickstand(root: Node3D) -> void:
-	var top := Vector3(-0.070, deck_top * 0.20, 0.04)
-	var foot := Vector3(-0.150, -radius * 0.92, 0.13)
-	_plate_between(root, top, foot, 0.024, 0.015, _rim)
-	_cyl(root, 0.011, 0.038, top, _steel, Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 
 
 func _build_steer(root: Node3D) -> Node3D:
