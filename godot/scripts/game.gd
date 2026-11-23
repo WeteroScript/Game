@@ -332,7 +332,8 @@ func _tick_smoke(delta: float) -> void:
 	# В вилли автотест держит газ ниже упора: так проверяется управление углом
 	# без намеренного переворота через заднее колесо.
 	input_state.touch_throttle = 0.75 if _smoke_wheelie_on else 1.0
-	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35
+	# На ровной дороге автотест виляет рулём, в городе едет прямо.
+	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35 if _smoke_phase == 0 else 0.0
 
 	if _smoke_phase == 0:
 		if not _smoke_wheelie_on and _smoke_timer > 3.0:
