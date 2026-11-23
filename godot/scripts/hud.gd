@@ -89,6 +89,14 @@ func _build_top_right(root: Control) -> void:
 	_battery_bar.value = 100.0
 	_battery_bar.show_percentage = false
 	UiFactory.place(_battery_bar, 980.0, 26.0, 200.0, 22.0)
+	var bar_bg := StyleBoxFlat.new()
+	bar_bg.bg_color = Color(0.09, 0.11, 0.15, 0.95)
+	bar_bg.set_corner_radius_all(8)
+	var bar_fill := StyleBoxFlat.new()
+	bar_fill.bg_color = Color(0.36, 0.86, 0.48)
+	bar_fill.set_corner_radius_all(8)
+	_battery_bar.add_theme_stylebox_override("background", bar_bg)
+	_battery_bar.add_theme_stylebox_override("fill", bar_fill)
 	root.add_child(_battery_bar)
 
 	var battery_caption := UiFactory.label("БАТАРЕЯ", 14, UiFactory.MUTED_COLOR)
@@ -135,23 +143,23 @@ func _build_center(root: Control) -> void:
 	root.add_child(_hint_label)
 
 	# Кнопки-события: режим, привод, респаун, меню.
-	var mode_button := UiFactory.button("РЕЖИМ", 18, Vector2(120.0, 44.0))
-	UiFactory.place(mode_button, 490.0, 140.0, 140.0, 44.0)
+	var mode_button := UiFactory.button("РЕЖИМ", 18, Vector2(140.0, 40.0))
+	UiFactory.place(mode_button, 18.0, 182.0, 142.0, 40.0)
 	mode_button.pressed.connect(_on_mode_button)
 	root.add_child(mode_button)
 
-	var drive_button := UiFactory.button("AWD/RWD", 18, Vector2(140.0, 44.0))
-	UiFactory.place(drive_button, 650.0, 140.0, 140.0, 44.0)
+	var drive_button := UiFactory.button("AWD/RWD", 18, Vector2(140.0, 40.0))
+	UiFactory.place(drive_button, 176.0, 182.0, 142.0, 40.0)
 	drive_button.pressed.connect(_on_drive_button)
 	root.add_child(drive_button)
 
-	var respawn_button := UiFactory.button("РЕСПАУН", 18, Vector2(120.0, 44.0))
-	UiFactory.place(respawn_button, 490.0, 194.0, 140.0, 44.0)
+	var respawn_button := UiFactory.button("РЕСПАУН", 18, Vector2(140.0, 40.0))
+	UiFactory.place(respawn_button, 18.0, 230.0, 142.0, 40.0)
 	respawn_button.pressed.connect(_on_respawn_button)
 	root.add_child(respawn_button)
 
-	var menu_button := UiFactory.button("МЕНЮ", 18, Vector2(120.0, 44.0))
-	UiFactory.place(menu_button, 650.0, 194.0, 140.0, 44.0)
+	var menu_button := UiFactory.button("МЕНЮ", 18, Vector2(140.0, 40.0))
+	UiFactory.place(menu_button, 176.0, 230.0, 142.0, 40.0)
 	menu_button.pressed.connect(_on_menu_button)
 	root.add_child(menu_button)
 

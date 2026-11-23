@@ -26,12 +26,60 @@ static func panel(color := PANEL_COLOR) -> ColorRect:
 	return rect
 
 
+static func stylebox(bg: Color, border: Color, radius := 12) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(radius)
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
+	return style
+
+
+## Перекрашивает кнопку: обычная или выбранная (акцентная рамка и фон).
+static func style_button(node: Button, selected := false) -> void:
+	var base_color := Color(1.0, 0.55, 0.12, 0.92) if selected else Color(0.09, 0.11, 0.15, 0.86)
+	var border := ACCENT_COLOR if selected else Color(1.0, 1.0, 1.0, 0.16)
+	var normal := stylebox(base_color, border)
+	node.add_theme_stylebox_override("normal", normal)
+
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = base_color.lightened(0.08)
+	node.add_theme_stylebox_override("hover", hover)
+
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = base_color.darkened(0.25)
+	node.add_theme_stylebox_override("pressed", pressed)
+	node.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+
+	node.add_theme_color_override("font_color", Color(0.06, 0.05, 0.04) if selected else TEXT_COLOR)
+	node.add_theme_color_override("font_hover_color", Color(0.06, 0.05, 0.04) if selected else TEXT_COLOR)
+
+
 static func button(text: String, size: int, min_size := Vector2(0.0, 46.0)) -> Button:
 	var node := Button.new()
 	node.text = text
 	node.custom_minimum_size = min_size
 	node.add_theme_font_size_override("font_size", size)
 	node.focus_mode = Control.FOCUS_NONE
+	style_button(node, false)
+	return node
+
+
+## Главная кнопка экрана — яркая, чтобы её было видно с телефона.
+static func primary_button(text: String, size: int, min_size := Vector2(0.0, 70.0)) -> Button:
+	var node := button(text, size, min_size)
+	var normal := stylebox(Color(1.0, 0.58, 0.12, 0.95), Color(1.0, 0.78, 0.42, 0.95), 16)
+	node.add_theme_stylebox_override("normal", normal)
+	node.add_theme_stylebox_override("hover", normal)
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(1.0, 0.46, 0.05, 1.0)
+	node.add_theme_stylebox_override("pressed", pressed)
+	node.add_theme_color_override("font_color", Color(0.08, 0.05, 0.02))
+	node.add_theme_color_override("font_hover_color", Color(0.08, 0.05, 0.02))
 	return node
 
 
