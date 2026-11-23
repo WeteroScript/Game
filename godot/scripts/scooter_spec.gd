@@ -38,6 +38,8 @@ var brand_text := "KUGOO"
 var has_rear_step := true
 ## Переднее крыло: у G4 его нет, у F3 — есть.
 var front_fender := false
+## Наклон стойки назад, градусы (у F3 она заметно завалена, у G4 почти вертикальная).
+var stem_rake_deg := 6.0
 var deck_width := 0.22
 
 var battery_wh := 1200.0
@@ -135,6 +137,7 @@ static func create_g4() -> ScooterSpec:
 	s.suspension_color = Color(0.36, 0.38, 0.41)
 	s.brand_text = "KUKIRIN G4"
 	s.front_fender = false
+	s.stem_rake_deg = 6.0
 	s.off_road_tires = true
 	s.orange_accents = false
 	return s
@@ -193,6 +196,7 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.suspension_color = Color(0.88, 0.44, 0.11)
 	s.brand_text = "KUGOO"
 	s.front_fender = true
+	s.stem_rake_deg = 15.0
 	s.off_road_tires = false
 	s.orange_accents = true
 	return s

@@ -203,7 +203,8 @@ func _front_assembly(root: Node3D) -> Node3D:
 	# Стойка: широкая плоская труба с замком складывания и деколью бренда.
 	# На фото она почти вертикальная, чуть отклонена назад, руль на 1.22 м.
 	var stem_bottom := Vector3(0.0, deck_top + 0.20, 0.02)
-	var stem_top := Vector3(0.0, 1.22, 0.095)
+	var rake := deg_to_rad(spec.stem_rake_deg)
+	var stem_top := Vector3(0.0, 1.22, 0.02 + tan(rake) * (1.22 - stem_bottom.y))
 	_plate_between(steer, stem_bottom, stem_top, 0.058, 0.046, _frame)
 	_plate_between(steer, stem_bottom, stem_bottom.lerp(stem_top, 0.42), 0.074, 0.056, _frame)
 	_box(steer, Vector3(0.092, 0.115, 0.102), stem_bottom + Vector3(0.0, 0.045, 0.005), _dark)
@@ -224,7 +225,7 @@ func _front_assembly(root: Node3D) -> Node3D:
 	for side in [-1.0, 1.0]:
 		_box(steer, Vector3(0.006, 0.44, 0.030),
 			stem_mid + Vector3(side * 0.026, 0.0, 0.0), _accent,
-			Vector3(deg_to_rad(5.2), 0.0, 0.0))
+			Vector3(rake, 0.0, 0.0))
 		_label(steer, spec.brand_text, stem_mid + Vector3(side * 0.031, 0.02, 0.0),
 			Vector3(0.0, 90.0 * side, 90.0), 0.00045, Color(0.96, 0.96, 0.97))
 
@@ -280,7 +281,8 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool, disc: 
 
 	# Обод: два диска по бокам + спицы + ступица.
 	for side in [-1.0, 1.0]:
-		_cyl(pivot, radius * 0.66, 0.014, Vector3(side * 0.046, 0.0, 0.0), _dark,
+		_cyl(pivot, radius * 0.66, 0.014, Vector3(side * 0.046, 0.0, 0.0),
+			_accent if spec.orange_accents else _dark,
 			Vector3(0.0, 0.0, deg_to_rad(90.0)), 24)
 		# Акцентное кольцо по краю обода (у F3 оранжевое).
 		_torus(pivot, radius * 0.60, radius * 0.665,
