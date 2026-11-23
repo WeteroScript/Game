@@ -467,6 +467,19 @@ func _take_screenshots() -> void:
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_wheelie")
 
+	# Стант сбоку: видно позу райдера — опорная нога на деке, вторая в воздухе.
+	scooter.set_input_enabled(false)
+	hud.visible = false
+	camera_rig.target = null
+	var stunt_origin: Vector3 = scooter.global_position
+	camera_rig.global_position = stunt_origin + Vector3(2.55, 0.95, 0.85)
+	camera_rig.look_at(stunt_origin + Vector3(0.0, 0.95, 0.15), Vector3.UP)
+	camera_rig.fov = 38.0
+	for frame in 3:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "wheelie_side")
+
 	print("SHOTS DONE %s" % shot_dir)
 	get_tree().quit()
 

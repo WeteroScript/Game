@@ -69,8 +69,8 @@ func _ready() -> void:
 	y += 28.0
 	for index in MODE_NAMES.size():
 		var captured_mode := index
-		var button := UiFactory.button(MODE_NAMES[index], 19, Vector2(172.0, 54.0))
-		UiFactory.place(button, 50.0 + index * 178.0, y, 172.0, 54.0)
+		var button := UiFactory.button(MODE_NAMES[index], 16, Vector2(180.0, 54.0))
+		UiFactory.place(button, 50.0 + index * 186.0, y, 180.0, 54.0)
 		button.pressed.connect(func() -> void: _select_mode(captured_mode))
 		root.add_child(button)
 		_mode_buttons.append(button)
