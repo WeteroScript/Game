@@ -295,7 +295,9 @@ func _tick_smoke(delta: float) -> void:
 			scooter.crash("smoke test")
 			print("SMOKE forced crash")
 
-	if fmod(_smoke_timer, 3.0) < delta:
+	# Во время вилли печатаем чаще: нужно видеть траекторию угла.
+	var period := 1.0 if _smoke_wheelie_on else 3.0
+	if fmod(_smoke_timer, period) < delta:
 		print("SMOKE t=%.1f %s" % [_smoke_timer, _telemetry()])
 
 

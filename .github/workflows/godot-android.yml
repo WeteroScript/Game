@@ -188,8 +188,8 @@ jobs:
           fi
           # Числа автотеста выводим аннотациями: их видно через check-runs API
           # и они не зависят от комментария в PR.
-          grep -E "pitch=" /tmp/run.log | head -2 | tail -1 \
-            | sed 's/^/::notice title=smoke-wheelie::/' || true
+          grep -E "pitch=" /tmp/run.log | head -8 \
+            | sed 's/^/::notice title=smoke-trace::/' || true
           grep -E "^SMOKE OK" /tmp/run.log | head -1 \
             | sed 's/^/::notice title=smoke-final::/' || true
           if [ "$status" -ne 0 ]; then
