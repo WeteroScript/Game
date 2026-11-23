@@ -172,8 +172,10 @@ func _front_assembly(root: Node3D) -> Node3D:
 	# Рулевой стакан: короткая шея от деки, косынка и замок складывания.
 	_box(steer, Vector3(0.115, 0.14, 0.095), Vector3(0.0, deck_top + 0.055, 0.03), _frame,
 		Vector3(deg_to_rad(-12.0), 0.0, 0.0))
-	_plate_between(steer, Vector3(0.0, deck_top - 0.03, 0.12),
-		Vector3(0.0, deck_top + 0.17, 0.055), 0.085, 0.020, _frame)
+	_plate_between(steer, Vector3(0.0, deck_top - 0.02, 0.185),
+		Vector3(0.0, deck_top + 0.155, 0.045), 0.098, 0.030, _frame)
+	_plate_between(steer, Vector3(-0.052, deck_top + 0.02, 0.14),
+		Vector3(0.052, deck_top + 0.02, 0.14), 0.04, 0.02, _frame)
 	_box(steer, Vector3(0.15, 0.018, 0.026), Vector3(0.0, deck_top + 0.005, 0.075), _accent)
 
 	# Передний рычаг подвески (две пластины вокруг колеса).
@@ -348,15 +350,15 @@ func _spokes(parent: Node3D, rim_radius: float, half_width: float, mat: Material
 
 ## Задняя приподнятая площадка на треугольном кронштейне — как на фото G4.
 func _rear_step(root: Node3D) -> void:
-	var tilt := Vector3(deg_to_rad(-26.0), 0.0, 0.0)
-	var pos := Vector3(0.0, deck_top + 0.15, deck_len * 0.5 + 0.13)
-	_box(root, Vector3(0.19, 0.026, 0.24), pos, _frame, tilt)
-	_box(root, Vector3(0.175, 0.008, 0.215), pos + Vector3(0.0, 0.017, -0.005), _tape, tilt)
+	var tilt := Vector3(deg_to_rad(-21.0), 0.0, 0.0)
+	var pos := Vector3(0.0, deck_top + 0.13, deck_len * 0.5 + 0.10)
+	_box(root, Vector3(0.185, 0.024, 0.205), pos, _frame, tilt)
+	_box(root, Vector3(0.17, 0.008, 0.18), pos + Vector3(0.0, 0.016, -0.005), _tape, tilt)
 	for side in [-1.0, 1.0]:
-		_box(root, Vector3(0.008, 0.02, 0.23), pos + Vector3(side * 0.097, -0.006, 0.0),
+		_box(root, Vector3(0.008, 0.02, 0.195), pos + Vector3(side * 0.094, -0.006, 0.0),
 			_accent, tilt)
 	# Стоп-сигнал на корме площадки.
-	_box(root, Vector3(0.075, 0.026, 0.014), pos + Vector3(0.0, 0.006, 0.128), _tail, tilt)
+	_box(root, Vector3(0.07, 0.024, 0.014), pos + Vector3(0.0, 0.005, 0.108), _tail, tilt)
 	# Треугольный кронштейн: передняя и задняя тяги + болты.
 	var low := Vector3(0.0, deck_top - 0.05, deck_len * 0.5 - 0.01)
 	_plate_between(root, low, Vector3(0.0, pos.y - 0.035, pos.z - 0.07), 0.064, 0.022, _frame)

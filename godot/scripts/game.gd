@@ -306,7 +306,7 @@ func _take_screenshots() -> void:
 	# offset — где стоит камера, look — куда смотрит, fov — угол.
 	var shots := [
 		{"name": "front", "offset": Vector3(1.45, 0.92, -2.25), "look": Vector3(0.0, 0.58, -0.05), "fov": 34.0},
-		{"name": "side", "offset": Vector3(2.80, 0.52, 0.0), "look": Vector3(0.0, 0.62, 0.0), "fov": 30.0},
+		{"name": "side", "offset": Vector3(6.20, 0.62, 0.0), "look": Vector3(0.0, 0.62, 0.0), "fov": 15.0},
 		{"name": "rear", "offset": Vector3(-1.35, 0.78, 1.95), "look": Vector3(0.0, 0.50, 0.02), "fov": 34.0},
 		{"name": "bar", "offset": Vector3(0.62, 1.42, -0.85), "look": Vector3(0.0, 1.10, -0.28), "fov": 34.0},
 		{"name": "wheel", "offset": Vector3(0.70, 0.26, -0.95), "look": Vector3(0.0, 0.13, -0.50), "fov": 34.0},
