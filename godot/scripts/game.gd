@@ -478,8 +478,8 @@ func _take_screenshots() -> void:
 	camera_rig.fov = 38.0
 	for frame in 5:
 		var stunt_origin: Vector3 = scooter.global_position
-		camera_rig.global_position = stunt_origin + Vector3(2.9, 1.05, 1.1)
-		camera_rig.look_at(stunt_origin + Vector3(0.0, 1.00, -0.10), Vector3.UP)
+		camera_rig.global_position = stunt_origin + Vector3(4.3, 1.25, 1.5)
+		camera_rig.look_at(stunt_origin + Vector3(0.0, 0.85, 0.25), Vector3.UP)
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	print("SHOT stunt scooter=%s pitch=%.1f roll=%.1f y=%.2f speed=%.1f lift=%.2f active=%s crashed=%s" % [
