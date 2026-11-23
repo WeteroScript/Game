@@ -295,12 +295,12 @@ func _start_screenshots() -> void:
 	for yaw in [-70.0, 110.0]:
 		var fill := DirectionalLight3D.new()
 		fill.rotation = Vector3(deg_to_rad(-28.0), deg_to_rad(yaw), 0.0)
-		fill.light_energy = 0.45
+		fill.light_energy = 0.58
 		fill.shadow_enabled = false
 		add_child(fill)
 	for child in get_children():
 		if child is WorldEnvironment and child.environment != null:
-			child.environment.ambient_light_energy = 0.42
+			child.environment.ambient_light_energy = 0.50
 	menu.visible = false
 	hud.visible = false
 	# HUD не должен затирать виртуальные касания нулями при съёмке.
