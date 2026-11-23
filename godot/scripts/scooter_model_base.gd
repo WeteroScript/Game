@@ -76,8 +76,8 @@ func _prepare(new_spec: ScooterSpec) -> void:
 
 func _make_materials() -> void:
 	# Краска: слабый металлик и низкая шероховатость — читается как автолак.
-	_paint = _mat(spec.frame_color, 0.12, 0.42)
-	_paint_dark = _mat(spec.frame_color.darkened(0.45), 0.10, 0.48)
+	_paint = _mat(spec.frame_color, 0.10, 0.55)
+	_paint_dark = _mat(spec.frame_color.darkened(0.45), 0.10, 0.60)
 	_accent = _mat(spec.accent_color, 0.10, 0.36)
 	_plastic = _mat(DARK_PLASTIC, 0.15, 0.55)
 	_rubber = _mat(RUBBER, 0.0, 0.92, Color.BLACK, 0.0, true)
@@ -445,7 +445,7 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 		# Обод — кольцо, а не сплошной диск: сквозь него видны спицы.
 		_ring(pivot, radius * 0.625, radius * 0.455, 0.011, rim_paint, 28,
 			Vector3(side * 0.042, 0.0, 0.0))
-		_torus(pivot, radius * 0.600, radius * 0.622, _alu, Vector3.ZERO,
+		_torus(pivot, radius * 0.600, radius * 0.622, _rim, Vector3.ZERO,
 			Vector3(side * 0.049, 0.0, 0.0), 28)
 	_spokes(pivot, radius * 0.47, 0.038, _rim)
 	_cyl(pivot, radius * 0.245, 0.088, Vector3.ZERO, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)

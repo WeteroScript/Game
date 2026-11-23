@@ -151,13 +151,13 @@ func _build_steer(root: Node3D) -> Node3D:
 func _neck(steer: Node3D) -> void:
 	# Горловина — сужающаяся колонна: широкая косынка у деки, узкий стакан сверху.
 	_plate_between(steer, Vector3(0.0, 0.055, 0.105), Vector3(0.0, 0.255, 0.055),
-		0.106, 0.092, _paint)
+		0.098, 0.060, _paint)
 	_plate_between(steer, Vector3(0.0, 0.235, 0.058), Vector3(0.0, STEM_BASE_Y - 0.010, 0.026),
-		0.062, 0.064, _paint)
+		0.058, 0.056, _paint)
 	# Рёбра жёсткости по бокам косынки.
 	for side in [-1.0, 1.0]:
 		_plate_between(steer, Vector3(side * 0.050, 0.055, 0.105),
-			Vector3(side * 0.032, 0.250, 0.060), 0.012, 0.084, _paint_dark)
+			Vector3(side * 0.030, 0.250, 0.060), 0.010, 0.058, _paint_dark)
 	# Компактный чёрный грязевик под стаканом.
 	_rbox(steer, Vector3(0.062, 0.068, 0.062), Vector3(0.0, 0.110, 0.028), _plastic,
 		Vector3(deg_to_rad(-18.0), 0.0, 0.0), 0.007)
