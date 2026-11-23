@@ -152,7 +152,7 @@ func _neck(steer: Node3D) -> void:
 	# Горловина: широкая косынка у деки, узкий стакан сверху — без «крыльев».
 	_rbox(steer, Vector3(0.096, 0.205, 0.108), Vector3(0.0, 0.145, 0.058), _paint,
 		Vector3(deg_to_rad(-11.0), 0.0, 0.0), 0.012)
-	_rbox(steer, Vector3(0.070, 0.240, 0.078), Vector3(0.0, 0.330, 0.034), _paint,
+	_rbox(steer, Vector3(0.064, 0.240, 0.066), Vector3(0.0, 0.330, 0.036), _paint,
 		Vector3(deg_to_rad(-7.0), 0.0, 0.0), 0.010)
 	# Рёбра по бокам косынки.
 	for side in [-1.0, 1.0]:

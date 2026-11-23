@@ -7,7 +7,7 @@
 class_name ScooterModelBase
 extends RefCounted
 
-const RUBBER := Color(0.075, 0.074, 0.078)
+const RUBBER := Color(0.095, 0.094, 0.099)
 
 const TAPE := Color(0.055, 0.055, 0.060)
 const STEEL := Color(0.80, 0.82, 0.85)
@@ -81,7 +81,7 @@ func _make_materials() -> void:
 	_accent = _mat(spec.accent_color, 0.10, 0.36)
 	_plastic = _mat(DARK_PLASTIC, 0.15, 0.55)
 	_rubber = _mat(RUBBER, 0.0, 0.92, Color.BLACK, 0.0, true)
-	_rubber.albedo_texture = _speckle(Color(0.078, 0.077, 0.081), 0.25, 48, 777)
+	_rubber.albedo_texture = _speckle(Color(0.098, 0.096, 0.101), 0.30, 48, 777)
 	_rubber.uv1_scale = Vector3(4.0, 4.0, 4.0)
 	_tape = _mat(TAPE, 0.0, 0.95)
 	_tape.albedo_texture = _speckle(Color(0.062, 0.062, 0.067), 0.22)
@@ -447,6 +447,9 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 			Vector3(side * 0.042, 0.0, 0.0))
 		_torus(pivot, radius * 0.600, radius * 0.622, _rim, Vector3.ZERO,
 			Vector3(side * 0.049, 0.0, 0.0), 28)
+		# Машинная кромка обода — тонкий светлый кант.
+		_torus(pivot, radius * 0.610, radius * 0.628, _steel, Vector3.ZERO,
+			Vector3(side * 0.0455, 0.0, 0.0), 30)
 	_spokes(pivot, radius * 0.47, 0.038, _rim)
 	_cyl(pivot, radius * 0.245, 0.088, Vector3.ZERO, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)
 	for side in [-1.0, 1.0]:
