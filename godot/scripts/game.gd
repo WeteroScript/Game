@@ -341,9 +341,9 @@ func _take_screenshots() -> void:
 		if rider_node != null:
 			rider_node.visible = true
 			var origin2: Vector3 = scooter.global_position
-			camera_rig.global_position = origin2 + Vector3(1.35, 0.95, -1.75)
-			camera_rig.look_at(origin2 + Vector3(0.0, 0.92, -0.1), Vector3.UP)
-			camera_rig.fov = 38.0
+			camera_rig.global_position = origin2 + Vector3(2.55, 1.25, -3.30)
+			camera_rig.look_at(origin2 + Vector3(0.0, 1.05, -0.1), Vector3.UP)
+			camera_rig.fov = 34.0
 			for frame in 6:
 				await get_tree().process_frame
 			await RenderingServer.frame_post_draw
@@ -352,9 +352,9 @@ func _take_screenshots() -> void:
 	# Меню: проверяем вёрстку кнопок и карточку характеристик.
 	_enter_menu()
 	camera_rig.target = null
-	camera_rig.global_position = scooter.global_position + Vector3(1.55, 1.05, 2.10)
-	camera_rig.look_at(scooter.global_position + Vector3.UP * 0.55, Vector3.UP)
-	camera_rig.fov = 44.0
+	camera_rig.global_position = scooter.global_position + Vector3(1.95, 1.25, 2.55)
+	camera_rig.look_at(scooter.global_position + Vector3.UP * 0.60, Vector3.UP)
+	camera_rig.fov = 40.0
 	for frame in 10:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
