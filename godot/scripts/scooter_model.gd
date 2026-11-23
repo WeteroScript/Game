@@ -131,7 +131,7 @@ func _body(root: Node3D) -> void:
 		Vector3(0.135, -radius * 0.45, 0.17), 0.02, 0.03, _dark)
 
 	# Задний амортизатор и рычаг подвески.
-	var rear_pivot := Vector3(0.0, deck_top, deck_len * 0.5 - 0.04)
+	var rear_pivot := Vector3(0.0, deck_top * 0.75, deck_len * 0.5 - 0.04)
 	var rear_axle := Vector3(0.0, 0.0, base * 0.5)
 	for side in [-1.0, 1.0]:
 		var arm_from2 := rear_pivot + Vector3(side * 0.072, 0.0, 0.0)
@@ -170,7 +170,7 @@ func _front_assembly(root: Node3D) -> Node3D:
 	var pivot := Vector3(0.0, deck_top + 0.06, 0.09)
 
 	# Рулевой стакан: короткая шея от деки, косынка и замок складывания.
-	_box(steer, Vector3(0.118, 0.16, 0.10), Vector3(0.0, deck_top + 0.07, 0.02), _frame,
+	_box(steer, Vector3(0.115, 0.14, 0.095), Vector3(0.0, deck_top + 0.055, 0.03), _frame,
 		Vector3(deg_to_rad(-12.0), 0.0, 0.0))
 	_plate_between(steer, Vector3(0.0, deck_top - 0.03, 0.12),
 		Vector3(0.0, deck_top + 0.17, 0.055), 0.085, 0.020, _frame)
@@ -250,9 +250,9 @@ func _front_assembly(root: Node3D) -> Node3D:
 	_cyl(steer, 0.018, 0.02, Vector3(-0.145, bar_y + 0.02, bar_z - 0.01), _steel)
 	_box(steer, Vector3(0.018, 0.014, 0.05), Vector3(0.175, bar_y + 0.026, bar_z - 0.015), _accent)
 	# Фара под стаканом.
-	_cyl(steer, 0.030, 0.030, Vector3(0.0, deck_top + 0.13, 0.115), _lamp,
+	_cyl(steer, 0.028, 0.026, Vector3(0.0, deck_top + 0.055, 0.095), _lamp,
 		Vector3(deg_to_rad(90.0), 0.0, 0.0))
-	_cyl(steer, 0.034, 0.020, Vector3(0.0, deck_top + 0.13, 0.098), _dark,
+	_cyl(steer, 0.032, 0.018, Vector3(0.0, deck_top + 0.055, 0.080), _dark,
 		Vector3(deg_to_rad(90.0), 0.0, 0.0))
 
 	# Переднее колесо и маркеры руля для рук райдера.
