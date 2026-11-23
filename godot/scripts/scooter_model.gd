@@ -1,17 +1,24 @@
-## Процедурная 3D-модель самоката: рама, дека, вилка, подвеска, колёса, крылья,
-## фара, стоп-сигнал, дисплей. Всё собирается кодом — внешних ассетов нет.
+## Процедурные модели самокатов по реальным фото G4 и F3 Pro Max.
 ##
-## Местные оси:origin на высоте осей колёс, «вперёд» = -Z (как у Node3D в Godot).
-## Возвращает словарь с узлами, которые анимирует Scooter:
-##   root, front_steer (поворот руля), front_wheel / rear_wheel (вращение),
-##   bar_left / bar_right (за них держится райдер), foot_left / foot_right.
+## Что повторяем с фотографий:
+##   * глубокая дека-короб (аккумулятор) с гриптейпом и боковыми наклейками;
+##   * высокий рулевой стакан и длинная стойка с деколью бренда;
+##   * рычажная подвеска (trailing arm) спереди и сзади с амортизаторами;
+##   * зубастые покрышки, крылья-дуги, задний «хвост» с площадкой и стоп-сигналом;
+##   * G4 — серый gunmetal с оранжевыми шевронами, F3 Pro Max — чёрный с
+##     оранжевыми рычагами подвески и кольцами на дисках.
+##
+## Местные оси: origin на высоте осей колёс, «вперёд» = -Z.
+## Возвращает словарь: root, front_steer, front_wheel, rear_wheel,
+## bar_left, bar_right, foot_left, foot_right.
 class_name ScooterModel
 extends RefCounted
 
 const RUBBER := Color(0.045, 0.045, 0.05)
-const GRIP_TAPE := Color(0.07, 0.07, 0.08)
-const STEEL := Color(0.72, 0.74, 0.78)
-const DARK_STEEL := Color(0.30, 0.32, 0.35)
+const GRIP_TAPE := Color(0.06, 0.06, 0.07)
+const STEEL := Color(0.74, 0.76, 0.80)
+const DARK_STEEL := Color(0.26, 0.27, 0.30)
+const BLACK_PLASTIC := Color(0.05, 0.05, 0.06)
 const SCREEN := Color(0.35, 0.85, 1.0)
 const LAMP := Color(1.0, 0.95, 0.82)
 const TAIL := Color(1.0, 0.16, 0.12)
@@ -19,15 +26,17 @@ const TAIL := Color(1.0, 0.16, 0.12)
 var spec: ScooterSpec
 var radius := 0.14
 var base := 1.06
-var deck_top := 0.16
-var board_length := 0.82
+var deck_top := 0.075
+var deck_len := 0.64
+var steer_z := -0.33
 
 var _frame: StandardMaterial3D
 var _accent: StandardMaterial3D
+var _susp: StandardMaterial3D
+var _dark: StandardMaterial3D
 var _rubber: StandardMaterial3D
 var _tape: StandardMaterial3D
 var _steel: StandardMaterial3D
-var _dark: StandardMaterial3D
 var _screen: StandardMaterial3D
 var _lamp: StandardMaterial3D
 var _tail: StandardMaterial3D
@@ -41,220 +50,302 @@ func _build(new_spec: ScooterSpec) -> Dictionary:
 	spec = new_spec
 	radius = spec.wheel_radius
 	base = spec.wheel_base
-	deck_top = spec.deck_height if spec.deck_height > 0.01 else radius + 0.02
-	board_length = spec.deck_length + 0.30
+	deck_top = spec.deck_height if spec.deck_height > 0.02 else radius * 0.55
+	# Рулевой стакан стоит на 0.20 м позади передней оси — как на фото.
+	steer_z = -base * 0.5 + 0.20
 
 	_make_materials()
 
 	var root := Node3D.new()
 	root.name = "Model"
 
-	var body := _body(root)
-	var front_steer := _front_assembly(root)
+	_body(root)
+	var steer := _front_assembly(root)
 
 	return {
 		"root": root,
-		"front_steer": front_steer,
-		"front_wheel": front_steer.get_node("Wheel"),
-		"rear_wheel": body.get_node("RearWheel"),
-		"bar_left": front_steer.get_node("BarLeft"),
-		"bar_right": front_steer.get_node("BarRight"),
-		"foot_left": body.get_node("FootLeft"),
-		"foot_right": body.get_node("FootRight"),
+		"front_steer": steer,
+		"front_wheel": steer.get_node("Wheel"),
+		"rear_wheel": root.get_node("RearWheel"),
+		"bar_left": steer.get_node("BarLeft"),
+		"bar_right": steer.get_node("BarRight"),
+		"foot_left": root.get_node("FootLeft"),
+		"foot_right": root.get_node("FootRight"),
 	}
 
 
 func _make_materials() -> void:
-	_frame = _mat(spec.frame_color, 0.55, 0.34)
+	_frame = _mat(spec.frame_color, 0.55, 0.35)
 	_accent = _mat(spec.accent_color, 0.35, 0.30)
+	_susp = _mat(spec.suspension_color, 0.45, 0.35)
+	_dark = _mat(DARK_STEEL, 0.55, 0.45)
 	_rubber = _mat(RUBBER, 0.0, 0.95, Color.BLACK, 0.0, true)
 	_tape = _mat(GRIP_TAPE, 0.0, 0.98)
-	_steel = _mat(STEEL, 0.92, 0.22)
-	_dark = _mat(DARK_STEEL, 0.6, 0.45)
+	_steel = _mat(STEEL, 0.9, 0.22)
 	_screen = _mat(Color(0.02, 0.05, 0.08), 0.1, 0.2, SCREEN, 2.2)
-	_lamp = _mat(Color(0.95, 0.93, 0.85), 0.2, 0.25, LAMP, 3.2)
+	_lamp = _mat(Color(0.95, 0.93, 0.85), 0.2, 0.25, LAMP, 3.0)
 	_tail = _mat(Color(0.35, 0.04, 0.04), 0.1, 0.35, TAIL, 2.6)
 
 
 # ---- корпус ------------------------------------------------------------------
-func _body(root: Node3D) -> Node3D:
-	var body := Node3D.new()
-	body.name = "Body"
-	root.add_child(body)
+func _body(root: Node3D) -> void:
+	var base_z := -0.02
 
-	# Дека и накладка-гриптейп.
-	_box(body, Vector3(spec.deck_width, 0.05, board_length),
-		Vector3(0.0, deck_top - 0.025, 0.05), _frame)
-	_box(body, Vector3(spec.deck_width - 0.03, 0.006, board_length - 0.12),
-		Vector3(0.0, deck_top + 0.002, 0.05), _tape)
-	_box(body, Vector3(spec.deck_width - 0.10, 0.012, board_length - 0.20),
-		Vector3(0.0, deck_top + 0.008, 0.05), _tape)
+	# Дека-короб: аккумулятор внутри, сверху гриптейп.
+	_box(root, Vector3(0.215, 0.11, deck_len),
+		Vector3(0.0, deck_top - 0.055, base_z), _frame)
+	_box(root, Vector3(0.195, 0.008, deck_len - 0.06),
+		Vector3(0.0, deck_top + 0.004, base_z), _tape)
+	_box(root, Vector3(0.165, 0.006, deck_len - 0.14),
+		Vector3(0.0, deck_top + 0.010, base_z), _tape)
 
-	# Боковые молдинги в цвет акцента.
+	# Боковые панели и наклейки-шевроны (они и делают узнаваемый вид).
 	for side in [-1.0, 1.0]:
-		_box(body, Vector3(0.012, 0.028, board_length - 0.06),
-			Vector3(side * spec.deck_width * 0.5, deck_top - 0.022, 0.05), _accent)
+		_box(root, Vector3(0.006, 0.07, deck_len - 0.02),
+			Vector3(side * 0.108, deck_top - 0.05, base_z), _dark)
+		for chevron_z in [-deck_len * 0.5 + 0.10, deck_len * 0.5 - 0.10]:
+			for offset in [-0.028, 0.0, 0.028]:
+				_box(root, Vector3(0.008, 0.045, 0.018),
+					Vector3(side * 0.112, deck_top - 0.05,
+						base_z + chevron_z + offset), _accent,
+					Vector3(deg_to_rad(38.0), 0.0, 0.0))
 
-	# Задний «хвост» с габаритом.
-	_box(body, Vector3(spec.deck_width - 0.04, 0.035, 0.14),
-		Vector3(0.0, deck_top - 0.005, board_length * 0.5 + 0.02), _frame)
-	_box(body, Vector3(0.075, 0.022, 0.014),
-		Vector3(0.0, deck_top - 0.002, board_length * 0.5 + 0.095), _tail)
+	# Табличка бренда на боку деки.
+	_label(root, spec.brand_text, Vector3(0.113, deck_top - 0.055, base_z + 0.02),
+		Vector3(0.0, 90.0, 0.0), 0.0009, Color(0.92, 0.92, 0.94))
+	_label(root, spec.brand_text, Vector3(-0.113, deck_top - 0.055, base_z + 0.02),
+		Vector3(0.0, -90.0, 0.0), 0.0009, Color(0.92, 0.92, 0.94))
 
-	# Аккумуляторный отсек и защита картера.
-	_box(body, Vector3(spec.deck_width - 0.05, 0.105, board_length - 0.26),
-		Vector3(0.0, deck_top - 0.105, 0.06), _dark)
-	_box(body, Vector3(spec.deck_width - 0.09, 0.02, board_length - 0.34),
-		Vector3(0.0, deck_top - 0.16, 0.06), _frame)
+	# Защита снизу и подножка.
+	_box(root, Vector3(0.17, 0.03, deck_len - 0.12),
+		Vector3(0.0, deck_top - 0.125, base_z), _dark)
+	_plate_between(root, Vector3(0.085, deck_top - 0.11, 0.10),
+		Vector3(0.135, -radius * 0.45, 0.17), 0.02, 0.03, _dark)
 
-	# Декоративные вставки (у F3 оранжевые).
-	if spec.orange_accents:
-		for side in [-1.0, 1.0]:
-			_box(body, Vector3(0.008, 0.016, 0.26),
-				Vector3(side * (spec.deck_width * 0.5 + 0.004), deck_top - 0.075, 0.10), _accent)
+	# Задний «хвост»: площадка под ногу + стоп-сигнал + отражатель.
+	var tail_basis := Basis(Vector3.RIGHT, deg_to_rad(-16.0))
+	_box(root, Vector3(0.20, 0.024, 0.19),
+		Vector3(0.0, deck_top + 0.045, deck_len * 0.5 + 0.03), _frame,
+		Vector3(deg_to_rad(-16.0), 0.0, 0.0))
+	_box(root, Vector3(0.185, 0.006, 0.16),
+		Vector3(0.0, deck_top + 0.060, deck_len * 0.5 + 0.035), _tape,
+		Vector3(deg_to_rad(-16.0), 0.0, 0.0))
+	_box(root, Vector3(0.09, 0.022, 0.016),
+		Vector3(0.0, deck_top + 0.012, deck_len * 0.5 + 0.135), _tail,
+		tail_basis.get_euler())
+	_box(root, Vector3(0.03, 0.018, 0.012),
+		Vector3(0.0, deck_top + 0.075, deck_len * 0.5 + 0.10), _accent,
+		Vector3(deg_to_rad(-16.0), 0.0, 0.0))
 
-	# «Шея» — переход от деки к рулевой колонке.
-	_cyl_between(body, Vector3(0.0, deck_top - 0.035, -board_length * 0.5 + 0.08),
-		Vector3(0.0, 0.30, -base * 0.5 + 0.03), 0.045, _frame)
-	_box(body, Vector3(spec.deck_width * 0.72, 0.06, 0.10),
-		Vector3(0.0, deck_top - 0.02, -board_length * 0.5 + 0.03), _accent)
-
-	# Задняя подвеска: два амортизатора от деки к оси.
+	# Задний амортизатор и рычаг подвески.
+	var rear_pivot := Vector3(0.0, deck_top - 0.05, deck_len * 0.5 - 0.04)
+	var rear_axle := Vector3(0.0, 0.0, base * 0.5)
 	for side in [-1.0, 1.0]:
-		_cyl_between(body, Vector3(side * 0.075, deck_top - 0.10, base * 0.5 - 0.20),
-			Vector3(side * 0.075, 0.01, base * 0.5 - 0.02), 0.016, _steel)
-		_cyl_between(body, Vector3(side * 0.075, deck_top - 0.10, base * 0.5 - 0.20),
-			Vector3(side * 0.075, deck_top - 0.135, base * 0.5 - 0.21), 0.024, _accent)
+		_plate_between(root, rear_pivot + Vector3(side * 0.072, 0.0, 0.0),
+			rear_axle + Vector3(side * 0.072, 0.0, 0.0), 0.018, 0.05, _susp)
+		_box(root, Vector3(0.014, 0.03, 0.03),
+			rear_pivot + Vector3(side * 0.072, 0.0, 0.0), _accent)
+	_shock(root, Vector3(0.0, deck_top - 0.03, deck_len * 0.5 + 0.02),
+		Vector3(0.0, 0.06, base * 0.5 - 0.03), 0.016)
 
-	# Подножка (сложена вдоль деки).
-	_cyl_between(body, Vector3(0.085, deck_top - 0.08, 0.28),
-		Vector3(0.115, -radius * 0.35, 0.34), 0.008, _steel)
+	# Заднее крыло и стойка крыла.
+	_fender(root, Vector3(0.0, 0.0, base * 0.5), radius + 0.03, spec.deck_width + 0.03,
+		-10.0, 120.0, _dark)
+	_plate_between(root, Vector3(0.0, deck_top - 0.02, deck_len * 0.5),
+		Vector3(0.0, radius + 0.05, base * 0.5 + 0.02), 0.06, 0.02, _frame)
 
-	# Брызговик под задним крылом.
-	_box(body, Vector3(spec.deck_width * 0.8, 0.09, 0.012),
-		Vector3(0.0, -radius * 0.35, base * 0.5 + radius + 0.01), _rubber,
-		Vector3(deg_to_rad(-14.0), 0.0, 0.0))
+	# Заднее колесо (хаб-мотор).
+	_wheel(root, Vector3(0.0, 0.0, base * 0.5), "RearWheel", true, spec.motor_count == 1)
 
-	# Заднее крыло над колесом.
-	_fender(body, Vector3(0.0, 0.0, base * 0.5), radius + 0.018, spec.deck_width + 0.02, -25.0, 105.0, _frame)
-
-	# Заднее колесо (с хаб-мотором).
-	_wheel_pivot(body, Vector3(0.0, 0.0, base * 0.5), "RearWheel", true)
-
-	# Точки постановки ног для райдера.
-	_marker(body, "FootLeft", Vector3(-0.075, deck_top + 0.01, -0.02))
-	_marker(body, "FootRight", Vector3(0.075, deck_top + 0.01, 0.14))
-
-	# Светоотражатели на боках.
-	for side in [-1.0, 1.0]:
-		_box(body, Vector3(0.006, 0.03, 0.05),
-			Vector3(side * (spec.deck_width * 0.5 + 0.002), deck_top - 0.10, -0.22), _tail)
-
-	return body
+	# Точки постановки ног.
+	_marker(root, "FootLeft", Vector3(-0.072, deck_top + 0.015, -0.06))
+	_marker(root, "FootRight", Vector3(0.072, deck_top + 0.015, 0.10))
 
 
 func _front_assembly(root: Node3D) -> Node3D:
 	var steer := Node3D.new()
 	steer.name = "FrontSteer"
-	steer.position = Vector3(0.0, 0.0, -base * 0.5)
+	steer.position = Vector3(0.0, 0.0, steer_z)
 	root.add_child(steer)
 
-	# Вилка: две стойки + корона.
+	var axle := Vector3(0.0, 0.0, -(base * 0.5 + steer_z))
+	var pivot := Vector3(0.0, deck_top - 0.05, 0.03)
+
+	# Рулевой стакан: широкий клин от деки к стойке.
+	_box(steer, Vector3(0.145, 0.24, 0.12), Vector3(0.0, deck_top + 0.10, 0.03), _frame,
+		Vector3(deg_to_rad(-18.0), 0.0, 0.0))
+	_box(steer, Vector3(0.115, 0.10, 0.10), Vector3(0.0, deck_top + 0.22, 0.02), _frame)
+	_box(steer, Vector3(0.16, 0.02, 0.03), Vector3(0.0, deck_top + 0.02, 0.10), _accent)
+
+	# Передний рычаг подвески (две пластины вокруг колеса).
 	for side in [-1.0, 1.0]:
-		_cyl_between(steer, Vector3(side * 0.055, 0.30, 0.0),
-			Vector3(side * 0.055, 0.015, 0.0), 0.017, _steel)
-		_cyl_between(steer, Vector3(side * 0.055, 0.20, 0.0),
-			Vector3(side * 0.055, 0.30, 0.0), 0.022, _accent)
-	_box(steer, Vector3(0.15, 0.035, 0.06), Vector3(0.0, 0.315, 0.0), _dark)
+		_plate_between(steer, pivot + Vector3(side * 0.074, 0.0, 0.0),
+			axle + Vector3(side * 0.074, 0.0, 0.0), 0.018, 0.055, _susp)
+		_box(steer, Vector3(0.014, 0.032, 0.032), pivot + Vector3(side * 0.074, 0.0, 0.0), _accent)
+		_box(steer, Vector3(0.016, 0.05, 0.02), axle + Vector3(side * 0.074, 0.0, 0.02), _susp)
+	# Распорка между пластинами.
+	_plate_between(steer, pivot + Vector3(-0.074, 0.0, 0.0), pivot + Vector3(0.074, 0.0, 0.0),
+		0.05, 0.02, _susp)
 
-	# Рулевая колонка и складывающийся узел.
-	_cyl_between(steer, Vector3(0.0, 0.30, 0.0), Vector3(0.0, 0.40, 0.02), 0.045, _frame)
-	_cyl_between(steer, Vector3(0.0, 0.40, 0.02), Vector3(0.0, 0.88, 0.10), 0.028, _frame)
-	_cyl(steer, 0.038, 0.06, Vector3(0.0, 0.36, 0.008), _accent, Vector3(deg_to_rad(11.0), 0.0, 0.0))
+	# Передний амортизатор: от стакана к середине рычага.
+	var shock_top := Vector3(0.0, deck_top + 0.10, 0.06)
+	var shock_bottom := axle + Vector3(0.0, 0.035, 0.06)
+	_shock(steer, shock_top, shock_bottom, 0.017)
 
-	# Стопор замка складывания.
-	_box(steer, Vector3(0.05, 0.055, 0.055), Vector3(0.0, 0.345, 0.012), _dark)
+	# Крыло переднего колеса.
+	_fender(steer, axle, radius + 0.03, spec.deck_width + 0.02, -10.0, 118.0, _dark)
 
-	# Руль: поперечина, грипсы, тормозные ручки, курок газа, дисплей, фара.
-	var bar_height := 0.92
-	var bar_z := 0.105
-	_cyl(steer, 0.017, 0.46, Vector3(0.0, bar_height, bar_z), _dark, Vector3(0.0, 0.0, deg_to_rad(90.0)))
+	# Стойка: прямоугольная труба с замком складывания и деколью бренда.
+	var stem_bottom := Vector3(0.0, deck_top + 0.20, 0.02)
+	var stem_top := Vector3(0.0, 0.98, 0.075)
+	_plate_between(steer, stem_bottom, stem_top, 0.052, 0.045, _frame)
+	_box(steer, Vector3(0.082, 0.13, 0.082), stem_bottom + Vector3(0.0, 0.05, 0.0), _dark)
+	for bolt_z in [-0.035, 0.035]:
+		for bolt_y in [0.02, 0.075]:
+			_cyl(steer, 0.007, 0.09, stem_bottom + Vector3(0.0, bolt_y, bolt_z), _steel,
+				Vector3(0.0, 0.0, deg_to_rad(90.0)))
+	# Быстросъёмный рычаг.
+	_cyl(steer, 0.013, 0.10, Vector3(0.0, 0.60, 0.055), _dark,
+		Vector3(deg_to_rad(90.0), 0.0, 0.0))
+	_box(steer, Vector3(0.016, 0.02, 0.075), Vector3(0.0, 0.60, 0.085), _accent,
+		Vector3(deg_to_rad(-28.0), 0.0, 0.0))
+
+	# Деколь бренда вдоль стойки (с двух сторон).
+	var stem_decal_pos := stem_bottom.lerp(stem_top, 0.62)
 	for side in [-1.0, 1.0]:
-		_cyl(steer, 0.023, 0.115, Vector3(side * 0.225, bar_height, bar_z), _rubber,
+		_label(steer, spec.brand_text, stem_decal_pos + Vector3(side * 0.028, 0.0, 0.0),
+			Vector3(0.0, 90.0 * side, 90.0), 0.0008, spec.accent_color)
+
+	# Руль: поперечина, грипсы, ручки тормоза, дисплей, фара, звонок.
+	var bar_y := stem_top.y
+	var bar_z := stem_top.z
+	_box(steer, Vector3(0.10, 0.06, 0.06), Vector3(0.0, bar_y - 0.02, bar_z), _dark)
+	_cyl(steer, 0.016, 0.50, Vector3(0.0, bar_y, bar_z), _dark,
+		Vector3(0.0, 0.0, deg_to_rad(90.0)))
+	for side in [-1.0, 1.0]:
+		_cyl(steer, 0.024, 0.125, Vector3(side * 0.215, bar_y, bar_z), _rubber,
 			Vector3(0.0, 0.0, deg_to_rad(90.0)))
-		_cyl(steer, 0.026, 0.014, Vector3(side * 0.288, bar_height, bar_z), _accent,
+		_cyl(steer, 0.027, 0.016, Vector3(side * 0.278, bar_y, bar_z), _accent,
 			Vector3(0.0, 0.0, deg_to_rad(90.0)))
-		# Тормозная ручка.
-		_box(steer, Vector3(0.012, 0.012, 0.10),
-			Vector3(side * 0.20, bar_height - 0.022, bar_z - 0.045), _steel,
-			Vector3(deg_to_rad(6.0), 0.0, 0.0))
-		_box(steer, Vector3(0.03, 0.028, 0.03),
-			Vector3(side * 0.145, bar_height - 0.01, bar_z - 0.02), _dark)
-
-	# Курок газа на правой грипсе.
-	_box(steer, Vector3(0.02, 0.014, 0.055),
-		Vector3(0.19, bar_height + 0.028, bar_z - 0.02), _accent)
-
-	# Шильдик на стойке.
-	_box(steer, Vector3(0.012, 0.10, 0.045), Vector3(0.0, 0.62, 0.062), _accent,
-		Vector3(deg_to_rad(11.0), 0.0, 0.0))
-	# Тросик тормоза вдоль стойки.
-	_cyl_between(steer, Vector3(0.028, 0.90, 0.09), Vector3(0.05, 0.45, 0.04), 0.005, _rubber)
-	_cyl_between(steer, Vector3(0.05, 0.45, 0.04), Vector3(0.045, 0.16, 0.0), 0.005, _rubber)
-
-	# Дисплей-панель по центру.
-	_box(steer, Vector3(0.105, 0.05, 0.035), Vector3(0.0, bar_height + 0.032, bar_z - 0.005), _dark)
-	_box(steer, Vector3(0.08, 0.034, 0.006), Vector3(0.0, bar_height + 0.034, bar_z - 0.024), _screen)
-
-	# Фара.
-	_cyl(steer, 0.030, 0.032, Vector3(0.0, bar_height - 0.055, bar_z - 0.055), _lamp,
+		# Ручка тормоза.
+		_box(steer, Vector3(0.012, 0.013, 0.105),
+			Vector3(side * 0.185, bar_y - 0.026, bar_z - 0.05), _steel,
+			Vector3(deg_to_rad(8.0), 0.0, 0.0))
+		_box(steer, Vector3(0.028, 0.03, 0.032),
+			Vector3(side * 0.135, bar_y - 0.012, bar_z - 0.02), _dark)
+	# Дисплей по центру.
+	_box(steer, Vector3(0.10, 0.05, 0.035), Vector3(0.0, bar_y + 0.036, bar_z - 0.01), _dark)
+	_box(steer, Vector3(0.078, 0.036, 0.006), Vector3(0.0, bar_y + 0.038, bar_z - 0.028), _screen)
+	# Звонок и курок газа.
+	_cyl(steer, 0.018, 0.02, Vector3(-0.145, bar_y + 0.02, bar_z - 0.01), _steel)
+	_box(steer, Vector3(0.018, 0.014, 0.05), Vector3(0.175, bar_y + 0.026, bar_z - 0.015), _accent)
+	# Фара под стаканом.
+	_cyl(steer, 0.032, 0.035, Vector3(0.0, deck_top + 0.16, 0.10), _lamp,
 		Vector3(deg_to_rad(90.0), 0.0, 0.0))
-	_cyl(steer, 0.034, 0.014, Vector3(0.0, bar_height - 0.055, bar_z - 0.040), _dark,
+	_cyl(steer, 0.036, 0.016, Vector3(0.0, deck_top + 0.16, 0.082), _dark,
 		Vector3(deg_to_rad(90.0), 0.0, 0.0))
 
-	# Переднее крыло.
-	_fender(steer, Vector3.ZERO, radius + 0.016, spec.deck_width + 0.01, -30.0, 115.0, _frame)
-
-	# Переднее колесо и маркеры руля для райдера.
-	_wheel_pivot(steer, Vector3.ZERO, "Wheel", false)
-	_marker(steer, "BarLeft", Vector3(-0.225, bar_height, bar_z))
-	_marker(steer, "BarRight", Vector3(0.225, bar_height, bar_z))
+	# Переднее колесо и маркеры руля для рук райдера.
+	_wheel(steer, axle, "Wheel", spec.motor_count > 1, true)
+	_marker(steer, "BarLeft", Vector3(-0.215, bar_y, bar_z))
+	_marker(steer, "BarRight", Vector3(0.215, bar_y, bar_z))
 
 	return steer
 
 
 # ---- колесо ------------------------------------------------------------------
-func _wheel_pivot(parent: Node3D, pos: Vector3, node_name: String, motor: bool) -> Node3D:
+func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool, disc: bool) -> void:
 	var pivot := Node3D.new()
 	pivot.name = node_name
 	pivot.position = pos
 	parent.add_child(pivot)
 
-	# Покрышка (тор) + обод + ступица.
-	_torus(pivot, radius * 0.55, radius, _rubber)
-	_cyl(pivot, radius * 0.60, 0.055, Vector3.ZERO, _steel, Vector3(0.0, 0.0, deg_to_rad(90.0)))
-	_cyl(pivot, radius * 0.58, 0.020, Vector3.ZERO, _dark, Vector3(0.0, 0.0, deg_to_rad(90.0)))
+	# Покрышка + зубастый протектор одним мешем.
+	_torus(pivot, radius * 0.58, radius, _rubber)
+	_tread(pivot, radius)
 
+	# Обод и акцентное кольцо (у F3 оранжевое, у G4 тёмное).
+	_cyl(pivot, radius * 0.56, 0.062, Vector3.ZERO, _dark, Vector3(0.0, 0.0, deg_to_rad(90.0)), 22)
+	_torus(pivot, radius * 0.57, radius * 0.63, _accent if spec.orange_accents else _steel)
+
+	# Ступица / хаб-мотор.
 	if motor:
-		# Задний тормозной диск и хаб-мотор.
-		_cyl(pivot, radius * 0.44, 0.006, Vector3(-0.05, 0.0, 0.0), _steel,
-			Vector3(0.0, 0.0, deg_to_rad(90.0)))
-		# Хаб-мотор: толстая ступица с акцентным кольцом.
-		_cyl(pivot, radius * 0.30, 0.075, Vector3.ZERO, _dark, Vector3(0.0, 0.0, deg_to_rad(90.0)))
-		_torus(pivot, radius * 0.32, radius * 0.40, _accent, Vector3.ZERO)
-		_cyl(pivot, radius * 0.10, 0.08, Vector3.ZERO, _steel, Vector3(0.0, 0.0, deg_to_rad(90.0)))
+		_cyl(pivot, radius * 0.34, 0.075, Vector3.ZERO, _dark, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)
+		_torus(pivot, radius * 0.35, radius * 0.42, _accent)
 	else:
-		_cyl(pivot, radius * 0.10, 0.085, Vector3.ZERO, _steel, Vector3(0.0, 0.0, deg_to_rad(90.0)))
-		# Тормозной диск.
-		_cyl(pivot, radius * 0.42, 0.006, Vector3(0.045, 0.0, 0.0), _steel,
-			Vector3(0.0, 0.0, deg_to_rad(90.0)))
+		_cyl(pivot, radius * 0.16, 0.085, Vector3.ZERO, _steel, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 
-	# Спицы-спицы: 6 тонких планок, чтобы колесо читалось в движении.
-	for i in 6:
-		var angle := TAU * float(i) / 6.0
-		_box(pivot, Vector3(0.012, radius * 1.10, 0.014), Vector3.ZERO, _dark,
+	if disc:
+		_cyl(pivot, radius * 0.42, 0.006, Vector3(-0.048, 0.0, 0.0), _steel,
+			Vector3(0.0, 0.0, deg_to_rad(90.0)), 24)
+		_box(pivot, Vector3(0.02, 0.05, 0.03), Vector3(-0.052, radius * 0.30, 0.0), _dark)
+
+	# Спицы-планки для читаемости в движении.
+	for i in 5:
+		var angle := TAU * float(i) / 5.0
+		_box(pivot, Vector3(0.010, radius * 1.05, 0.012), Vector3.ZERO, _dark,
 			Vector3(angle, 0.0, 0.0))
-	return pivot
+
+
+## Зубастый протектор: 20 шашек одним мешем, чтобы не плодить draw call'ы.
+func _tread(pivot: Node3D, wheel_radius: float) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var blocks := 20
+	for i in blocks:
+		var angle := TAU * float(i) / float(blocks)
+		var local := Transform3D(Basis(Vector3.RIGHT, angle),
+			Vector3(0.0, cos(angle), sin(angle)) * wheel_radius * 0.99)
+		_add_box(st, local, Vector3(0.052, 0.030, 0.030))
+		# Боковые шашки чуть меньше — получается «ёлочка».
+		for side in [-0.028, 0.028]:
+			_add_box(st, Transform3D(Basis(Vector3.RIGHT, angle),
+				Vector3(side, cos(angle), sin(angle)) * wheel_radius),
+				Vector3(0.016, 0.024, 0.024))
+	st.generate_normals()
+	var mesh := st.commit()
+	var instance := MeshInstance3D.new()
+	instance.mesh = mesh
+	instance.material_override = _rubber
+	pivot.add_child(instance)
+
+
+func _add_box(st: SurfaceTool, xform: Transform3D, size: Vector3) -> void:
+	var half := size * 0.5
+	var corners := [
+		Vector3(-half.x, -half.y, -half.z), Vector3(half.x, -half.y, -half.z),
+		Vector3(half.x, half.y, -half.z), Vector3(-half.x, half.y, -half.z),
+		Vector3(-half.x, -half.y, half.z), Vector3(half.x, -half.y, half.z),
+		Vector3(half.x, half.y, half.z), Vector3(-half.x, half.y, half.z),
+	]
+	var p := []
+	for corner in corners:
+		p.append(xform * corner)
+	_quad(st, p[0], p[1], p[2], p[3])
+	_quad(st, p[5], p[4], p[7], p[6])
+	_quad(st, p[4], p[0], p[3], p[7])
+	_quad(st, p[1], p[5], p[6], p[2])
+	_quad(st, p[3], p[2], p[6], p[7])
+	_quad(st, p[4], p[5], p[1], p[0])
+
+
+# ---- амортизатор -------------------------------------------------------------
+func _shock(parent: Node3D, from: Vector3, to: Vector3, shock_radius: float) -> void:
+	var direction := (to - from).normalized()
+	var length := from.distance_to(to)
+	_cyl_between(parent, from, from + direction * (length * 0.55), shock_radius, _dark)
+	_cyl_between(parent, from + direction * (length * 0.45), to, shock_radius * 0.62, _steel)
+	# Витки пружины — несколько колец вдоль штока.
+	for i in 4:
+		var t := 0.52 + float(i) * 0.11
+		var ring_pos := from + direction * (length * t)
+		var ring := _torus(parent, shock_radius * 1.05, shock_radius * 1.5, _steel,
+			Vector3.ZERO, ring_pos)
+		if ring != null:
+			var axis := Vector3.UP.cross(direction)
+			if axis.length() > 0.001:
+				ring.rotation = Basis(axis.normalized(), acos(clampf(Vector3.UP.dot(direction), -1.0, 1.0))) \
+					.get_euler()
 
 
 # ---- примитивы ---------------------------------------------------------------
@@ -287,10 +378,10 @@ func _box(parent: Node3D, size: Vector3, pos: Vector3, mat: Material,
 
 
 func _cyl(parent: Node3D, cyl_radius: float, height: float, pos: Vector3, mat: Material,
-		rot := Vector3.ZERO, segments := 18, top_radius := -1.0) -> MeshInstance3D:
+		rot := Vector3.ZERO, segments := 18) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
 	var cylinder := CylinderMesh.new()
-	cylinder.top_radius = cyl_radius if top_radius < 0.0 else top_radius
+	cylinder.top_radius = cyl_radius
 	cylinder.bottom_radius = cyl_radius
 	cylinder.height = height
 	cylinder.radial_segments = segments
@@ -309,66 +400,77 @@ func _torus(parent: Node3D, inner: float, outer: float, mat: Material,
 	var torus := TorusMesh.new()
 	torus.inner_radius = inner
 	torus.outer_radius = outer
-	torus.rings = 20
+	torus.rings = 18
 	torus.ring_segments = 8
 	mesh_instance.mesh = torus
 	mesh_instance.material_override = mat
-	# Тор лежит в плоскости XZ, колесу нужна ось X.
 	mesh_instance.rotation = rot + Vector3(0.0, 0.0, deg_to_rad(90.0))
 	mesh_instance.position = center
 	parent.add_child(mesh_instance)
 	return mesh_instance
 
 
-## Цилиндр между двумя точками — вилка, стойки, амортизаторы.
+## Цилиндр между двумя точками.
 func _cyl_between(parent: Node3D, from: Vector3, to: Vector3, cyl_radius: float,
 		mat: Material) -> MeshInstance3D:
 	var direction := to - from
 	var length := direction.length()
 	if length < 0.001:
 		return null
-	var mid := (from + to) * 0.5
-	var mesh_instance := _cyl(parent, cyl_radius, length, mid, mat)
-	var up := Vector3.UP
-	var dir := direction.normalized()
-	if absf(dir.dot(up)) < 0.999:
-		var axis := up.cross(dir).normalized()
-		var angle := acos(clampf(up.dot(dir), -1.0, 1.0))
-		mesh_instance.rotation = (Basis(axis, angle)).get_euler()
+	var mesh_instance := _cyl(parent, cyl_radius, length, (from + to) * 0.5, mat)
+	mesh_instance.rotation = _basis_from_up(direction).get_euler()
 	return mesh_instance
+
+
+## Пластина (рычаг подвески) между двумя точками.
+func _plate_between(parent: Node3D, from: Vector3, to: Vector3, width: float,
+		thickness: float, mat: Material) -> MeshInstance3D:
+	var direction := to - from
+	var length := direction.length()
+	if length < 0.001:
+		return null
+	var mesh_instance := _box(parent, Vector3(thickness, length, width), (from + to) * 0.5, mat)
+	mesh_instance.rotation = _basis_from_up(direction).get_euler()
+	return mesh_instance
+
+
+func _basis_from_up(direction: Vector3) -> Basis:
+	var dir := direction.normalized()
+	if dir.dot(Vector3.UP) > 0.999:
+		return Basis.IDENTITY
+	if dir.dot(Vector3.UP) < -0.999:
+		return Basis(Vector3.RIGHT, PI)
+	var axis := Vector3.UP.cross(dir).normalized()
+	return Basis(axis, acos(clampf(Vector3.UP.dot(dir), -1.0, 1.0)))
 
 
 ## Крыло: дуга над колесом из полигональной ленты.
 func _fender(parent: Node3D, center: Vector3, rad: float, width: float,
-		from_deg: float, to_deg: float, mat: Material, segments := 12, thickness := 0.012) -> MeshInstance3D:
+		from_deg: float, to_deg: float, mat: Material, segments := 12,
+		thickness := 0.014) -> MeshInstance3D:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var half := width * 0.5
 	for i in segments:
 		var a0 := deg_to_rad(lerpf(from_deg, to_deg, float(i) / float(segments)))
 		var a1 := deg_to_rad(lerpf(from_deg, to_deg, float(i + 1) / float(segments)))
-		# Дуга в плоскости YZ: угол 0 — впереди сверху.
 		var o0 := Vector3(0.0, cos(a0), -sin(a0)) * (rad + thickness)
 		var o1 := Vector3(0.0, cos(a1), -sin(a1)) * (rad + thickness)
 		var i0 := Vector3(0.0, cos(a0), -sin(a0)) * rad
 		var i1 := Vector3(0.0, cos(a1), -sin(a1)) * rad
 
-		# Внешняя поверхность.
 		_quad(st, center + o0 + Vector3(-half, 0, 0), center + o0 + Vector3(half, 0, 0),
 			center + o1 + Vector3(half, 0, 0), center + o1 + Vector3(-half, 0, 0))
-		# Внутренняя поверхность.
 		_quad(st, center + i0 + Vector3(half, 0, 0), center + i0 + Vector3(-half, 0, 0),
 			center + i1 + Vector3(-half, 0, 0), center + i1 + Vector3(half, 0, 0))
-		# Боковые кромки.
 		_quad(st, center + o0 + Vector3(half, 0, 0), center + i0 + Vector3(half, 0, 0),
 			center + i1 + Vector3(half, 0, 0), center + o1 + Vector3(half, 0, 0))
 		_quad(st, center + i0 + Vector3(-half, 0, 0), center + o0 + Vector3(-half, 0, 0),
 			center + o1 + Vector3(-half, 0, 0), center + i1 + Vector3(-half, 0, 0))
 
 	st.generate_normals()
-	var mesh := st.commit()
 	var mesh_instance := MeshInstance3D.new()
-	mesh_instance.mesh = mesh
+	mesh_instance.mesh = st.commit()
 	mesh_instance.material_override = mat
 	parent.add_child(mesh_instance)
 	return mesh_instance
@@ -381,6 +483,24 @@ func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> v
 	st.add_vertex(a)
 	st.add_vertex(c)
 	st.add_vertex(d)
+
+
+## Надпись на корпусе (бренд, модель) — без текстур.
+func _label(parent: Node3D, text: String, pos: Vector3, rot_deg: Vector3,
+		pixel_size: float, color: Color) -> Label3D:
+	var label := Label3D.new()
+	label.text = text
+	label.font_size = 48
+	label.pixel_size = pixel_size
+	label.modulate = color
+	label.outline_size = 6
+	label.outline_modulate = Color(0.0, 0.0, 0.0, 0.85)
+	label.double_sided = true
+	label.no_depth_test = false
+	label.position = pos
+	label.rotation = Vector3(deg_to_rad(rot_deg.x), deg_to_rad(rot_deg.y), deg_to_rad(rot_deg.z))
+	parent.add_child(label)
+	return label
 
 
 func _marker(parent: Node3D, node_name: String, pos: Vector3) -> Marker3D:

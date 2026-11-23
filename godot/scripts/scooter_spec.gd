@@ -30,6 +30,10 @@ var wheel_base := 1.06
 var deck_length := 0.51
 ## Высота настила над осями колёс (для модели).
 var deck_height := 0.075
+## Цвет рычагов подвески (на F3 они оранжевые, на G4 — в цвет рамы).
+var suspension_color := Color(0.45, 0.47, 0.50)
+## Надпись на стойке и деке.
+var brand_text := "KUGOO"
 var deck_width := 0.22
 
 var battery_wh := 1200.0
@@ -121,8 +125,11 @@ static func create_g4() -> ScooterSpec:
 	s.wheelie_max_torque = 420.0
 	s.wheelie_equilibrium = 37.0
 
-	s.frame_color = Color(0.085, 0.088, 0.095)
-	s.accent_color = Color(0.86, 0.87, 0.90)
+	# По фото: серый gunmetal с оранжевыми шевронами и надписями.
+	s.frame_color = Color(0.40, 0.42, 0.45)
+	s.accent_color = Color(0.93, 0.45, 0.09)
+	s.suspension_color = Color(0.42, 0.44, 0.47)
+	s.brand_text = "KUKIRIN G4"
 	s.off_road_tires = true
 	s.orange_accents = false
 	return s
@@ -175,8 +182,11 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.wheelie_max_torque = 400.0
 	s.wheelie_equilibrium = 39.0
 
-	s.frame_color = Color(0.10, 0.10, 0.105)
-	s.accent_color = Color(0.95, 0.45, 0.08)
+	# По фото: чёрный корпус, оранжевые рычаги подвески и кольца на дисках.
+	s.frame_color = Color(0.075, 0.075, 0.085)
+	s.accent_color = Color(0.96, 0.47, 0.10)
+	s.suspension_color = Color(0.96, 0.47, 0.10)
+	s.brand_text = "KUGOO"
 	s.off_road_tires = false
 	s.orange_accents = true
 	return s
