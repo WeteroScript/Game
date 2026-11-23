@@ -12,8 +12,6 @@ permissions:
   contents: write
   # нужно, чтобы при падении сборки запостить лог ошибок комментарием в PR
   pull-requests: write
-  # числа автотеста пишем в статус коммита: он виден и без комментария в PR
-  statuses: write
 
 concurrency:
   group: godot-android-${{ github.ref }}
@@ -188,6 +186,12 @@ jobs:
             echo "::error::Ошибка в рантайме, смотрите лог выше"
             status=1
           fi
+          # Числа автотеста выводим аннотациями: их видно через check-runs API
+          # и они не зависят от комментария в PR.
+          grep -E "pitch=" /tmp/run.log | head -2 | tail -1 \
+            | sed 's/^/::notice title=smoke-wheelie::/' || true
+          grep -E "^SMOKE OK" /tmp/run.log | head -1 \
+            | sed 's/^/::notice title=smoke-final::/' || true
           if [ "$status" -ne 0 ]; then
             {
               echo "### Ошибки при запуске игры"
@@ -202,22 +206,6 @@ jobs:
         run: |
           mkdir -p build
           godot --headless --path "$PROJECT_PATH" --export-debug "$EXPORT_PRESET" "$GITHUB_WORKSPACE/build/KugooFreeride.apk"
-
-      # Числа автотеста дублируем в статус коммита: комментарий в PR появляется
-      # только на событие pull_request, а статус виден всегда.
-      - name: Smoke numbers to commit status
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ -s /tmp/run.log ]; then
-            w=$(grep -E "pitch=" /tmp/run.log | head -2 | tail -1 | cut -c7-135)
-            f=$(grep -E "^SMOKE OK" /tmp/run.log | cut -c7-135)
-            gh api -X POST "/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-              -f state=success -f context="smoke/wheelie" -f description="$w" > /dev/null || true
-            gh api -X POST "/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-              -f state=success -f context="smoke/final" -f description="$f" > /dev/null || true
-          fi
 
       - name: Report smoke numbers in the pull request
         if: success() && github.event_name == 'pull_request'
