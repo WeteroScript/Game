@@ -71,7 +71,7 @@ func _rear_arm(root: Node3D) -> void:
 	# Оранжевый рычаг: балка + косынка + усиление.
 	_plate_between(root, pivot, axle, 0.054, 0.021, _accent)
 	_plate_between(root, pivot + Vector3(0.0, 0.0, 0.10), axle + Vector3(0.0, 0.035, 0.0),
-x)
+		0.026, 0.013, _accent)
 	_cyl(root, 0.022, 0.056, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(root, 0.017, 0.062, axle, _alu, Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Красный суппорт сбоку колеса.
