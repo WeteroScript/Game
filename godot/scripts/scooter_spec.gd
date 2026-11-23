@@ -130,7 +130,7 @@ static func create_g4() -> ScooterSpec:
 	# По фото: серый gunmetal с оранжевыми шевронами и надписями.
 	s.frame_color = Color(0.40, 0.42, 0.45)
 	s.accent_color = Color(0.93, 0.45, 0.09)
-	s.suspension_color = Color(0.42, 0.44, 0.47)
+	s.suspension_color = Color(0.36, 0.38, 0.41)
 	s.brand_text = "KUKIRIN G4"
 	s.off_road_tires = true
 	s.orange_accents = false

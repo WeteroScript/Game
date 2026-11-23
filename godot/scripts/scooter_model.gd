@@ -107,7 +107,7 @@ func _body(root: Node3D) -> void:
 	for side in [-1.0, 1.0]:
 		_box(root, Vector3(0.006, deck_top * 0.62, deck_len - 0.02),
 			Vector3(side * 0.108, deck_top * 0.52, base_z), _dark)
-		for chevron_z in [-deck_len * 0.5 + 0.09, deck_len * 0.5 - 0.09]:
+		for chevron_z in [-deck_len * 0.5 + 0.07, deck_len * 0.5 - 0.07]:
 			for offset in [-0.022, 0.0, 0.022]:
 				_box(root, Vector3(0.008, 0.038, 0.015),
 					Vector3(side * 0.112, deck_top * 0.52,
@@ -115,9 +115,9 @@ func _body(root: Node3D) -> void:
 					Vector3(deg_to_rad(38.0), 0.0, 0.0))
 
 	# Небольшая наклейка бренда ближе к корме — как на фото («B-05-1»).
-	_label(root, spec.brand_text, Vector3(0.113, deck_top * 0.55, base_z + deck_len * 0.24),
+	_label(root, spec.brand_text, Vector3(0.113, deck_top * 0.55, base_z + 0.02),
 		Vector3(0.0, 90.0, 0.0), 0.00042, Color(0.93, 0.93, 0.95))
-	_label(root, spec.brand_text, Vector3(-0.113, deck_top * 0.55, base_z + deck_len * 0.24),
+	_label(root, spec.brand_text, Vector3(-0.113, deck_top * 0.55, base_z + 0.02),
 		Vector3(0.0, -90.0, 0.0), 0.00042, Color(0.93, 0.93, 0.95))
 
 	# Защита снизу и подножка.
@@ -146,7 +146,7 @@ func _body(root: Node3D) -> void:
 	var rear_axle := Vector3(0.0, 0.0, base * 0.5)
 	for side in [-1.0, 1.0]:
 		_plate_between(root, rear_pivot + Vector3(side * 0.072, 0.0, 0.0),
-			rear_axle + Vector3(side * 0.072, 0.0, 0.0), 0.055, 0.018, _susp)
+			rear_axle + Vector3(side * 0.072, 0.0, 0.0), 0.046, 0.016, _susp)
 		_box(root, Vector3(0.014, 0.03, 0.03),
 			rear_pivot + Vector3(side * 0.072, 0.0, 0.0), _accent)
 	_shock(root, Vector3(0.0, deck_top + 0.03, deck_len * 0.5 + 0.06),
@@ -160,7 +160,7 @@ func _body(root: Node3D) -> void:
 
 	# Седло на задней стойке, как на фото.
 	if spec.has_saddle:
-		_saddle(root, Vector3(0.0, radius + 0.56, base * 0.5 - 0.03))
+		_saddle(root, Vector3(0.0, radius + 0.38, base * 0.5 - 0.07))
 
 	# Заднее колесо (хаб-мотор).
 	_wheel(root, Vector3(0.0, 0.0, base * 0.5), "RearWheel", true, spec.motor_count == 1)
@@ -188,7 +188,7 @@ func _front_assembly(root: Node3D) -> Node3D:
 	# Передний рычаг подвески (две пластины вокруг колеса).
 	for side in [-1.0, 1.0]:
 		_plate_between(steer, pivot + Vector3(side * 0.076, 0.0, 0.0),
-			axle + Vector3(side * 0.076, 0.0, 0.0), 0.062, 0.018, _susp)
+			axle + Vector3(side * 0.076, 0.0, 0.0), 0.046, 0.016, _susp)
 		_box(steer, Vector3(0.014, 0.032, 0.032), pivot + Vector3(side * 0.076, 0.0, 0.0), _accent)
 		_box(steer, Vector3(0.016, 0.05, 0.02), axle + Vector3(side * 0.076, 0.0, 0.02), _susp)
 	# Распорка между пластинами.
@@ -207,8 +207,8 @@ func _front_assembly(root: Node3D) -> Node3D:
 	# На фото она почти вертикальная, чуть отклонена назад, руль на 1.22 м.
 	var stem_bottom := Vector3(0.0, deck_top + 0.20, 0.02)
 	var stem_top := Vector3(0.0, 1.22, 0.095)
-	_plate_between(steer, stem_bottom, stem_top, 0.10, 0.05, _frame)
-	_plate_between(steer, stem_bottom, stem_bottom.lerp(stem_top, 0.45), 0.115, 0.062, _frame)
+	_plate_between(steer, stem_bottom, stem_top, 0.058, 0.046, _frame)
+	_plate_between(steer, stem_bottom, stem_bottom.lerp(stem_top, 0.42), 0.074, 0.056, _frame)
 	_box(steer, Vector3(0.098, 0.14, 0.14), stem_bottom + Vector3(0.0, 0.05, 0.005), _dark)
 	for bolt_z in [-0.05, 0.05]:
 		for bolt_y in [0.02, 0.08]:
@@ -223,11 +223,11 @@ func _front_assembly(root: Node3D) -> Node3D:
 	# Цветная полоса на стойке (как на фото) и деколь бренда вдоль неё.
 	var stem_mid := stem_bottom.lerp(stem_top, 0.60)
 	for side in [-1.0, 1.0]:
-		_box(steer, Vector3(0.006, 0.46, 0.052),
-			stem_mid + Vector3(side * 0.028, 0.0, 0.0), _accent,
+		_box(steer, Vector3(0.006, 0.44, 0.030),
+			stem_mid + Vector3(side * 0.026, 0.0, 0.0), _accent,
 			Vector3(deg_to_rad(5.2), 0.0, 0.0))
-		_label(steer, spec.brand_text, stem_mid + Vector3(side * 0.033, 0.02, 0.0),
-			Vector3(0.0, 90.0 * side, 90.0), 0.0006, Color(0.96, 0.96, 0.97))
+		_label(steer, spec.brand_text, stem_mid + Vector3(side * 0.031, 0.02, 0.0),
+			Vector3(0.0, 90.0 * side, 90.0), 0.00045, Color(0.96, 0.96, 0.97))
 
 	# Руль: поперечина, грипсы, ручки тормоза, дисплей, фара, звонок.
 	var bar_y := stem_top.y
@@ -351,15 +351,15 @@ func _spokes(parent: Node3D, rim_radius: float, half_width: float, mat: Material
 
 ## Седло на задней стойке: площадка, стойка с пружиной, оранжевая кромка.
 func _saddle(root: Node3D, seat_pos: Vector3) -> void:
-	var post_bottom := Vector3(0.0, deck_top + 0.02, deck_len * 0.5 + 0.02)
-	_plate_between(root, post_bottom, seat_pos - Vector3(0.0, 0.05, 0.0), 0.055, 0.032, _susp)
-	_shock(root, post_bottom + Vector3(0.0, 0.02, 0.02),
-		seat_pos - Vector3(0.0, 0.09, -0.01), 0.013)
-	var tilt := Vector3(deg_to_rad(-8.0), 0.0, 0.0)
-	_box(root, Vector3(0.165, 0.05, 0.27), seat_pos, _dark, tilt)
-	_box(root, Vector3(0.15, 0.014, 0.23), seat_pos + Vector3(0.0, 0.028, 0.0), _tape, tilt)
+	var post_bottom := Vector3(0.0, deck_top - 0.02, deck_len * 0.5 + 0.06)
+	_plate_between(root, post_bottom, seat_pos - Vector3(0.0, 0.045, 0.0), 0.03, 0.026, _dark)
+	_shock(root, post_bottom + Vector3(0.0, 0.04, 0.01),
+		seat_pos - Vector3(0.0, 0.07, 0.0), 0.011)
+	var tilt := Vector3(deg_to_rad(-7.0), 0.0, 0.0)
+	_box(root, Vector3(0.155, 0.046, 0.235), seat_pos, _dark, tilt)
+	_box(root, Vector3(0.14, 0.012, 0.20), seat_pos + Vector3(0.0, 0.026, 0.0), _tape, tilt)
 	for side2 in [-1.0, 1.0]:
-		_box(root, Vector3(0.008, 0.02, 0.25), seat_pos + Vector3(side2 * 0.084, -0.006, 0.0),
+		_box(root, Vector3(0.007, 0.018, 0.21), seat_pos + Vector3(side2 * 0.079, -0.005, 0.0),
 			_accent, tilt)
 
 
