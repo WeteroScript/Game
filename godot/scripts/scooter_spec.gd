@@ -197,7 +197,7 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.suspension_color = Color(0.88, 0.44, 0.11)
 	s.brand_text = "KUGOO"
 	s.front_fender = true
-	s.stem_rake_deg = 18.0
+	s.stem_rake_deg = 13.0
 	s.off_road_tires = false
 	s.orange_accents = true
 	return s
