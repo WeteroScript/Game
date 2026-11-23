@@ -1,5 +1,5 @@
 # Сборка APK без Unity: Godot 4 + Android SDK прямо на runner'е.
-# Никаких секретов не требуется — keystore отладочный и генерируется в этом же job'е.
+# Никаких секретов не требуется: отладочный keystore лежит в репозитории.
 name: Build Android APK (Godot)
 
 on:
@@ -116,14 +116,23 @@ jobs:
           "$SDKMANAGER" --install "platform-tools" "build-tools;34.0.0" "platforms;android-34"
           ls "$SDK/build-tools" "$SDK/platforms"
 
-      - name: Generate debug keystore
+      # Keystore лежит в репозитории (это отладочный ключ, не секрет).
+      # Благодаря этому все сборки подписаны одинаково и новая версия
+      # ставится поверх старой без удаления приложения.
+      - name: Point the export preset at the repository keystore
         run: |
-          rm -f /tmp/debug.keystore
-          keytool -keyalg RSA -genkeypair \
-            -alias androiddebugkey -keypass android \
-            -keystore /tmp/debug.keystore -storepass android \
-            -dname "CN=Android Debug,O=Android,C=US" \
-            -validity 9999 -deststoretype pkcs12
+          KEYSTORE="$GITHUB_WORKSPACE/$PROJECT_PATH/debug.keystore"
+          test -f "$KEYSTORE"
+          python3 - "$KEYSTORE" <<'PYEOF'
+          import re, sys
+          path = sys.argv[1]
+          file = "godot/export_presets.cfg"
+          text = open(file, encoding="utf-8").read()
+          for key in ("keystore/debug", "keystore/release"):
+              text = re.sub(rf"^{key}=.*$", f'{key}="{path}"', text, flags=re.M)
+          open(file, "w", encoding="utf-8").write(text)
+          PYEOF
+          grep -E "^keystore/" "$PROJECT_PATH/export_presets.cfg"
 
       - name: Point Godot editor settings at the SDK/JDK
         run: |
