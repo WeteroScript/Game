@@ -243,7 +243,7 @@ func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
 
 func _bar_point(marker: Node3D, offset: Vector3) -> Vector3:
 	if marker == null:
-		return Vector3(0.225, deck_top + 0.9, -0.4)
+		return Vector3(0.225, deck_top + 1.12, -0.30)
 	return global_transform.affine_inverse() * (marker.global_transform * offset)
 
 
