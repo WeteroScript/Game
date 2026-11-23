@@ -149,27 +149,27 @@ func _build_steer(root: Node3D) -> Node3D:
 
 
 func _neck(steer: Node3D) -> void:
-	# Горловина — сужающаяся колонна: широкая косынка у деки, узкий стакан сверху.
-	_plate_between(steer, Vector3(0.0, 0.055, 0.105), Vector3(0.0, 0.255, 0.055),
-		0.098, 0.060, _paint)
-	_plate_between(steer, Vector3(0.0, 0.235, 0.058), Vector3(0.0, STEM_BASE_Y - 0.010, 0.026),
-		0.058, 0.056, _paint)
-	# Рёбра жёсткости по бокам косынки.
+	# Горловина: широкая косынка у деки, узкий стакан сверху — без «крыльев».
+	_rbox(steer, Vector3(0.096, 0.205, 0.108), Vector3(0.0, 0.145, 0.058), _paint,
+		Vector3(deg_to_rad(-11.0), 0.0, 0.0), 0.012)
+	_rbox(steer, Vector3(0.070, 0.240, 0.078), Vector3(0.0, 0.330, 0.034), _paint,
+		Vector3(deg_to_rad(-7.0), 0.0, 0.0), 0.010)
+	# Рёбра по бокам косынки.
 	for side in [-1.0, 1.0]:
-		_plate_between(steer, Vector3(side * 0.050, 0.055, 0.105),
-			Vector3(side * 0.030, 0.250, 0.060), 0.010, 0.058, _paint_dark)
+		_rbox(steer, Vector3(0.008, 0.190, 0.096), Vector3(side * 0.050, 0.148, 0.058),
+			_paint_dark, Vector3(deg_to_rad(-11.0), 0.0, 0.0), 0.004)
 	# Компактный чёрный грязевик под стаканом.
-	_rbox(steer, Vector3(0.062, 0.068, 0.062), Vector3(0.0, 0.110, 0.028), _plastic,
+	_rbox(steer, Vector3(0.058, 0.062, 0.058), Vector3(0.0, 0.108, 0.030), _plastic,
 		Vector3(deg_to_rad(-18.0), 0.0, 0.0), 0.007)
 	# Фара в носу + оранжевая кромка.
-	_headlight(steer, Vector3(0.0, 0.185, 0.082), 0.026)
-	_rbox(steer, Vector3(0.074, 0.011, 0.013), Vector3(0.0, 0.172, 0.096), _accent,
+	_headlight(steer, Vector3(0.0, 0.180, 0.086), 0.026)
+	_rbox(steer, Vector3(0.070, 0.011, 0.013), Vector3(0.0, 0.166, 0.098), _accent,
 		Vector3(deg_to_rad(-14.0), 0.0, 0.0), 0.002)
 
 
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
 	var pivot := Vector3(ARM_X, 0.085, 0.005)
-	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.052, 0.021, _paint)
+	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.052, 0.021, _paint_dark)
 	_cyl(steer, 0.016, 0.038, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.015, 0.058, axle + Vector3(ARM_X, 0.0, 0.0), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
