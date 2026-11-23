@@ -289,6 +289,8 @@ func _tick_smoke(delta: float) -> void:
 func _start_screenshots() -> void:
 	menu.visible = false
 	hud.visible = false
+	# HUD не должен затирать виртуальные касания нулями при съёмке.
+	hud.set_process(false)
 	_take_screenshots()
 
 
@@ -326,8 +328,35 @@ func _take_screenshots() -> void:
 			var error := image.save_png(path)
 			print("SHOT %s err=%d" % [path, error])
 
+	# Меню: проверяем вёрстку кнопок и карточку характеристик.
+	_enter_menu()
+	for frame in 10:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "menu")
+
+	# Геймплей: вид от камеры игрока, с HUD и райдером на ходу.
+	hud.visible = true
+	_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.FREE_RIDE)
+	input_state.touch_throttle = 1.0
+	await get_tree().create_timer(4.2).timeout
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "hud_drive")
+
+	input_state.touch_wheelie = true
+	await get_tree().create_timer(1.6).timeout
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "hud_wheelie")
+
 	print("SHOTS DONE %s" % shot_dir)
 	get_tree().quit()
+
+
+func _save_shot(shot_dir: String, shot_name: String) -> void:
+	var image := get_viewport().get_texture().get_image()
+	var path := "%s/%s.png" % [shot_dir, shot_name]
+	var error := image.save_png(path)
+	print("SHOT %s err=%d" % [path, error])
 
 
 # ---- кадр -------------------------------------------------------------------
