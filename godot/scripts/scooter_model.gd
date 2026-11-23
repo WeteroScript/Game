@@ -130,21 +130,6 @@ func _body(root: Node3D) -> void:
 	_plate_between(root, Vector3(0.085, deck_top - 0.035, 0.10),
 		Vector3(0.135, -radius * 0.45, 0.17), 0.02, 0.03, _dark)
 
-	# Задний «хвост»: площадка под ногу + стоп-сигнал + отражатель.
-	var tail_basis := Basis(Vector3.RIGHT, deg_to_rad(-16.0))
-	_box(root, Vector3(0.20, 0.024, 0.19),
-		Vector3(0.0, deck_top + 0.045, deck_len * 0.5 + 0.03), _frame,
-		Vector3(deg_to_rad(-16.0), 0.0, 0.0))
-	_box(root, Vector3(0.185, 0.006, 0.16),
-		Vector3(0.0, deck_top + 0.060, deck_len * 0.5 + 0.035), _tape,
-		Vector3(deg_to_rad(-16.0), 0.0, 0.0))
-	_box(root, Vector3(0.09, 0.022, 0.016),
-		Vector3(0.0, deck_top + 0.012, deck_len * 0.5 + 0.135), _tail,
-		tail_basis.get_euler())
-	_box(root, Vector3(0.03, 0.018, 0.012),
-		Vector3(0.0, deck_top + 0.075, deck_len * 0.5 + 0.10), _accent,
-		Vector3(deg_to_rad(-16.0), 0.0, 0.0))
-
 	# Задний амортизатор и рычаг подвески.
 	var rear_pivot := Vector3(0.0, deck_top - 0.06, deck_len * 0.5 - 0.02)
 	var rear_axle := Vector3(0.0, 0.0, base * 0.5)
@@ -162,9 +147,9 @@ func _body(root: Node3D) -> void:
 	_plate_between(root, Vector3(0.0, deck_top - 0.01, deck_len * 0.5),
 		Vector3(0.0, radius + 0.04, base * 0.5 + 0.02), 0.05, 0.02, _frame)
 
-	# Седло на задней стойке, как на фото.
-	if spec.has_saddle:
-		_saddle(root, Vector3(0.0, radius + 0.42, base * 0.5 - 0.05))
+	# Задняя приподнятая площадка на треугольном кронштейне (как на фото G4).
+	if spec.has_rear_step:
+		_rear_step(root)
 
 	# Заднее колесо (хаб-мотор).
 	_wheel(root, Vector3(0.0, 0.0, base * 0.5), "RearWheel", true, spec.motor_count == 1)
@@ -205,8 +190,9 @@ func _front_assembly(root: Node3D) -> Node3D:
 	var shock_bottom := axle + Vector3(0.0, 0.035, 0.06)
 	_shock(steer, shock_top, shock_bottom, 0.017)
 
-	# Крыло переднего колеса.
-	_fender(steer, axle, radius + 0.016, radius + 0.012, -18.0, 122.0, _plastic)
+	# Крыло переднего колеса (у G4 его нет, у F3 — есть).
+	if spec.front_fender:
+		_fender(steer, axle, radius + 0.016, radius + 0.012, -18.0, 122.0, _plastic)
 
 	# Стойка: широкая плоская труба с замком складывания и деколью бренда.
 	# На фото она почти вертикальная, чуть отклонена назад, руль на 1.22 м.
@@ -356,24 +342,25 @@ func _spokes(parent: Node3D, rim_radius: float, half_width: float, mat: Material
 	parent.add_child(instance)
 
 
-## Седло на задней стойке: кронштейн, площадка, оранжевая кромка.
-func _saddle(root: Node3D, seat_pos: Vector3) -> void:
-	var pad_bottom := seat_pos.y - 0.023
-	# Кронштейн-треугольник от заднего рычага к седлу.
-	_plate_between(root, Vector3(0.0, deck_top - 0.03, deck_len * 0.5 + 0.04),
-		Vector3(0.0, pad_bottom, seat_pos.z), 0.058, 0.026, _frame)
-	_plate_between(root, Vector3(0.0, 0.05, base * 0.5 - 0.03),
-		Vector3(0.0, pad_bottom - 0.02, seat_pos.z), 0.05, 0.022, _frame)
-	_shock(root, Vector3(0.0, deck_top - 0.01, deck_len * 0.5 + 0.02),
-		Vector3(0.0, pad_bottom - 0.01, seat_pos.z + 0.01), 0.010)
-	var tilt := Vector3(deg_to_rad(-7.0), 0.0, 0.0)
-	_box(root, Vector3(0.155, 0.046, 0.235), seat_pos, _plastic, tilt)
-	_box(root, Vector3(0.14, 0.012, 0.20), seat_pos + Vector3(0.0, 0.026, 0.0), _tape, tilt)
-	for side2 in [-1.0, 1.0]:
-		_box(root, Vector3(0.007, 0.018, 0.21), seat_pos + Vector3(side2 * 0.079, -0.005, 0.0),
+## Задняя приподнятая площадка на треугольном кронштейне — как на фото G4.
+func _rear_step(root: Node3D) -> void:
+	var tilt := Vector3(deg_to_rad(-26.0), 0.0, 0.0)
+	var pos := Vector3(0.0, deck_top + 0.15, deck_len * 0.5 + 0.13)
+	_box(root, Vector3(0.19, 0.026, 0.24), pos, _frame, tilt)
+	_box(root, Vector3(0.175, 0.008, 0.215), pos + Vector3(0.0, 0.017, -0.005), _tape, tilt)
+	for side in [-1.0, 1.0]:
+		_box(root, Vector3(0.008, 0.02, 0.23), pos + Vector3(side * 0.097, -0.006, 0.0),
 			_accent, tilt)
-	_label(root, spec.brand_text, seat_pos + Vector3(0.079, 0.004, 0.0),
-		Vector3(0.0, -90.0, 0.0), 0.00022, Color(0.95, 0.95, 0.96))
+	# Стоп-сигнал на корме площадки.
+	_box(root, Vector3(0.075, 0.026, 0.014), pos + Vector3(0.0, 0.006, 0.128), _tail, tilt)
+	# Треугольный кронштейн: передняя и задняя тяги + болты.
+	var low := Vector3(0.0, deck_top - 0.05, deck_len * 0.5 - 0.01)
+	_plate_between(root, low, Vector3(0.0, pos.y - 0.035, pos.z - 0.07), 0.064, 0.022, _frame)
+	_plate_between(root, Vector3(0.0, 0.06, base * 0.5 - 0.04),
+		Vector3(0.0, pos.y - 0.035, pos.z + 0.015), 0.05, 0.020, _frame)
+	_cyl(root, 0.010, 0.135, low, _steel, Vector3(0.0, 0.0, deg_to_rad(90.0)), 14)
+	_cyl(root, 0.009, 0.115, Vector3(0.0, 0.06, base * 0.5 - 0.04), _steel,
+		Vector3(0.0, 0.0, deg_to_rad(90.0)), 14)
 
 
 ## Зубастый протектор: шашки одним мешем, чтобы не плодить draw call'ы.

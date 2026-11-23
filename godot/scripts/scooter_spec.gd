@@ -34,8 +34,10 @@ var deck_height := 0.10
 var suspension_color := Color(0.45, 0.47, 0.50)
 ## Надпись на стойке и деке.
 var brand_text := "KUGOO"
-## Седло на задней стойке — оно есть на фото обоих самокатов.
-var has_saddle := true
+## Приподнятая задняя площадка на кронштейне — она есть на обоих фото.
+var has_rear_step := true
+## Переднее крыло: у G4 его нет, у F3 — есть.
+var front_fender := false
 var deck_width := 0.22
 
 var battery_wh := 1200.0
@@ -132,6 +134,7 @@ static func create_g4() -> ScooterSpec:
 	s.accent_color = Color(0.93, 0.45, 0.09)
 	s.suspension_color = Color(0.36, 0.38, 0.41)
 	s.brand_text = "KUKIRIN G4"
+	s.front_fender = false
 	s.off_road_tires = true
 	s.orange_accents = false
 	return s
@@ -189,6 +192,7 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.accent_color = Color(0.96, 0.47, 0.10)
 	s.suspension_color = Color(0.96, 0.47, 0.10)
 	s.brand_text = "KUGOO"
+	s.front_fender = true
 	s.off_road_tires = false
 	s.orange_accents = true
 	return s
