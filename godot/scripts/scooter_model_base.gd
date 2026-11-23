@@ -530,9 +530,9 @@ func _add_box(st: SurfaceTool, xform: Transform3D, size: Vector3) -> void:
 
 # ---- руль и бортовой компьютер -----------------------------------------------
 func _bar_basic(steer: Node3D, bar_y: float, bar_z: float, bar_half := 0.255) -> void:
-	_rbox(steer, Vector3(0.095, 0.062, 0.058), Vector3(0.0, bar_y - 0.034, bar_z), _rim,
-		Vector3.ZERO, 0.006)
-	_cyl(steer, 0.0165, bar_half * 2.0, Vector3(0.0, bar_y, bar_z), _rim,
+	_rbox(steer, Vector3(0.082, 0.054, 0.050), Vector3(0.0, bar_y - 0.030, bar_z), _rim,
+		Vector3.ZERO, 0.005)
+	_cyl(steer, 0.0145, bar_half * 2.0, Vector3(0.0, bar_y, bar_z), _rim,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.019, 0.10, Vector3(-0.055, bar_y, bar_z), _rim,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)

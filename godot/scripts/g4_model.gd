@@ -71,7 +71,7 @@ func _rear_arm(root: Node3D) -> void:
 	var pivot := Vector3(ARM_X, deck_top * 0.78, deck_len * 0.5 - 0.06)
 	var axle := Vector3(ARM_X, 0.0, base * 0.5)
 	# Односторонний рычаг: толстая балка с фаской и косынкой.
-	_plate_between(root, pivot, axle, 0.062, 0.024, _paint)
+	_plate_between(root, pivot, axle, 0.050, 0.019, _paint)
 	_plate_between(root, pivot + Vector3(0.0, 0.0, 0.10), axle + Vector3(0.0, 0.03, 0.0),
 		0.030, 0.014, _paint)
 	_cyl(root, 0.017, 0.040, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
@@ -96,7 +96,7 @@ func _rear_step(root: Node3D) -> void:
 			pos + Vector3(side * 0.089, -0.004, 0.0), _accent, tilt, 0.002)
 	# Кронштейн: две тяги + болт.
 	var low := Vector3(0.0, deck_top - 0.02, deck_len * 0.5 - 0.02)
-	_plate_between(root, low, Vector3(0.0, pos.y - 0.030, pos.z - 0.065), 0.070, 0.020, _paint)
+	_plate_between(root, low, Vector3(0.0, pos.y - 0.030, pos.z - 0.065), 0.058, 0.017, _paint)
 	_plate_between(root, Vector3(0.0, 0.055, base * 0.5 - 0.075),
 		Vector3(0.0, pos.y - 0.030, pos.z + 0.010), 0.048, 0.018, _paint)
 	_cyl(root, 0.011, 0.148, low, _steel, Vector3(0.0, 0.0, deg_to_rad(90.0)), 14)
@@ -111,7 +111,7 @@ func _rear_step(root: Node3D) -> void:
 
 func _rear_fender(root: Node3D) -> void:
 	var center := Vector3(0.0, 0.0, base * 0.5)
-	_fender(root, center, radius + 0.014, radius + 0.022, -26.0, 134.0, _plastic, 18, 0.014)
+	_fender(root, center, radius + 0.008, radius + 0.015, -30.0, 136.0, _plastic, 26, 0.010)
 	# Кронштейн крыла к рычагу.
 	_plate_between(root, Vector3(ARM_X - 0.006, 0.055, base * 0.5 + 0.10),
 		Vector3(0.0, radius + 0.03, base * 0.5 + 0.05), 0.030, 0.012, _rim)
@@ -149,26 +149,27 @@ func _build_steer(root: Node3D) -> Node3D:
 
 
 func _neck(steer: Node3D) -> void:
-	# Косынка от деки к стойке: два толстых ребра и поперечина.
-	_rbox(steer, Vector3(0.098, 0.30, 0.115), Vector3(0.0, 0.215, 0.055), _paint,
-		Vector3(deg_to_rad(-12.0), 0.0, 0.0), 0.014)
-	# Нижний узел над передним колесом и «стакан» стойки.
-	_rbox(steer, Vector3(0.108, 0.12, 0.10), Vector3(0.0, 0.095, 0.105), _paint,
-		Vector3(deg_to_rad(-16.0), 0.0, 0.0), 0.012)
-	_rbox(steer, Vector3(0.098, 0.085, 0.070), Vector3(0.0, STEM_BASE_Y - 0.055, 0.030),
-		_paint, Vector3.ZERO, 0.010)
+	# Горловина — сужающаяся колонна: широкая косынка у деки, узкий стакан сверху.
+	_plate_between(steer, Vector3(0.0, 0.055, 0.105), Vector3(0.0, 0.255, 0.055),
+		0.106, 0.092, _paint)
+	_plate_between(steer, Vector3(0.0, 0.235, 0.058), Vector3(0.0, STEM_BASE_Y - 0.010, 0.026),
+		0.062, 0.064, _paint)
+	# Рёбра жёсткости по бокам косынки.
+	for side in [-1.0, 1.0]:
+		_plate_between(steer, Vector3(side * 0.050, 0.055, 0.105),
+			Vector3(side * 0.032, 0.250, 0.060), 0.012, 0.084, _paint_dark)
 	# Компактный чёрный грязевик под стаканом.
-	_rbox(steer, Vector3(0.080, 0.075, 0.070), Vector3(0.0, 0.115, 0.020), _plastic,
-		Vector3(deg_to_rad(-18.0), 0.0, 0.0), 0.008)
+	_rbox(steer, Vector3(0.062, 0.068, 0.062), Vector3(0.0, 0.110, 0.028), _plastic,
+		Vector3(deg_to_rad(-18.0), 0.0, 0.0), 0.007)
 	# Фара в носу + оранжевая кромка.
-	_headlight(steer, Vector3(0.0, 0.190, 0.075), 0.028)
-	_rbox(steer, Vector3(0.088, 0.012, 0.014), Vector3(0.0, 0.175, 0.090), _accent,
+	_headlight(steer, Vector3(0.0, 0.185, 0.082), 0.026)
+	_rbox(steer, Vector3(0.074, 0.011, 0.013), Vector3(0.0, 0.172, 0.096), _accent,
 		Vector3(deg_to_rad(-14.0), 0.0, 0.0), 0.002)
 
 
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
 	var pivot := Vector3(ARM_X, 0.085, 0.005)
-	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.062, 0.026, _paint)
+	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.052, 0.021, _paint)
 	_cyl(steer, 0.016, 0.038, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.015, 0.058, axle + Vector3(ARM_X, 0.0, 0.0), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
@@ -186,15 +187,15 @@ func _stem(steer: Node3D, axle: Vector3) -> void:
 	var top := Vector3(0.0, BAR_Y, 0.02 + tan(rake) * (BAR_Y - STEM_BASE_Y))
 	# Основная труба и утолщение у основания.
 	_plate_between(steer, bottom, top, 0.070, 0.050, _paint)
-	_plate_between(steer, bottom, bottom.lerp(top, 0.34), 0.076, 0.058, _paint)
+	_plate_between(steer, bottom, bottom.lerp(top, 0.22), 0.074, 0.052, _paint)
 	# Замок складывания: воротник, шарнир, болты, оранжевый рычаг.
 	var collar := bottom + Vector3(0.0, 0.035, 0.0)
-	_rbox(steer, Vector3(0.090, 0.105, 0.088), collar, _rim, Vector3(rake, 0.0, 0.0), 0.008)
+	_rbox(steer, Vector3(0.078, 0.088, 0.078), collar, _rim, Vector3(rake, 0.0, 0.0), 0.008)
 	for bolt_z in [-0.030, 0.030]:
 		for bolt_y in [-0.030, 0.030]:
-			_cyl(steer, 0.0065, 0.098, collar + Vector3(0.0, bolt_y, bolt_z), _steel,
+			_cyl(steer, 0.0060, 0.086, collar + Vector3(0.0, bolt_y, bolt_z), _steel,
 				Vector3(0.0, 0.0, deg_to_rad(90.0)), 6)
-	_cyl(steer, 0.010, 0.100, collar + Vector3(0.0, 0.0, 0.048), _steel,
+	_cyl(steer, 0.009, 0.088, collar + Vector3(0.0, 0.0, 0.043), _steel,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 14)
 	var lever_y := STEM_BASE_Y + 0.175
 	var lever_z := 0.02 + tan(rake) * (lever_y - STEM_BASE_Y)
