@@ -131,7 +131,7 @@ func _body(root: Node3D) -> void:
 		Vector3(0.135, -radius * 0.45, 0.17), 0.02, 0.03, _dark)
 
 	# Задний амортизатор и рычаг подвески.
-	var rear_pivot := Vector3(0.0, deck_top * 0.60, deck_len * 0.5 - 0.16)
+	var rear_pivot := Vector3(0.0, deck_top, deck_len * 0.5 - 0.04)
 	var rear_axle := Vector3(0.0, 0.0, base * 0.5)
 	for side in [-1.0, 1.0]:
 		var arm_from2 := rear_pivot + Vector3(side * 0.072, 0.0, 0.0)
@@ -139,8 +139,8 @@ func _body(root: Node3D) -> void:
 			0.046, 0.016, _susp)
 		_box(root, Vector3(0.014, 0.03, 0.03),
 			rear_pivot + Vector3(side * 0.072, 0.0, 0.0), _accent)
-	_shock(root, Vector3(0.0, deck_top - 0.02, deck_len * 0.5 - 0.10),
-		Vector3(0.0, 0.05, base * 0.5 - 0.05), 0.016)
+	_shock(root, Vector3(0.0, deck_top + 0.02, deck_len * 0.5 - 0.16),
+		Vector3(0.0, 0.05, base * 0.5 - 0.06), 0.016)
 
 	# Заднее крыло и стойка крыла.
 	_fender(root, Vector3(0.0, 0.0, base * 0.5), radius + 0.016, radius + 0.012,
@@ -167,7 +167,7 @@ func _front_assembly(root: Node3D) -> Node3D:
 	root.add_child(steer)
 
 	var axle := Vector3(0.0, 0.0, -(base * 0.5 + steer_z))
-	var pivot := Vector3(0.0, deck_top * 0.95, 0.10)
+	var pivot := Vector3(0.0, deck_top + 0.06, 0.09)
 
 	# Рулевой стакан: короткая шея от деки, косынка и замок складывания.
 	_box(steer, Vector3(0.118, 0.16, 0.10), Vector3(0.0, deck_top + 0.07, 0.02), _frame,
@@ -189,7 +189,7 @@ func _front_assembly(root: Node3D) -> Node3D:
 
 	# Передний амортизатор: от стакана к середине рычага.
 	var shock_top := Vector3(0.0, deck_top + 0.10, 0.06)
-	var shock_bottom := axle + Vector3(0.0, 0.02, 0.10)
+	var shock_bottom := axle + Vector3(0.0, 0.055, 0.16)
 	_shock(steer, shock_top, shock_bottom, 0.017)
 
 	# Крыло переднего колеса (у G4 его нет, у F3 — есть).
