@@ -167,16 +167,16 @@ func _neck(steer: Node3D) -> void:
 
 
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
-	var pivot := Vector3(ARM_X, 0.135, -0.195)
+	var pivot := Vector3(ARM_X, 0.085, 0.005)
 	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.062, 0.026, _paint)
 	_cyl(steer, 0.016, 0.038, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.015, 0.058, axle + Vector3(ARM_X, 0.0, 0.0), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Амортизатор от стакана к рычагу.
-	_shock(steer, Vector3(0.046, 0.225, 0.010), Vector3(0.046, 0.040, axle.z + 0.105),
+	_shock(steer, Vector3(0.046, 0.215, 0.045), Vector3(0.046, 0.035, axle.z + 0.175),
 		0.013, _accent)
 	# Наклейки рычага.
-	_label(steer, "G4", Vector3(ARM_X + 0.013, 0.085, axle.z + 0.150),
+	_label(steer, "G4", Vector3(ARM_X + 0.013, 0.060, axle.z + 0.130),
 		Vector3(0.0, 90.0, 62.0), 0.00026, Color(0.98, 0.45, 0.08))
 
 

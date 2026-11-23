@@ -25,7 +25,7 @@ var suspension_text := "Регулируемая двойная"
 var features_text := "LCD · фара · стоп-сигнал · поворотники · ключ"
 
 # ---- Симуляция --------------------------------------------------------------
-var wheel_radius := 0.14
+var wheel_radius := 0.162
 var wheel_base := 1.06
 var deck_length := 0.51
 ## Высота настила над осями колёс (для модели).
@@ -105,7 +105,8 @@ static func create_g4() -> ScooterSpec:
 	s.suspension_text = "Регулируемая двойная"
 	s.features_text = "LCD · фара · стоп-сигнал · поворотники · ключ"
 
-	s.wheel_radius = 0.5 * 11.0 * 0.0254
+	# 11" — это обод; наружный радиус шины больше на борт (~0.022 м).
+	s.wheel_radius = 0.5 * 11.0 * 0.0254 + 0.022
 	s.wheel_base = 1.06
 	s.deck_length = 0.51
 	s.deck_height = 0.10
@@ -164,7 +165,7 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.suspension_text = "Передняя и задняя амортизация"
 	s.features_text = "LCD · AWD/RWD · фара · стоп-сигнал · габариты"
 
-	s.wheel_radius = 0.5 * 10.0 * 0.0254
+	s.wheel_radius = 0.5 * 10.0 * 0.0254 + 0.020
 	s.wheel_base = 1.0
 	s.deck_length = 0.48
 	s.deck_height = 0.095

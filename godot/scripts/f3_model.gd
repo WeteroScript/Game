@@ -156,7 +156,7 @@ func _triangle_neck(steer: Node3D) -> void:
 
 
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
-	var pivot := Vector3(ARM_X, 0.255, axle.z + 0.195)
+	var pivot := Vector3(ARM_X, 0.250, -0.055)
 	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.060, 0.024, _accent)
 	_plate_between(steer, pivot + Vector3(0.0, 0.0, 0.05),
 		Vector3(ARM_X, 0.005, axle.z + 0.10), 0.030, 0.014, _accent)
