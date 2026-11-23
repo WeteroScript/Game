@@ -156,7 +156,7 @@ func _triangle_neck(steer: Node3D) -> void:
 
 
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
-	var pivot := Vector3(ARM_X, 0.125, -0.185)
+	var pivot := Vector3(ARM_X, 0.255, axle.z + 0.195)
 	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.060, 0.024, _accent)
 	_plate_between(steer, pivot + Vector3(0.0, 0.0, 0.05),
 		Vector3(ARM_X, 0.005, axle.z + 0.10), 0.030, 0.014, _accent)
@@ -164,7 +164,7 @@ func _front_arm(steer: Node3D, axle: Vector3) -> void:
 	_cyl(steer, 0.016, 0.060, axle + Vector3(ARM_X, 0.0, 0.0), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Пружинный амортизатор от стакана к рычагу.
-	_shock(steer, Vector3(0.050, 0.205, -0.175), Vector3(0.050, 0.035, axle.z + 0.165),
+	_shock(steer, Vector3(0.050, 0.245, -0.120), Vector3(0.050, 0.060, axle.z + 0.135),
 		0.014, _accent)
 	# Красный суппорт.
 	_rbox(steer, Vector3(0.024, 0.044, 0.030),
