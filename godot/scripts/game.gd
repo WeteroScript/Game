@@ -29,6 +29,8 @@ var countdown_time := 0.0
 var time_left := 0.0
 var menu_angle := 0.0
 var _go_timer := 0.0
+## Режим съёмки: отключает орбитальную камеру меню, чтобы кадры были по делу.
+var _shots := false
 
 # Автотест для CI: `godot --headless --fixed-fps 60 -- --smoke` проезжает
 # заезд за игрока (газ, руль, вилли, падение) и печатает SMOKE OK.
@@ -287,6 +289,7 @@ func _tick_smoke(delta: float) -> void:
 # `godot --rendering-driver opengl3 -- --shot` под xvfb снимает оба самоката
 # с трёх ракурсов и складывает PNG в каталог из переменной SHOT_DIR.
 func _start_screenshots() -> void:
+	_shots = true
 	menu.visible = false
 	hud.visible = false
 	# HUD не должен затирать виртуальные касания нулями при съёмке.
@@ -348,6 +351,10 @@ func _take_screenshots() -> void:
 
 	# Меню: проверяем вёрстку кнопок и карточку характеристик.
 	_enter_menu()
+	camera_rig.target = null
+	camera_rig.global_position = scooter.global_position + Vector3(1.55, 1.05, 2.10)
+	camera_rig.look_at(scooter.global_position + Vector3.UP * 0.55, Vector3.UP)
+	camera_rig.fov = 44.0
 	for frame in 10:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
@@ -386,7 +393,8 @@ func _process(delta: float) -> void:
 
 	match state:
 		State.MENU:
-			_update_menu_camera(delta)
+			if not _shots:
+				_update_menu_camera(delta)
 		State.COUNTDOWN:
 			_process_countdown(delta)
 		State.RUNNING:
