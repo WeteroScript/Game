@@ -302,7 +302,7 @@ func _tick_smoke(delta: float) -> void:
 	_smoke_timer += delta
 
 	# Фаза 1 → фаза 2: другой самокат, другая карта, режим с таймером.
-	if _smoke_phase == 0 and _smoke_timer > 12.0:
+	if _smoke_phase == 0 and _smoke_timer > 14.0:
 		_smoke_phase = 1
 		print("SMOKE phase 1 end: %s" % _telemetry())
 		_start_run("f3", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
@@ -336,11 +336,11 @@ func _tick_smoke(delta: float) -> void:
 	input_state.touch_throttle = 0.75 if _smoke_wheelie_on else 1.0
 	if _smoke_phase == 0 and not _steer_checked:
 		# Короткое окно с полным рулём вправо: смотрим, куда реально едет.
-		if _smoke_timer > 1.3:
+		if _smoke_timer > 3.6:
 			if _steer_yaw_start == 0.0:
 				_steer_yaw_start = rad_to_deg(scooter.global_rotation.y) + 0.001
 			input_state.touch_steer = 1.0
-			if _smoke_timer > 2.0:
+			if _smoke_timer > 4.4:
 				_steer_checked = true
 				var delta_yaw := rad_to_deg(scooter.global_rotation.y) - (_steer_yaw_start - 0.001)
 				print("SMOKE steer +1 (вправо) -> yaw=%.2f град (минус = вправо)" % delta_yaw)
@@ -351,15 +351,15 @@ func _tick_smoke(delta: float) -> void:
 		input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35 if _smoke_phase == 0 else 0.0
 
 	if _smoke_phase == 0:
-		if not _smoke_wheelie_on and _smoke_timer > 3.0:
+		if not _smoke_wheelie_on and _smoke_timer > 5.0:
 			_smoke_wheelie_on = true
 			input_state.request_wheelie_toggle()
 			print("SMOKE wheelie toggle ON")
-		elif _smoke_wheelie_on and _smoke_timer > 9.5:
+		elif _smoke_wheelie_on and _smoke_timer > 11.0:
 			_smoke_wheelie_on = false
 			input_state.request_wheelie_toggle()
 			print("SMOKE wheelie toggle OFF")
-		if not _smoke_crashed and _smoke_timer > 10.5 and scooter != null:
+		if not _smoke_crashed and _smoke_timer > 12.0 and scooter != null:
 			_smoke_crashed = true
 			scooter.crash("smoke test")
 			print("SMOKE forced crash")
