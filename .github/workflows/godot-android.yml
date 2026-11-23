@@ -1,5 +1,5 @@
 # Сборка APK без Unity: Godot 4 + Android SDK прямо на runner'е.
-# Никаких секретов не требуется — keystore отладочный и генерируется в этом же job'е.
+# Никаких секретов не требуется: отладочный keystore лежит в репозитории.
 name: Build Android APK (Godot)
 
 on:
@@ -23,6 +23,58 @@ env:
   PROJECT_PATH: godot
 
 jobs:
+  screenshots:
+    name: Render model screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Отдельная задача: картинки нужны для проверки внешнего вида и не должны
+    # ронять сборку APK.
+    continue-on-error: true
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: false
+
+      - name: Install xvfb and software OpenGL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1 libglx-mesa0 libegl1 libxcursor1 libxinerama1 libxrandr2 libxi6 libasound2 || true
+
+      - name: Import project
+        run: godot --headless --path "$PROJECT_PATH" --import || true
+
+      - name: Render screenshots
+        run: |
+          export SHOT_DIR="$GITHUB_WORKSPACE/shots"
+          xvfb-run -a -s "-screen 0 1600x900x24" \
+            godot --path "$PROJECT_PATH" --rendering-driver opengl3 \
+            --rendering-method gl_compatibility --resolution 1280x720 -- --shot 2>&1 | tee /tmp/shot.log || true
+          grep -E "SHOT|ERROR|SCRIPT" /tmp/shot.log | head -40
+          ls -la "$SHOT_DIR" || true
+          test -n "$(ls -A "$SHOT_DIR" 2>/dev/null)"
+
+      - name: Publish the screenshots branch
+        run: |
+          mkdir -p screenshots
+          cp "$GITHUB_WORKSPACE"/shots/*.png screenshots/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan shots
+          git rm -rf --cached . > /dev/null
+          git add -f screenshots
+          git commit -q -m "screenshots: ${GITHUB_SHA}"
+          git push --force origin shots:ci-screenshots
+          echo "Скриншоты: https://github.com/$GITHUB_REPOSITORY/tree/ci-screenshots/screenshots"
+
   build:
     name: Build APK (Godot 4.3 · Android)
     runs-on: ubuntu-latest
@@ -64,14 +116,23 @@ jobs:
           "$SDKMANAGER" --install "platform-tools" "build-tools;34.0.0" "platforms;android-34"
           ls "$SDK/build-tools" "$SDK/platforms"
 
-      - name: Generate debug keystore
+      # Keystore лежит в репозитории (это отладочный ключ, не секрет).
+      # Благодаря этому все сборки подписаны одинаково и новая версия
+      # ставится поверх старой без удаления приложения.
+      - name: Point the export preset at the repository keystore
         run: |
-          rm -f /tmp/debug.keystore
-          keytool -keyalg RSA -genkeypair \
-            -alias androiddebugkey -keypass android \
-            -keystore /tmp/debug.keystore -storepass android \
-            -dname "CN=Android Debug,O=Android,C=US" \
-            -validity 9999 -deststoretype pkcs12
+          KEYSTORE="$GITHUB_WORKSPACE/$PROJECT_PATH/debug.keystore"
+          test -f "$KEYSTORE"
+          python3 - "$KEYSTORE" <<'PYEOF'
+          import re, sys
+          path = sys.argv[1]
+          file = "godot/export_presets.cfg"
+          text = open(file, encoding="utf-8").read()
+          for key in ("keystore/debug", "keystore/release"):
+              text = re.sub(rf"^{key}=.*$", f'{key}="{path}"', text, flags=re.M)
+          open(file, "w", encoding="utf-8").write(text)
+          PYEOF
+          grep -E "^keystore/" "$PROJECT_PATH/export_presets.cfg"
 
       - name: Point Godot editor settings at the SDK/JDK
         run: |

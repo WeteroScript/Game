@@ -73,14 +73,14 @@ func _ready() -> void:
 	var mode_names := ["Свободная езда", "На время", "Фристайл"]
 	for index in mode_names.size():
 		var captured_mode := index
-		var button := UiFactory.button(mode_names[index], 19, Vector2(166.0, 52.0))
-		UiFactory.place(button, 50.0 + index * 174.0, y, 166.0, 52.0)
+		var button := UiFactory.button(mode_names[index], 19, Vector2(172.0, 52.0))
+		UiFactory.place(button, 50.0 + index * 178.0, y, 172.0, 52.0)
 		button.pressed.connect(func() -> void: _select_mode(captured_mode))
 		root.add_child(button)
 		_mode_buttons.append(button)
 	y += 78.0
 
-	var start_button := UiFactory.button("ПОЕХАЛИ", 28, Vector2(520.0, 74.0))
+	var start_button := UiFactory.primary_button("ПОЕХАЛИ", 30, Vector2(520.0, 74.0))
 	UiFactory.place(start_button, 50.0, y, 520.0, 74.0)
 	start_button.pressed.connect(_on_start)
 	root.add_child(start_button)
@@ -147,14 +147,17 @@ func _refresh() -> void:
 		var active := _specs[index].id == spec_id
 		_scooter_buttons[index].text = ("● " if active else "   ") + _specs[index].display_name \
 			+ "  ·  " + _specs[index].tagline
+		UiFactory.style_button(_scooter_buttons[index], active)
 
 	var maps := ["Прямая трасса", "Город"]
 	for index in _map_buttons.size():
 		_map_buttons[index].text = ("● " if index == map_id else "   ") + maps[index]
+		UiFactory.style_button(_map_buttons[index], index == map_id)
 
 	var modes := ["Свободная езда", "На время", "Фристайл"]
 	for index in _mode_buttons.size():
 		_mode_buttons[index].text = ("● " if index == mode_id else "   ") + modes[index]
+		UiFactory.style_button(_mode_buttons[index], index == mode_id)
 
 	if _spec_info != null and not _specs.is_empty():
 		_spec_info.text = _describe_spec(ScooterSpec.get_by_id(spec_id))

@@ -68,6 +68,8 @@ func _ready() -> void:
 
 	if OS.get_cmdline_user_args().has("--smoke"):
 		_start_smoke()
+	elif OS.get_cmdline_user_args().has("--shot"):
+		_start_screenshots()
 
 
 # ---- окружение --------------------------------------------------------------
@@ -85,11 +87,11 @@ func _setup_environment() -> void:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.65
+	env.ambient_light_energy = 0.32
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.72, 0.8, 0.88)
-	env.fog_density = 0.005
+	env.fog_density = 0.0012
 	env.glow_enabled = true
 	env.glow_intensity = 0.5
 
@@ -98,8 +100,8 @@ func _setup_environment() -> void:
 	add_child(world_environment)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation = Vector3(deg_to_rad(-52.0), deg_to_rad(38.0), 0.0)
-	sun.light_energy = 1.2
+	sun.rotation = Vector3(deg_to_rad(-46.0), deg_to_rad(-38.0), 0.0)
+	sun.light_energy = 1.45
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 140.0
 	add_child(sun)
@@ -281,6 +283,82 @@ func _tick_smoke(delta: float) -> void:
 		print("SMOKE t=%.1f %s" % [_smoke_timer, _telemetry()])
 
 
+# ---- скриншоты для CI --------------------------------------------------------
+# `godot --rendering-driver opengl3 -- --shot` под xvfb снимает оба самоката
+# с трёх ракурсов и складывает PNG в каталог из переменной SHOT_DIR.
+func _start_screenshots() -> void:
+	menu.visible = false
+	hud.visible = false
+	# HUD не должен затирать виртуальные касания нулями при съёмке.
+	hud.set_process(false)
+	_take_screenshots()
+
+
+func _take_screenshots() -> void:
+	var shot_dir := OS.get_environment("SHOT_DIR")
+	if shot_dir.is_empty():
+		shot_dir = "/tmp/kugoo-shots"
+	DirAccess.make_dir_recursive_absolute(shot_dir)
+
+	# offset — где стоит камера, look — куда смотрит, fov — угол.
+	var shots := [
+		{"name": "front", "offset": Vector3(1.05, 0.72, -1.75), "look": Vector3(0.0, 0.48, -0.15), "fov": 42.0},
+		{"name": "side", "offset": Vector3(2.05, 0.52, 0.05), "look": Vector3(0.0, 0.44, 0.0), "fov": 40.0},
+		{"name": "rear", "offset": Vector3(-1.05, 0.95, 1.55), "look": Vector3(0.0, 0.5, 0.1), "fov": 42.0},
+		{"name": "bar", "offset": Vector3(0.62, 1.18, -0.95), "look": Vector3(0.0, 0.86, -0.38), "fov": 38.0},
+		{"name": "wheel", "offset": Vector3(0.85, 0.30, -0.95), "look": Vector3(0.0, 0.12, -0.5), "fov": 40.0},
+	]
+
+	for spec_id in ["g4", "f3"]:
+		_build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
+		camera_rig.target = null
+		await get_tree().create_timer(0.8).timeout
+		for index in shots.size():
+			var shot: Dictionary = shots[index]
+			var origin: Vector3 = scooter.global_position
+			var look_point: Vector3 = origin + shot["look"]
+			camera_rig.global_position = origin + shot["offset"]
+			camera_rig.look_at(look_point, Vector3.UP)
+			camera_rig.fov = shot["fov"]
+			for frame in 4:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			var image := get_viewport().get_texture().get_image()
+			var path := "%s/%s_%d_%s.png" % [shot_dir, spec_id, index, shot["name"]]
+			var error := image.save_png(path)
+			print("SHOT %s err=%d" % [path, error])
+
+	# Меню: проверяем вёрстку кнопок и карточку характеристик.
+	_enter_menu()
+	for frame in 10:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "menu")
+
+	# Геймплей: вид от камеры игрока, с HUD и райдером на ходу.
+	hud.visible = true
+	_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.FREE_RIDE)
+	input_state.touch_throttle = 1.0
+	await get_tree().create_timer(4.2).timeout
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "hud_drive")
+
+	input_state.touch_wheelie = true
+	await get_tree().create_timer(1.6).timeout
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "hud_wheelie")
+
+	print("SHOTS DONE %s" % shot_dir)
+	get_tree().quit()
+
+
+func _save_shot(shot_dir: String, shot_name: String) -> void:
+	var image := get_viewport().get_texture().get_image()
+	var path := "%s/%s.png" % [shot_dir, shot_name]
+	var error := image.save_png(path)
+	print("SHOT %s err=%d" % [path, error])
+
+
 # ---- кадр -------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if _smoke:
@@ -387,6 +465,8 @@ func _on_respawned() -> void:
 func _on_trick(trick_name: String, points: int) -> void:
 	if hud != null:
 		hud.show_trick(trick_name, points)
+	if scooter != null and scooter.audio != null:
+		scooter.audio.play_chime()
 
 
 # ---- финиш ------------------------------------------------------------------

@@ -20,7 +20,13 @@ var front_wheel: VehicleWheel3D
 var rear_wheel: VehicleWheel3D
 var front_visual: Node3D
 var rear_visual: Node3D
-var steer_visual: Node3D
+var front_steer: Node3D
+var bar_left: Node3D
+var bar_right: Node3D
+var foot_left: Node3D
+var foot_right: Node3D
+var rider: RiderModel
+var audio: ScooterAudio
 
 var wheelie: Wheelie
 
@@ -130,7 +136,17 @@ func _ready() -> void:
 	add_child(model["root"])
 	front_visual = model["front_wheel"]
 	rear_visual = model["rear_wheel"]
-	steer_visual = model["handlebar"]
+	front_steer = model["front_steer"]
+	bar_left = model["bar_left"]
+	bar_right = model["bar_right"]
+	foot_left = model["foot_left"]
+	foot_right = model["foot_right"]
+
+	rider = RiderModel.create(spec.deck_height, spec.accent_color, bar_left, bar_right)
+	model["root"].add_child(rider)
+
+	audio = ScooterAudio.create(spec.top_speed_kmh)
+	add_child(audio)
 	respawn_position = global_position
 	respawn_basis = global_transform.basis
 
@@ -216,6 +232,8 @@ func _physics_process(delta: float) -> void:
 
 	if is_crashed:
 		_process_crash(delta)
+		_update_rider(delta)
+		_update_audio()
 		_update_wheel_visuals(delta)
 		return
 
@@ -229,6 +247,8 @@ func _physics_process(delta: float) -> void:
 	_tick_wheelie(delta)
 	_update_battery(delta)
 	_check_failures()
+	_update_rider(delta)
+	_update_audio()
 	_update_wheel_visuals(delta)
 
 
@@ -500,6 +520,8 @@ func crash(reason: String) -> void:
 	is_crashed = true
 	crash_count += 1
 	crash_reason = reason
+	if audio != null:
+		audio.play_impact()
 	last_crash_reason = reason
 	crash_timer = 0.0
 	set_input_enabled(false)
@@ -540,6 +562,18 @@ func respawn() -> void:
 
 
 # ---- визуал -----------------------------------------------------------------
+func _update_audio() -> void:
+	if audio != null:
+		audio.update_state(speed_kmh(), throttle_input, is_grounded(), is_crashed)
+
+
+func _update_rider(delta: float) -> void:
+	if rider == null:
+		return
+	rider.update_pose(delta, steer_input, maxf(brake_front_input, brake_rear_input),
+		speed_kmh(), is_grounded(), is_crashed, pitch_deg)
+
+
 func _update_wheel_visuals(delta: float) -> void:
 	var spin_delta := (speed_mps / maxf(0.02, spec.wheel_radius)) * delta
 	_front_spin += spin_delta
@@ -547,8 +581,9 @@ func _update_wheel_visuals(delta: float) -> void:
 
 	# Качение вперёд — вращение вокруг -X, поэтому спин берём со знаком минус.
 	if front_visual != null:
-		front_visual.rotation = Vector3(-_front_spin, deg_to_rad(steer_input * spec.steer_angle_max), 0.0)
+		front_visual.rotation = Vector3(-_front_spin, 0.0, 0.0)
 	if rear_visual != null:
 		rear_visual.rotation = Vector3(-_rear_spin, 0.0, 0.0)
-	if steer_visual != null:
-		steer_visual.rotation = Vector3(0.0, deg_to_rad(steer_input * spec.steer_angle_max * 0.85), 0.0)
+	if front_steer != null:
+		# Поворачивается вся передняя сборка: вилка, крыло, стойка, руль.
+		front_steer.rotation = Vector3(0.0, deg_to_rad(steer_input * spec.steer_angle_max), 0.0)
