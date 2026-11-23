@@ -439,12 +439,25 @@ func _apply_balance() -> void:
 
 	var roll_torque := roll_error * GameConfig.ROLL_STABILITY_GAIN - roll_rate * GameConfig.ROLL_STABILITY_DAMPING
 	roll_torque *= support
-	roll_torque = clampf(roll_torque, -GameConfig.ROLL_MAX_TORQUE, GameConfig.ROLL_MAX_TORQUE)
+	var roll_limit := GameConfig.ROLL_MAX_TORQUE
+	# Самокат не падает от потери равновесия: сильный завал вытягиваем
+	# дополнительным моментом, а не аварией.
+	if absf(roll_deg) > GameConfig.ROLL_ASSIST_ANGLE:
+		var over := clampf((absf(roll_deg) - GameConfig.ROLL_ASSIST_ANGLE) / 25.0, 0.0, 1.0)
+		roll_torque -= signf(roll_deg) * over * GameConfig.ROLL_RECOVERY_TORQUE
+		roll_limit = GameConfig.ROLL_MAX_TORQUE + GameConfig.ROLL_RECOVERY_TORQUE
+	roll_torque = clampf(roll_torque, -roll_limit, roll_limit)
 	apply_torque(global_transform.basis * Vector3(0.0, 0.0, roll_torque))
 
 	# Стабилизация тангажа, когда вилли не активно.
 	var wheelie_active := wheelie != null and wheelie.active
-	if not wheelie_active and is_grounded():
+	if wheelie_active:
+		# Заброс выше цели (кочка, приземление) гасим, но только пока игрок
+		# не перегазовывает: перегазовка должна валить самокат.
+		if wheelie.overdrive < 0.2 and pitch_deg > GameConfig.WHEELIE_SAVE_ANGLE:
+			var save := clampf((pitch_deg - GameConfig.WHEELIE_SAVE_ANGLE) * 30.0, 0.0, 900.0)
+			apply_nose_up_torque(-save)
+	elif is_grounded():
 		var slope_pitch := _slope_pitch()
 		var pitch_error := deg_to_rad(slope_pitch - pitch_deg)
 		var stability := 0.5 if (brake_front_input > 0.8 and speed_kmh() > GameConfig.ENDO_RISK_SPEED_KMH) else 1.0
@@ -489,11 +502,16 @@ func _update_battery(delta: float) -> void:
 	battery_wh = clampf(battery_wh, 0.0, spec.battery_wh)
 
 
+var _loop_out_time := 0.0
+
+
 func _check_failures() -> void:
 	if wheelie != null and wheelie.active and pitch_deg > GameConfig.LOOP_OUT_ANGLE:
-		crash("Loop out — переворот через заднее колесо")
-	elif absf(roll_deg) > GameConfig.FALL_ROLL_ANGLE:
-		crash("Потеря равновесия")
+		# Единственное падение в вилли. Случайный заброс от кочки гасится,
+		# а вот удержанная перегазовка или слишком долгий заброс — падение.
+		_loop_out_time += get_physics_process_delta_time()
+		if wheelie.overdrive > 0.25 or _loop_out_time > 0.5:
+			crash("Loop out — переворот через заднее колесо")
 	elif (is_grounded() and brake_front_input > 0.5 and speed_kmh() > 20.0
 			and pitch_deg < GameConfig.ENDO_CRASH_ANGLE):
 		# Раньше endo срабатывал в воздухе: любой прыжок в городе считался
@@ -513,6 +531,9 @@ func _check_failures() -> void:
 	else:
 		stuck_time = maxf(0.0, stuck_time - get_physics_process_delta_time() * 3.0)
 
+	if not (wheelie != null and wheelie.active and pitch_deg > GameConfig.LOOP_OUT_ANGLE):
+		_loop_out_time = maxf(0.0, _loop_out_time - get_physics_process_delta_time() * 2.0)
+
 
 func crash(reason: String) -> void:
 	if is_crashed:
@@ -525,6 +546,8 @@ func crash(reason: String) -> void:
 	last_crash_reason = reason
 	crash_timer = 0.0
 	set_input_enabled(false)
+	if input != null:
+		input.clear_wheelie()
 	if wheelie != null:
 		wheelie.reset()
 	apply_torque_impulse(global_transform.basis * Vector3(randf_range(-40.0, 40.0), 15.0, randf_range(40.0, 90.0)))
@@ -551,6 +574,8 @@ func respawn() -> void:
 	brake_front_input = 0.0
 	brake_rear_input = 0.0
 	steer_input = 0.0
+	if input != null:
+		input.clear_wheelie()
 	if wheelie != null:
 		wheelie.reset()
 

@@ -49,6 +49,10 @@ const REAR_STEER_FACTOR := 0.3
 const ROLL_STABILITY_GAIN := 260.0
 const ROLL_STABILITY_DAMPING := 46.0
 const ROLL_MAX_TORQUE := 520.0
+## С этого крена включается «спасательный» момент: упасть от потери
+## равновесия нельзя, самокат просто вытягивает обратно.
+const ROLL_ASSIST_ANGLE := 26.0
+const ROLL_RECOVERY_TORQUE := 620.0
 const LEAN_INTO_TURN_MAX_ANGLE := 21.0
 const LEAN_INTO_TURN_FULL_SPEED := 14.0
 
@@ -65,9 +69,11 @@ const ENDO_RISK_TORQUE := 55.0
 const ENDO_CRASH_ANGLE := -26.0
 
 # ---- Аварии -----------------------------------------------------------------
-const LOOP_OUT_ANGLE := 74.0
-const FALL_ROLL_ANGLE := 62.0
-const HARD_IMPACT_SPEED := 7.5
+const LOOP_OUT_ANGLE := 76.0
+## Выше этого угла вилли-контроллер сам гасит случайный заброс
+## (но не перегазовку — она и должна валить).
+const WHEELIE_SAVE_ANGLE := 66.0
+const HARD_IMPACT_SPEED := 8.5
 
 # ---- Батарея ----------------------------------------------------------------
 const MOTOR_EFFICIENCY := 0.80

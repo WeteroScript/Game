@@ -29,6 +29,8 @@ var countdown_time := 0.0
 var time_left := 0.0
 var menu_angle := 0.0
 var _go_timer := 0.0
+## Режим съёмки: отключает орбитальную камеру меню, чтобы кадры были по делу.
+var _shots := false
 
 # Автотест для CI: `godot --headless --fixed-fps 60 -- --smoke` проезжает
 # заезд за игрока (газ, руль, вилли, падение) и печатает SMOKE OK.
@@ -36,6 +38,11 @@ var _smoke := false
 var _smoke_timer := 0.0
 var _smoke_crashed := false
 var _smoke_phase := 0
+var _smoke_wheelie_on := false
+
+# Перетаскивание камеры.
+var _camera_dragging := false
+var _camera_touch_index := -1
 
 
 func _ready() -> void:
@@ -269,17 +276,28 @@ func _tick_smoke(delta: float) -> void:
 	if state != State.RUNNING:
 		return
 
-	input_state.touch_throttle = 1.0
+	# В вилли автотест держит газ ниже упора: так проверяется управление углом
+	# без намеренного переворота через заднее колесо.
+	input_state.touch_throttle = 0.75 if _smoke_wheelie_on else 1.0
 	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35
 
 	if _smoke_phase == 0:
-		input_state.touch_wheelie = _smoke_timer > 3.0 and _smoke_timer < 9.5
+		if not _smoke_wheelie_on and _smoke_timer > 3.0:
+			_smoke_wheelie_on = true
+			input_state.request_wheelie_toggle()
+			print("SMOKE wheelie toggle ON")
+		elif _smoke_wheelie_on and _smoke_timer > 9.5:
+			_smoke_wheelie_on = false
+			input_state.request_wheelie_toggle()
+			print("SMOKE wheelie toggle OFF")
 		if not _smoke_crashed and _smoke_timer > 10.5 and scooter != null:
 			_smoke_crashed = true
 			scooter.crash("smoke test")
 			print("SMOKE forced crash")
 
-	if fmod(_smoke_timer, 3.0) < delta:
+	# Во время вилли печатаем чаще: нужно видеть траекторию угла.
+	var period := 1.0 if _smoke_wheelie_on else 3.0
+	if fmod(_smoke_timer, period) < delta:
 		print("SMOKE t=%.1f %s" % [_smoke_timer, _telemetry()])
 
 
@@ -287,6 +305,24 @@ func _tick_smoke(delta: float) -> void:
 # `godot --rendering-driver opengl3 -- --shot` под xvfb снимает оба самоката
 # с трёх ракурсов и складывает PNG в каталог из переменной SHOT_DIR.
 func _start_screenshots() -> void:
+	_shots = true
+	# Студийный свет для рендеров: два мягких источника без теней, чтобы детали
+	# моделей читались на снимках, плюс поднятая засветка окружения.
+	for yaw in [-70.0, 110.0]:
+		var fill := DirectionalLight3D.new()
+		fill.rotation = Vector3(deg_to_rad(-28.0), deg_to_rad(yaw), 0.0)
+		fill.light_energy = 0.58
+		fill.shadow_enabled = false
+		add_child(fill)
+	for child in get_children():
+		if child is WorldEnvironment and child.environment != null:
+			var env: Environment = child.environment
+			# Нейтральная засветка вместо неба: иначе серый корпус уходит в синеву,
+			# а на фото он тёплый нейтральный.
+			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+			env.ambient_light_color = Color(0.62, 0.62, 0.62)
+			env.ambient_light_energy = 0.52
+			env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	menu.visible = false
 	hud.visible = false
 	# HUD не должен затирать виртуальные касания нулями при съёмке.
@@ -302,17 +338,24 @@ func _take_screenshots() -> void:
 
 	# offset — где стоит камера, look — куда смотрит, fov — угол.
 	var shots := [
-		{"name": "front", "offset": Vector3(1.05, 0.72, -1.75), "look": Vector3(0.0, 0.48, -0.15), "fov": 42.0},
-		{"name": "side", "offset": Vector3(2.05, 0.52, 0.05), "look": Vector3(0.0, 0.44, 0.0), "fov": 40.0},
-		{"name": "rear", "offset": Vector3(-1.05, 0.95, 1.55), "look": Vector3(0.0, 0.5, 0.1), "fov": 42.0},
-		{"name": "bar", "offset": Vector3(0.62, 1.18, -0.95), "look": Vector3(0.0, 0.86, -0.38), "fov": 38.0},
-		{"name": "wheel", "offset": Vector3(0.85, 0.30, -0.95), "look": Vector3(0.0, 0.12, -0.5), "fov": 40.0},
+		{"name": "front", "offset": Vector3(1.45, 0.92, -2.25), "look": Vector3(0.0, 0.58, -0.05), "fov": 34.0},
+		{"name": "side", "offset": Vector3(6.20, 0.62, 0.0), "look": Vector3(0.0, 0.62, 0.0), "fov": 15.0, "ortho": true, "size": 1.55},
+		{"name": "rear", "offset": Vector3(-1.35, 0.78, 1.95), "look": Vector3(0.0, 0.50, 0.02), "fov": 34.0},
+		{"name": "bar", "offset": Vector3(0.62, 1.42, -0.85), "look": Vector3(0.0, 1.10, -0.28), "fov": 34.0},
+		{"name": "wheel", "offset": Vector3(0.70, 0.26, -0.95), "look": Vector3(0.0, 0.13, -0.50), "fov": 34.0},
+		{"name": "dash", "offset": Vector3(0.10, 1.34, 0.78), "look": Vector3(0.0, 1.10, -0.20), "fov": 34.0},
+		{"name": "deck", "offset": Vector3(0.78, 0.46, 0.16), "look": Vector3(0.0, 0.22, 0.02), "fov": 34.0},
 	]
 
 	for spec_id in ["g4", "f3"]:
 		_build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
 		camera_rig.target = null
 		await get_tree().create_timer(0.8).timeout
+		# Сначала чистые кадры самой модели (без райдера), потом — с ним.
+		var rider_node: Node3D = null
+		if scooter != null and scooter.rider != null:
+			rider_node = scooter.rider
+			rider_node.visible = false
 		for index in shots.size():
 			var shot: Dictionary = shots[index]
 			var origin: Vector3 = scooter.global_position
@@ -320,6 +363,12 @@ func _take_screenshots() -> void:
 			camera_rig.global_position = origin + shot["offset"]
 			camera_rig.look_at(look_point, Vector3.UP)
 			camera_rig.fov = shot["fov"]
+			# Ортокамера для кадров, по которым сверяем силуэт с фото.
+			if shot.get("ortho", false):
+				camera_rig.projection = Camera3D.PROJECTION_ORTHOGONAL
+				camera_rig.size = shot["size"]
+			else:
+				camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
 			for frame in 4:
 				await get_tree().process_frame
 			await RenderingServer.frame_post_draw
@@ -328,8 +377,24 @@ func _take_screenshots() -> void:
 			var error := image.save_png(path)
 			print("SHOT %s err=%d" % [path, error])
 
+		# Кадр с райдером.
+		if rider_node != null:
+			rider_node.visible = true
+			var origin2: Vector3 = scooter.global_position
+			camera_rig.global_position = origin2 + Vector3(1.95, 0.90, -2.50)
+			camera_rig.look_at(origin2 + Vector3(0.0, 0.98, -0.1), Vector3.UP)
+			camera_rig.fov = 32.0
+			for frame in 6:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			_save_shot(shot_dir, "%s_rider" % spec_id)
+
 	# Меню: проверяем вёрстку кнопок и карточку характеристик.
 	_enter_menu()
+	camera_rig.target = null
+	camera_rig.global_position = scooter.global_position + Vector3(1.95, 1.25, 2.55)
+	camera_rig.look_at(scooter.global_position + Vector3.UP * 0.60, Vector3.UP)
+	camera_rig.fov = 40.0
 	for frame in 10:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
@@ -343,7 +408,7 @@ func _take_screenshots() -> void:
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_drive")
 
-	input_state.touch_wheelie = true
+	input_state.request_wheelie_toggle()
 	await get_tree().create_timer(1.6).timeout
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_wheelie")
@@ -368,7 +433,8 @@ func _process(delta: float) -> void:
 
 	match state:
 		State.MENU:
-			_update_menu_camera(delta)
+			if not _shots:
+				_update_menu_camera(delta)
 		State.COUNTDOWN:
 			_process_countdown(delta)
 		State.RUNNING:
@@ -427,8 +493,31 @@ func _handle_actions() -> void:
 		_back_to_menu()
 
 
+## Камера: тащим мышью с зажатой ЛКМ или свайпом по экрану, где нет кнопок.
 func _unhandled_input(event: InputEvent) -> void:
 	input_state.handle_key_events(event)
+
+	if camera_rig == null or state == State.MENU or _shots:
+		return
+
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_camera_dragging = not _over_controls(event.position)
+		else:
+			_camera_dragging = false
+	elif event is InputEventMouseMotion and _camera_dragging:
+		camera_rig.orbit_input(-event.relative.x * 0.005, event.relative.y * 0.004)
+	elif event is InputEventScreenTouch:
+		if event.pressed:
+			_camera_touch_index = event.index if not _over_controls(event.position) else -1
+		elif event.index == _camera_touch_index:
+			_camera_touch_index = -1
+	elif event is InputEventScreenDrag and event.index == _camera_touch_index:
+		camera_rig.orbit_input(-event.relative.x * 0.006, event.relative.y * 0.005)
+
+
+func _over_controls(point: Vector2) -> bool:
+	return hud != null and hud.is_over_controls(point)
 
 
 func _has_timer() -> bool:
