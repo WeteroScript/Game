@@ -451,7 +451,13 @@ func _apply_balance() -> void:
 
 	# Стабилизация тангажа, когда вилли не активно.
 	var wheelie_active := wheelie != null and wheelie.active
-	if not wheelie_active and is_grounded():
+	if wheelie_active:
+		# Заброс выше цели (кочка, приземление) гасим, но только пока игрок
+		# не перегазовывает: перегазовка должна валить самокат.
+		if wheelie.overdrive < 0.2 and pitch_deg > GameConfig.WHEELIE_SAVE_ANGLE:
+			var save := clampf((pitch_deg - GameConfig.WHEELIE_SAVE_ANGLE) * 30.0, 0.0, 900.0)
+			apply_nose_up_torque(-save)
+	elif is_grounded():
 		var slope_pitch := _slope_pitch()
 		var pitch_error := deg_to_rad(slope_pitch - pitch_deg)
 		var stability := 0.5 if (brake_front_input > 0.8 and speed_kmh() > GameConfig.ENDO_RISK_SPEED_KMH) else 1.0
@@ -496,10 +502,16 @@ func _update_battery(delta: float) -> void:
 	battery_wh = clampf(battery_wh, 0.0, spec.battery_wh)
 
 
+var _loop_out_time := 0.0
+
+
 func _check_failures() -> void:
 	if wheelie != null and wheelie.active and pitch_deg > GameConfig.LOOP_OUT_ANGLE:
-		# Единственное падение в вилли: перегазовал и ушёл через заднее колесо.
-		crash("Loop out — переворот через заднее колесо")
+		# Единственное падение в вилли. Случайный заброс от кочки гасится,
+		# а вот удержанная перегазовка или слишком долгий заброс — падение.
+		_loop_out_time += get_physics_process_delta_time()
+		if wheelie.overdrive > 0.25 or _loop_out_time > 0.5:
+			crash("Loop out — переворот через заднее колесо")
 	elif (is_grounded() and brake_front_input > 0.5 and speed_kmh() > 20.0
 			and pitch_deg < GameConfig.ENDO_CRASH_ANGLE):
 		# Раньше endo срабатывал в воздухе: любой прыжок в городе считался
@@ -518,6 +530,9 @@ func _check_failures() -> void:
 			crash("Застрял — авто-респаун")
 	else:
 		stuck_time = maxf(0.0, stuck_time - get_physics_process_delta_time() * 3.0)
+
+	if not (wheelie != null and wheelie.active and pitch_deg > GameConfig.LOOP_OUT_ANGLE):
+		_loop_out_time = maxf(0.0, _loop_out_time - get_physics_process_delta_time() * 2.0)
 
 
 func crash(reason: String) -> void:
