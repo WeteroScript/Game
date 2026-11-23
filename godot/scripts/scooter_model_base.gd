@@ -81,11 +81,11 @@ func _make_materials() -> void:
 	_accent = _mat(spec.accent_color, 0.10, 0.36)
 	_plastic = _mat(DARK_PLASTIC, 0.15, 0.55)
 	_rubber = _mat(RUBBER, 0.0, 0.92, Color.BLACK, 0.0, true)
-	_rubber.albedo_texture = _speckle(Color(0.052, 0.052, 0.056), 0.5, 48, 777)
-	_rubber.uv1_scale = Vector3(10.0, 10.0, 10.0)
+	_rubber.albedo_texture = _speckle(Color(0.048, 0.048, 0.052), 0.25, 48, 777)
+	_rubber.uv1_scale = Vector3(4.0, 4.0, 4.0)
 	_tape = _mat(TAPE, 0.0, 0.95)
-	_tape.albedo_texture = _speckle(Color(0.075, 0.075, 0.080), 0.55)
-	_tape.uv1_scale = Vector3(8.0, 8.0, 8.0)
+	_tape.albedo_texture = _speckle(Color(0.062, 0.062, 0.067), 0.22)
+	_tape.uv1_scale = Vector3(3.0, 3.0, 3.0)
 	_tape.uv1_triplanar = true
 	_steel = _mat(STEEL, 0.95, 0.22)
 	_alu = _mat(ALU, 0.85, 0.30)
@@ -447,7 +447,7 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 			Vector3(side * 0.042, 0.0, 0.0))
 		_torus(pivot, radius * 0.600, radius * 0.622, _alu, Vector3.ZERO,
 			Vector3(side * 0.049, 0.0, 0.0), 28)
-	_spokes(pivot, radius * 0.47, 0.038, _alu)
+	_spokes(pivot, radius * 0.47, 0.038, _rim)
 	_cyl(pivot, radius * 0.245, 0.088, Vector3.ZERO, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)
 	for side in [-1.0, 1.0]:
 		_cyl(pivot, radius * 0.095, 0.012, Vector3(side * 0.050, 0.0, 0.0), _steel,

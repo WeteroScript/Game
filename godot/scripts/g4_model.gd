@@ -161,7 +161,7 @@ func _neck(steer: Node3D) -> void:
 	_rbox(steer, Vector3(0.080, 0.075, 0.070), Vector3(0.0, 0.115, 0.020), _plastic,
 		Vector3(deg_to_rad(-18.0), 0.0, 0.0), 0.008)
 	# Фара в носу + оранжевая кромка.
-	_headlight(steer, Vector3(0.0, 0.245, 0.055), 0.030)
+	_headlight(steer, Vector3(0.0, 0.190, 0.075), 0.028)
 	_rbox(steer, Vector3(0.088, 0.012, 0.014), Vector3(0.0, 0.175, 0.090), _accent,
 		Vector3(deg_to_rad(-14.0), 0.0, 0.0), 0.002)
 
