@@ -491,6 +491,23 @@ func _take_screenshots() -> void:
 	])
 	_save_shot(shot_dir, "wheelie_side")
 
+	# Пауза: проверяем новое меню с «Продолжить» и «В меню».
+	_open_pause()
+	for frame in 6:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "pause")
+	_resume()
+
+	# Вид от первого лица: райдер скрыт, камера на уровне шлема.
+	camera_rig.target = scooter
+	camera_rig.toggle_view()
+	hud.visible = true
+	for frame in 8:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "hud_fp")
+
 	print("SHOTS DONE %s" % shot_dir)
 	get_tree().quit()
 
