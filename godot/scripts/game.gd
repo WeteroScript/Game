@@ -38,6 +38,11 @@ var _smoke := false
 var _smoke_timer := 0.0
 var _smoke_crashed := false
 var _smoke_phase := 0
+var _smoke_wheelie_on := false
+
+# Перетаскивание камеры.
+var _camera_dragging := false
+var _camera_touch_index := -1
 
 
 func _ready() -> void:
@@ -271,11 +276,20 @@ func _tick_smoke(delta: float) -> void:
 	if state != State.RUNNING:
 		return
 
-	input_state.touch_throttle = 1.0
+	# В вилли автотест держит газ ниже упора: так проверяется управление углом
+	# без намеренного переворота через заднее колесо.
+	input_state.touch_throttle = 0.75 if _smoke_wheelie_on else 1.0
 	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35
 
 	if _smoke_phase == 0:
-		input_state.touch_wheelie = _smoke_timer > 3.0 and _smoke_timer < 9.5
+		if not _smoke_wheelie_on and _smoke_timer > 3.0:
+			_smoke_wheelie_on = true
+			input_state.request_wheelie_toggle()
+			print("SMOKE wheelie toggle ON")
+		elif _smoke_wheelie_on and _smoke_timer > 9.5:
+			_smoke_wheelie_on = false
+			input_state.request_wheelie_toggle()
+			print("SMOKE wheelie toggle OFF")
 		if not _smoke_crashed and _smoke_timer > 10.5 and scooter != null:
 			_smoke_crashed = true
 			scooter.crash("smoke test")
@@ -392,7 +406,7 @@ func _take_screenshots() -> void:
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_drive")
 
-	input_state.touch_wheelie = true
+	input_state.request_wheelie_toggle()
 	await get_tree().create_timer(1.6).timeout
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_wheelie")
@@ -477,8 +491,31 @@ func _handle_actions() -> void:
 		_back_to_menu()
 
 
+## Камера: тащим мышью с зажатой ЛКМ или свайпом по экрану, где нет кнопок.
 func _unhandled_input(event: InputEvent) -> void:
 	input_state.handle_key_events(event)
+
+	if camera_rig == null or state == State.MENU or _shots:
+		return
+
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_camera_dragging = not _over_controls(event.position)
+		else:
+			_camera_dragging = false
+	elif event is InputEventMouseMotion and _camera_dragging:
+		camera_rig.orbit_input(-event.relative.x * 0.005, event.relative.y * 0.004)
+	elif event is InputEventScreenTouch:
+		if event.pressed:
+			_camera_touch_index = event.index if not _over_controls(event.position) else -1
+		elif event.index == _camera_touch_index:
+			_camera_touch_index = -1
+	elif event is InputEventScreenDrag and event.index == _camera_touch_index:
+		camera_rig.orbit_input(-event.relative.x * 0.006, event.relative.y * 0.005)
+
+
+func _over_controls(point: Vector2) -> bool:
+	return hud != null and hud.is_over_controls(point)
 
 
 func _has_timer() -> bool:

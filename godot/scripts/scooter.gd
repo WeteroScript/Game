@@ -439,7 +439,14 @@ func _apply_balance() -> void:
 
 	var roll_torque := roll_error * GameConfig.ROLL_STABILITY_GAIN - roll_rate * GameConfig.ROLL_STABILITY_DAMPING
 	roll_torque *= support
-	roll_torque = clampf(roll_torque, -GameConfig.ROLL_MAX_TORQUE, GameConfig.ROLL_MAX_TORQUE)
+	var roll_limit := GameConfig.ROLL_MAX_TORQUE
+	# Самокат не падает от потери равновесия: сильный завал вытягиваем
+	# дополнительным моментом, а не аварией.
+	if absf(roll_deg) > GameConfig.ROLL_ASSIST_ANGLE:
+		var over := clampf((absf(roll_deg) - GameConfig.ROLL_ASSIST_ANGLE) / 25.0, 0.0, 1.0)
+		roll_torque -= signf(roll_deg) * over * GameConfig.ROLL_RECOVERY_TORQUE
+		roll_limit = GameConfig.ROLL_MAX_TORQUE + GameConfig.ROLL_RECOVERY_TORQUE
+	roll_torque = clampf(roll_torque, -roll_limit, roll_limit)
 	apply_torque(global_transform.basis * Vector3(0.0, 0.0, roll_torque))
 
 	# Стабилизация тангажа, когда вилли не активно.
@@ -491,9 +498,8 @@ func _update_battery(delta: float) -> void:
 
 func _check_failures() -> void:
 	if wheelie != null and wheelie.active and pitch_deg > GameConfig.LOOP_OUT_ANGLE:
+		# Единственное падение в вилли: перегазовал и ушёл через заднее колесо.
 		crash("Loop out — переворот через заднее колесо")
-	elif absf(roll_deg) > GameConfig.FALL_ROLL_ANGLE:
-		crash("Потеря равновесия")
 	elif (is_grounded() and brake_front_input > 0.5 and speed_kmh() > 20.0
 			and pitch_deg < GameConfig.ENDO_CRASH_ANGLE):
 		# Раньше endo срабатывал в воздухе: любой прыжок в городе считался
@@ -525,6 +531,8 @@ func crash(reason: String) -> void:
 	last_crash_reason = reason
 	crash_timer = 0.0
 	set_input_enabled(false)
+	if input != null:
+		input.clear_wheelie()
 	if wheelie != null:
 		wheelie.reset()
 	apply_torque_impulse(global_transform.basis * Vector3(randf_range(-40.0, 40.0), 15.0, randf_range(40.0, 90.0)))
@@ -551,6 +559,8 @@ func respawn() -> void:
 	brake_front_input = 0.0
 	brake_rear_input = 0.0
 	steer_input = 0.0
+	if input != null:
+		input.clear_wheelie()
 	if wheelie != null:
 		wheelie.reset()
 

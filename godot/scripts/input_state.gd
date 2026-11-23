@@ -9,7 +9,10 @@ var brake_front := 0.0
 var brake_rear := 0.0
 var steer := 0.0
 var body_pitch := 0.0
+## Вилли — защёлка, а не удержание: одно нажатие поднимает нос и держит его,
+## второе — опускает. Углом управляет газ.
 var wheelie := false
+var wheelie_latched := false
 var enabled := true
 
 # Разовые события (сбрасываются после обработки).
@@ -24,7 +27,10 @@ var touch_brake_front := 0.0
 var touch_brake_rear := 0.0
 var touch_steer := 0.0
 var touch_body_pitch := 0.0
-var touch_wheelie := false
+
+# Запросы на переключение вилли (кнопка HUD, клавиша, автотест).
+var _wheelie_requests := 0
+var _prev_key_wheelie := false
 
 
 func clear_touch() -> void:
@@ -33,7 +39,19 @@ func clear_touch() -> void:
 	touch_brake_rear = 0.0
 	touch_steer = 0.0
 	touch_body_pitch = 0.0
-	touch_wheelie = false
+
+
+## Переключить вилли (кнопка на экране, клавиша или автотест).
+func request_wheelie_toggle() -> void:
+	_wheelie_requests += 1
+
+
+## Сбросить вилли насильно — после аварии или респауна.
+func clear_wheelie() -> void:
+	wheelie_latched = false
+	wheelie = false
+	_wheelie_requests = 0
+	_prev_key_wheelie = false
 
 
 ## Читает клавиатуру и смешивает её с экранными кнопками. Вызывается каждый кадр.
@@ -45,6 +63,9 @@ func poll_keyboard() -> void:
 		steer = 0.0
 		body_pitch = 0.0
 		wheelie = false
+		wheelie_latched = false
+		_wheelie_requests = 0
+		_prev_key_wheelie = false
 		return
 
 	var key_throttle := 0.0
@@ -70,13 +91,19 @@ func poll_keyboard() -> void:
 		key_pitch -= 1.0
 
 	var key_wheelie := Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL)
+	if key_wheelie and not _prev_key_wheelie:
+		_wheelie_requests += 1
+	_prev_key_wheelie = key_wheelie
+	while _wheelie_requests > 0:
+		_wheelie_requests -= 1
+		wheelie_latched = not wheelie_latched
 
 	throttle = clampf(maxf(key_throttle, touch_throttle), 0.0, 1.0)
 	brake_rear = clampf(maxf(key_rear_brake, touch_brake_rear), 0.0, 1.0)
 	brake_front = clampf(maxf(key_front_brake, touch_brake_front), 0.0, 1.0)
 	steer = clampf(key_steer + touch_steer, -1.0, 1.0)
 	body_pitch = clampf(key_pitch + touch_body_pitch, -1.0, 1.0)
-	wheelie = key_wheelie or touch_wheelie
+	wheelie = wheelie_latched
 
 
 func handle_key_events(event: InputEvent) -> void:

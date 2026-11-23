@@ -137,7 +137,7 @@ func _build_center(root: Control) -> void:
 	UiFactory.place(_crash_label, 240.0, 300.0, 800.0, 80.0)
 	root.add_child(_crash_label)
 
-	_hint_label = UiFactory.label("ГАЗ — справа · ТОРМОЗ — рядом · ВИЛЛИ — над газом · РУЛЬ — слева",
+	_hint_label = UiFactory.label("ГАЗ, ТОРМОЗ, РУЛЬ — кнопки · ВИЛЛИ — нажатие включает/выключает · камера — свайп по экрану",
 		16, UiFactory.MUTED_COLOR, HORIZONTAL_ALIGNMENT_CENTER)
 	UiFactory.place(_hint_label, 240.0, 668.0, 800.0, 24.0)
 	root.add_child(_hint_label)
@@ -192,14 +192,27 @@ func _add_zone(root: Control, zone_id: String, rect: Rect2, caption: String) -> 
 	_zone_rect_nodes[zone_id] = background
 
 
+## Нажатие попало в экранную кнопку? Нужно камере, чтобы свайп по пустому
+## месту крутил обзор, а не сбивал управление.
+func is_over_controls(point: Vector2) -> bool:
+	return _zone_at(point) != ""
+
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			var zone_id := _zone_at(event.position)
 			if zone_id != "":
 				_active_touch[event.index] = zone_id
+				if zone_id == "wheelie" and input != null:
+					input.request_wheelie_toggle()
 		else:
 			_active_touch.erase(event.index)
+	elif event is InputEventMouseButton:
+		# На десктопе мышью тоже можно нажать ВИЛЛИ.
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed \
+				and _zone_at(event.position) == "wheelie" and input != null:
+			input.request_wheelie_toggle()
 	elif event is InputEventScreenDrag:
 		var zone_id := _zone_at(event.position)
 		if _active_touch.has(event.index):
@@ -235,7 +248,6 @@ func _process(delta: float) -> void:
 	input.touch_throttle = 1.0 if _zone_held("throttle") else 0.0
 	input.touch_brake_rear = 1.0 if _zone_held("brake_rear") else 0.0
 	input.touch_brake_front = 1.0 if _zone_held("brake_front") else 0.0
-	input.touch_wheelie = _zone_held("wheelie")
 
 	var steer := 0.0
 	if _zone_held("steer_left"):
@@ -246,7 +258,11 @@ func _process(delta: float) -> void:
 
 	for zone_id in _zone_rect_nodes.keys():
 		var node: ColorRect = _zone_rect_nodes[zone_id]
-		node.color = _active_color if _zone_held(zone_id) else _base_color
+		var lit := _zone_held(zone_id)
+		# Кнопка ВИЛЛИ — защёлка: подсвечена, пока вилли включено.
+		if zone_id == "wheelie":
+			lit = input.wheelie
+		node.color = _active_color if lit else _base_color
 
 
 func _on_mode_button() -> void:
