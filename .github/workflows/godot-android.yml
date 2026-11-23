@@ -190,6 +190,8 @@ jobs:
           # и они не зависят от комментария в PR.
           grep -E "pitch=" /tmp/run.log | head -8 \
             | sed 's/^/::notice title=smoke-trace::/' || true
+          grep -E "^SMOKE steer" /tmp/run.log | head -1 \
+            | sed 's/^/::notice title=smoke-steer::/' || true
           grep -E "^SMOKE OK" /tmp/run.log | head -1 \
             | sed 's/^/::notice title=smoke-final::/' || true
           if [ "$status" -ne 0 ]; then

@@ -283,13 +283,16 @@ func _build_city(parent: Node3D) -> Dictionary:
 		_decor(holder, Vector3(0.18, 0.02, 5.0), Vector3(14.0 + stall * 3.0, 0.02, -70.0), _white)
 		stall += 1
 
+	# Барьеры стройки: по центру оставляем проезд, иначе улица перекрыта
+	# полностью и заезд по прямой упирается в забор.
 	var barrier := 0
 	while barrier < 10:
 		var bx := -6.0 + (barrier % 5) * 3.0
 		var bz := -100.0 - (barrier / 5) * 5.0
-		_solid(holder, Vector3(2.6, 0.9, 0.3), Vector3(bx, 0.45, bz), _orange)
+		if absf(bx) > 0.1:
+			_solid(holder, Vector3(2.6, 0.9, 0.3), Vector3(bx, 0.45, bz), _orange)
 		barrier += 1
-	_solid(holder, Vector3(6.0, 1.6, 6.0), Vector3(-2.0, 0.8, -112.0), _brick_b)
+	_solid(holder, Vector3(6.0, 1.6, 6.0), Vector3(-9.0, 0.8, -112.0), _brick_b)
 
 	# Фонари с настоящим светом (мало, ради производительности на телефоне).
 	var lamp := 0
