@@ -54,3 +54,6 @@ godot/.godot/
 godot/android/
 godot/build/
 export_presets.cfg.bak
+
+# локальные скриншоты для ревью
+.shots/
