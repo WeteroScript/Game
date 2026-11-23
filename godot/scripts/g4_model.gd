@@ -21,7 +21,7 @@ func _build_body(root: Node3D) -> void:
 
 
 func _deck(root: Node3D) -> void:
-	var z0 := -0.02
+	var z0 := 0.04
 	# Короб-аккумулятор: низ на уровне осей, скруглённые рёбра.
 	_rbox(root, Vector3(deck_w, deck_top, deck_len), Vector3(0.0, deck_top * 0.5, z0),
 		_paint, Vector3.ZERO, 0.016)
@@ -88,9 +88,9 @@ func _rear_arm(root: Node3D) -> void:
 
 func _rear_step(root: Node3D) -> void:
 	var tilt := Vector3(deg_to_rad(-20.0), 0.0, 0.0)
-	var pos := Vector3(0.0, deck_top + 0.115, deck_len * 0.5 + 0.10)
-	_rbox(root, Vector3(0.175, 0.022, 0.20), pos, _paint, tilt, 0.008)
-	_rbox(root, Vector3(0.160, 0.008, 0.175), pos + Vector3(0.0, 0.014, -0.004), _tape, tilt, 0.003)
+	var pos := Vector3(0.0, deck_top + 0.120, deck_len * 0.5 + 0.11)
+	_rbox(root, Vector3(0.185, 0.024, 0.215), pos, _paint, tilt, 0.008)
+	_rbox(root, Vector3(0.168, 0.008, 0.190), pos + Vector3(0.0, 0.015, -0.004), _tape, tilt, 0.003)
 	for side in [-1.0, 1.0]:
 		_rbox(root, Vector3(0.006, 0.016, 0.19),
 			pos + Vector3(side * 0.089, -0.004, 0.0), _accent, tilt, 0.002)
@@ -150,12 +150,11 @@ func _build_steer(root: Node3D) -> Node3D:
 
 func _neck(steer: Node3D) -> void:
 	# Косынка от деки к стойке: два толстых ребра и поперечина.
-	for side in [-1.0, 1.0]:
-		_plate_between(steer, Vector3(side * 0.042, 0.030, 0.185),
-			Vector3(side * 0.042, STEM_BASE_Y - 0.02, 0.055), 0.070, 0.016, _paint)
+	_rbox(steer, Vector3(0.098, 0.30, 0.115), Vector3(0.0, 0.215, 0.055), _paint,
+		Vector3(deg_to_rad(-12.0), 0.0, 0.0), 0.014)
 	# Нижний узел над передним колесом и «стакан» стойки.
-	_rbox(steer, Vector3(0.105, 0.14, 0.10), Vector3(0.0, 0.20, 0.115), _paint,
-		Vector3(deg_to_rad(-14.0), 0.0, 0.0), 0.012)
+	_rbox(steer, Vector3(0.108, 0.12, 0.10), Vector3(0.0, 0.095, 0.105), _paint,
+		Vector3(deg_to_rad(-16.0), 0.0, 0.0), 0.012)
 	_rbox(steer, Vector3(0.098, 0.085, 0.070), Vector3(0.0, STEM_BASE_Y - 0.055, 0.030),
 		_paint, Vector3.ZERO, 0.010)
 	# Чёрный кожух вилки за колесом.
@@ -168,16 +167,16 @@ func _neck(steer: Node3D) -> void:
 
 
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
-	var pivot := Vector3(ARM_X, 0.150, 0.085)
-	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.060, 0.024, _paint)
+	var pivot := Vector3(ARM_X, 0.135, -0.195)
+	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.062, 0.026, _paint)
 	_cyl(steer, 0.020, 0.050, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.015, 0.058, axle + Vector3(ARM_X, 0.0, 0.0), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Амортизатор от стакана к рычагу.
-	_shock(steer, Vector3(0.046, 0.255, 0.055), Vector3(0.046, 0.045, axle.z + 0.135),
+	_shock(steer, Vector3(0.046, 0.225, 0.010), Vector3(0.046, 0.040, axle.z + 0.105),
 		0.013, _accent)
 	# Наклейки рычага.
-	_label(steer, "G4", Vector3(ARM_X + 0.013, 0.115, axle.z + 0.155),
+	_label(steer, "G4", Vector3(ARM_X + 0.013, 0.085, axle.z + 0.150),
 		Vector3(0.0, 90.0, 62.0), 0.00026, Color(0.98, 0.45, 0.08))
 
 

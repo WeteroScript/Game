@@ -22,7 +22,7 @@ func _build_body(root: Node3D) -> void:
 
 
 func _deck(root: Node3D) -> void:
-	var z0 := -0.02
+	var z0 := 0.04
 	# Чёрная дека-короб, чуть сужается к носу.
 	_rbox(root, Vector3(deck_w, deck_top, deck_len), Vector3(0.0, deck_top * 0.5, z0),
 		_paint, Vector3.ZERO, 0.015)
@@ -83,7 +83,7 @@ func _rear_arm(root: Node3D) -> void:
 
 func _rear_step(root: Node3D) -> void:
 	var tilt := Vector3(deg_to_rad(-22.0), 0.0, 0.0)
-	var pos := Vector3(0.0, deck_top + 0.125, deck_len * 0.5 + 0.105)
+	var pos := Vector3(0.0, deck_top + 0.125, deck_len * 0.5 + 0.11)
 	_rbox(root, Vector3(0.180, 0.024, 0.215), pos, _paint, tilt, 0.008)
 	_rbox(root, Vector3(0.162, 0.008, 0.185), pos + Vector3(0.0, 0.015, -0.004), _tape, tilt, 0.003)
 	for side in [-1.0, 1.0]:
@@ -141,13 +141,12 @@ func _build_steer(root: Node3D) -> Node3D:
 ## Характерный для F3 угловатый «стакан»: толстый блок от деки к стойке
 ## плюс площадка над передним колесом.
 func _triangle_neck(steer: Node3D) -> void:
-	_rbox(steer, Vector3(0.115, 0.20, 0.115), Vector3(0.0, 0.26, 0.105), _paint,
+	_rbox(steer, Vector3(0.112, 0.235, 0.125), Vector3(0.0, 0.235, 0.070), _paint,
 		Vector3(deg_to_rad(-26.0), 0.0, 0.0), 0.012)
 	_rbox(steer, Vector3(0.100, 0.10, 0.085), Vector3(0.0, STEM_BASE_Y - 0.045, 0.045),
 		_paint, Vector3.ZERO, 0.010)
 	# Наклонная балка вдоль низа к рычагу.
-	_plate_between(steer, Vector3(0.0, 0.150, 0.170), Vector3(0.0, 0.030, 0.010),
-		0.090, 0.030, _paint)
+
 	# Чёрный кожух над колесом и брызговик.
 	_plate_between(steer, Vector3(0.0, 0.225, 0.085), Vector3(0.0, 0.055, -0.130),
 		0.080, 0.026, _plastic)
@@ -157,15 +156,15 @@ func _triangle_neck(steer: Node3D) -> void:
 
 
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
-	var pivot := Vector3(ARM_X, 0.130, 0.075)
+	var pivot := Vector3(ARM_X, 0.125, -0.185)
 	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.072, 0.026, _accent)
-	_plate_between(steer, pivot + Vector3(0.0, -0.02, 0.06),
-		Vector3(ARM_X, 0.01, axle.z + 0.09), 0.030, 0.014, _accent)
+	_plate_between(steer, pivot + Vector3(0.0, 0.0, 0.05),
+		Vector3(ARM_X, 0.005, axle.z + 0.10), 0.030, 0.014, _accent)
 	_cyl(steer, 0.021, 0.052, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.016, 0.060, axle + Vector3(ARM_X, 0.0, 0.0), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Пружинный амортизатор от стакана к рычагу.
-	_shock(steer, Vector3(0.050, 0.245, 0.045), Vector3(0.050, 0.045, axle.z + 0.130),
+	_shock(steer, Vector3(0.050, 0.215, 0.000), Vector3(0.050, 0.040, axle.z + 0.100),
 		0.014, _accent)
 	# Красный суппорт.
 	_rbox(steer, Vector3(0.024, 0.044, 0.030),
@@ -185,10 +184,7 @@ func _stem(steer: Node3D, rake: float, top_z: float) -> void:
 			_accent, Vector3(rake, 0.0, 0.0), 0.002)
 		_label(steer, spec.brand_text, mid + Vector3(side * 0.028, 0.010, 0.0),
 			Vector3(0.0, 90.0 * side, 90.0), 0.00040, Color(0.14, 0.14, 0.16))
-		# Белая «стрела» вдоль деки стойки.
-		_rbox(steer, Vector3(0.004, 0.20, 0.012),
-			mid + Vector3(side * 0.027, 0.02, 0.012), _alu,
-			Vector3(rake, 0.0, deg_to_rad(0.0)), 0.001)
+
 	# Фара на стойке с кронштейном (так на фото F3).
 	var lamp_y := STEM_BASE_Y + 0.36
 	var lamp_z := 0.035 + tan(rake) * (lamp_y - STEM_BASE_Y) - 0.045

@@ -75,9 +75,9 @@ func _prepare(new_spec: ScooterSpec) -> void:
 
 func _make_materials() -> void:
 	# Краска: слабый металлик и низкая шероховатость — читается как автолак.
-	_paint = _mat(spec.frame_color, 0.45, 0.30)
-	_paint_dark = _mat(spec.frame_color.darkened(0.45), 0.35, 0.38)
-	_accent = _mat(spec.accent_color, 0.20, 0.34)
+	_paint = _mat(spec.frame_color, 0.12, 0.42)
+	_paint_dark = _mat(spec.frame_color.darkened(0.45), 0.10, 0.48)
+	_accent = _mat(spec.accent_color, 0.10, 0.36)
 	_plastic = _mat(DARK_PLASTIC, 0.15, 0.55)
 	_rubber = _mat(RUBBER, 0.0, 0.92, Color.BLACK, 0.0, true)
 	_tape = _mat(TAPE, 0.0, 0.95)
@@ -415,15 +415,15 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 
 	var half_w := 0.052
 	# Шина: широкое кольцо + шашки протектора.
-	_ring(pivot, radius * 0.985, radius * 0.66, half_w, _rubber, 30)
+	_ring(pivot, radius * 0.975, radius * 0.62, half_w, _rubber, 30)
 	_tread(pivot)
 	# Обод: диски по бокам, спицы, ступица.
 	for side in [-1.0, 1.0]:
-		_cyl(pivot, radius * 0.655, 0.016, Vector3(side * 0.042, 0.0, 0.0), rim_paint,
+		_cyl(pivot, radius * 0.60, 0.016, Vector3(side * 0.042, 0.0, 0.0), rim_paint,
 			Vector3(0.0, 0.0, deg_to_rad(90.0)), 26)
-		_torus(pivot, radius * 0.618, radius * 0.672, rim_paint, Vector3.ZERO,
+		_torus(pivot, radius * 0.565, radius * 0.615, rim_paint, Vector3.ZERO,
 			Vector3(side * 0.050, 0.0, 0.0), 26)
-	_spokes(pivot, radius * 0.63, 0.040, rim_paint)
+	_spokes(pivot, radius * 0.575, 0.040, _alu)
 	_cyl(pivot, radius * 0.30, 0.115, Vector3.ZERO, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)
 	for side in [-1.0, 1.0]:
 		_cyl(pivot, radius * 0.115, 0.012, Vector3(side * 0.062, 0.0, 0.0), _steel,
@@ -449,15 +449,15 @@ func _tread(pivot: Node3D) -> void:
 		var angle := TAU * float(i) / float(blocks)
 		for side in [-0.030, 0.030]:
 			var local := Transform3D(Basis(Vector3.RIGHT, angle),
-				Vector3(side, cos(angle), sin(angle)) * radius * 0.935)
-			var size := Vector3(0.036, 0.020, 0.030)
+				Vector3(side, cos(angle), sin(angle)) * radius * 0.928)
+			var size := Vector3(0.036, 0.030, 0.030)
 			if side > 0.0:
-				size = Vector3(0.036, 0.020, 0.024)
+				size = Vector3(0.036, 0.026, 0.024)
 			_add_box(st, local, size)
 		var mid_angle := angle + PI / float(blocks)
 		var local_mid := Transform3D(Basis(Vector3.RIGHT, mid_angle),
 			Vector3(0.0, cos(mid_angle), sin(mid_angle)) * radius * 0.930)
-		_add_box(st, local_mid, Vector3(0.052, 0.018, 0.028))
+		_add_box(st, local_mid, Vector3(0.054, 0.028, 0.028))
 	st.generate_normals()
 	var instance := MeshInstance3D.new()
 	instance.mesh = st.commit()
@@ -507,7 +507,7 @@ func _add_box(st: SurfaceTool, xform: Transform3D, size: Vector3) -> void:
 func _bar_basic(steer: Node3D, bar_y: float, bar_z: float, bar_half := 0.255) -> void:
 	_rbox(steer, Vector3(0.095, 0.062, 0.058), Vector3(0.0, bar_y - 0.034, bar_z), _rim,
 		Vector3.ZERO, 0.006)
-	_cyl(steer, 0.0145, bar_half * 2.0, Vector3(0.0, bar_y, bar_z), _rim,
+	_cyl(steer, 0.0165, bar_half * 2.0, Vector3(0.0, bar_y, bar_z), _rim,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.019, 0.10, Vector3(-0.055, bar_y, bar_z), _rim,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
@@ -518,13 +518,13 @@ func _bar_basic(steer: Node3D, bar_y: float, bar_z: float, bar_half := 0.255) ->
 func _grips(steer: Node3D, bar_y: float, bar_z: float, grip_x := 0.200) -> void:
 	for side in [-1.0, 1.0]:
 		var x: float = side * grip_x
-		_cyl(steer, 0.0205, 0.135, Vector3(x, bar_y, bar_z), _rubber,
+		_cyl(steer, 0.0230, 0.140, Vector3(x, bar_y, bar_z), _rubber,
 			Vector3(0.0, 0.0, deg_to_rad(90.0)), 18)
 		# Кольца на грипсе — «противоскользящий» профиль.
 		for k in 3:
 			_torus(steer, 0.0195, 0.0215, _plastic, Vector3.ZERO,
 				Vector3(x + side * (0.02 + 0.04 * float(k)), bar_y, bar_z), 16)
-		_cyl(steer, 0.0235, 0.020, Vector3(side * (grip_x + 0.072), bar_y, bar_z),
+		_cyl(steer, 0.0260, 0.022, Vector3(side * (grip_x + 0.074), bar_y, bar_z),
 			_accent, Vector3(0.0, 0.0, deg_to_rad(90.0)), 18)
 
 
