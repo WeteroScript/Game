@@ -30,8 +30,8 @@ func _deck(root: Node3D) -> void:
 		Vector3(0.0, deck_top * 0.38, z0 - deck_len * 0.5 - 0.015), _paint,
 		Vector3(deg_to_rad(-16.0), 0.0, 0.0), 0.010)
 	# Верх: карбоновая накладка с оранжевыми полосами.
-	_rbox(root, Vector3(deck_w - 0.020, 0.007, deck_len - 0.03),
-		Vector3(0.0, deck_top + 0.004, z0), _tape, Vector3.ZERO, 0.003)
+	_box(root, Vector3(deck_w - 0.020, 0.007, deck_len - 0.03),
+		Vector3(0.0, deck_top + 0.004, z0), _tape)
 	for side in [-1.0, 1.0]:
 		_rbox(root, Vector3(0.020, 0.004, deck_len - 0.10),
 			Vector3(side * 0.052, deck_top + 0.008, z0), _accent, Vector3.ZERO, 0.002)
@@ -175,7 +175,7 @@ func _front_arm(steer: Node3D, axle: Vector3) -> void:
 func _stem(steer: Node3D, rake: float, top_z: float) -> void:
 	var bottom := Vector3(0.0, STEM_BASE_Y, 0.035)
 	var top := Vector3(0.0, BAR_Y, top_z)
-	_plate_between(steer, bottom, top, 0.058, 0.044, _paint)
+	_plate_between(steer, bottom, top, 0.066, 0.046, _paint)
 	_plate_between(steer, bottom, bottom.lerp(top, 0.30), 0.072, 0.054, _paint)
 	# Большая оранжевая графика с белой стрелкой — визитная карточка F3.
 	var mid := bottom.lerp(top, 0.52)

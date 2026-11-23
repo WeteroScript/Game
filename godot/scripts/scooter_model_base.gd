@@ -8,6 +8,7 @@ class_name ScooterModelBase
 extends RefCounted
 
 const RUBBER := Color(0.036, 0.036, 0.040)
+
 const TAPE := Color(0.055, 0.055, 0.060)
 const STEEL := Color(0.80, 0.82, 0.85)
 const ALU := Color(0.66, 0.68, 0.71)
@@ -80,7 +81,12 @@ func _make_materials() -> void:
 	_accent = _mat(spec.accent_color, 0.10, 0.36)
 	_plastic = _mat(DARK_PLASTIC, 0.15, 0.55)
 	_rubber = _mat(RUBBER, 0.0, 0.92, Color.BLACK, 0.0, true)
+	_rubber.albedo_texture = _speckle(Color(0.052, 0.052, 0.056), 0.5, 48, 777)
+	_rubber.uv1_scale = Vector3(10.0, 10.0, 10.0)
 	_tape = _mat(TAPE, 0.0, 0.95)
+	_tape.albedo_texture = _speckle(Color(0.075, 0.075, 0.080), 0.55)
+	_tape.uv1_scale = Vector3(8.0, 8.0, 8.0)
+	_tape.uv1_triplanar = true
 	_steel = _mat(STEEL, 0.95, 0.22)
 	_alu = _mat(ALU, 0.85, 0.30)
 	_rim = _mat(Color(0.095, 0.100, 0.110), 0.65, 0.30)
@@ -99,6 +105,19 @@ func _build_body(_root: Node3D) -> void:
 
 func _build_steer(_root: Node3D) -> Node3D:
 	return null
+
+
+## Процедурное зерно без внешних файлов: шершавый гриптейп, резина, металл.
+func _speckle(base: Color, spread: float, size := 48, seed_value := 20260101) -> ImageTexture:
+	var img := Image.create(size, size, false, Image.FORMAT_RGB8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	for y in size:
+		for x in size:
+			var n := rng.randf()
+			var c: Color = base.lightened(spread * n) if n > 0.5 else base.darkened(spread * (1.0 - n))
+			img.set_pixel(x, y, c)
+	return ImageTexture.create_from_image(img)
 
 
 # ---- материалы и примитивы ---------------------------------------------------
@@ -449,15 +468,15 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 func _tread(pivot: Node3D) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var blocks := 32
+	var blocks := 36
 	for i in blocks:
 		var angle := TAU * float(i) / float(blocks)
 		for side in [-0.030, 0.030]:
 			var local := Transform3D(Basis(Vector3.RIGHT, angle),
 				Vector3(side, cos(angle), sin(angle)) * radius * 0.928)
-			var size := Vector3(0.036, 0.030, 0.030)
+			var size := Vector3(0.034, 0.026, 0.026)
 			if side > 0.0:
-				size = Vector3(0.036, 0.026, 0.024)
+				size = Vector3(0.034, 0.024, 0.022)
 			_add_box(st, local, size)
 		var mid_angle := angle + PI / float(blocks)
 		var local_mid := Transform3D(Basis(Vector3.RIGHT, mid_angle),

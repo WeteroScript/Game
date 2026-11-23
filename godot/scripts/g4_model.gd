@@ -32,8 +32,8 @@ func _deck(root: Node3D) -> void:
 	# Гриптейп тремя полосами.
 	for i in 3:
 		var strip_z := z0 + (float(i) - 1.0) * 0.19
-		_rbox(root, Vector3(deck_w - 0.028, 0.006, 0.175),
-			Vector3(0.0, deck_top + 0.004, strip_z), _tape, Vector3.ZERO, 0.003)
+		_box(root, Vector3(deck_w - 0.028, 0.006, 0.175),
+			Vector3(0.0, deck_top + 0.004, strip_z), _tape)
 	# Оранжевая кромка по верху борта.
 	for side in [-1.0, 1.0]:
 		_rbox(root, Vector3(0.006, 0.012, deck_len - 0.02),
@@ -185,7 +185,7 @@ func _stem(steer: Node3D, axle: Vector3) -> void:
 	var bottom := Vector3(0.0, STEM_BASE_Y, 0.02)
 	var top := Vector3(0.0, BAR_Y, 0.02 + tan(rake) * (BAR_Y - STEM_BASE_Y))
 	# Основная труба и утолщение у основания.
-	_plate_between(steer, bottom, top, 0.062, 0.048, _paint)
+	_plate_between(steer, bottom, top, 0.070, 0.050, _paint)
 	_plate_between(steer, bottom, bottom.lerp(top, 0.34), 0.076, 0.058, _paint)
 	# Замок складывания: воротник, шарнир, болты, оранжевый рычаг.
 	var collar := bottom + Vector3(0.0, 0.035, 0.0)
