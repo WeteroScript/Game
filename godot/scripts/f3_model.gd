@@ -39,8 +39,8 @@ func _deck(root: Node3D) -> void:
 		_rbox(root, Vector3(0.006, 0.010, deck_len - 0.02),
 			Vector3(side * (deck_w * 0.5 - 0.003), deck_top - 0.016, z0), _accent,
 			Vector3.ZERO, 0.002)
-		_rbox(root, Vector3(0.005, 0.030, 0.150),
-			Vector3(side * (deck_w * 0.5 + 0.001), deck_top * 0.40, z0 - 0.02), _alu,
+		_rbox(root, Vector3(0.005, 0.028, 0.150),
+			Vector3(side * (deck_w * 0.5 + 0.001), deck_top * 0.40, z0 - 0.02), _tape,
 			Vector3.ZERO, 0.002)
 		_label(root, "KUGOO", Vector3(side * (deck_w * 0.5 + 0.004), deck_top * 0.40, z0 + 0.13),
 			Vector3(0.0, 90.0 * side, 0.0), 0.00034, Color(0.92, 0.93, 0.95))
@@ -157,14 +157,14 @@ func _triangle_neck(steer: Node3D) -> void:
 
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
 	var pivot := Vector3(ARM_X, 0.125, -0.185)
-	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.072, 0.026, _accent)
+	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.060, 0.024, _accent)
 	_plate_between(steer, pivot + Vector3(0.0, 0.0, 0.05),
 		Vector3(ARM_X, 0.005, axle.z + 0.10), 0.030, 0.014, _accent)
 	_cyl(steer, 0.021, 0.052, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.016, 0.060, axle + Vector3(ARM_X, 0.0, 0.0), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Пружинный амортизатор от стакана к рычагу.
-	_shock(steer, Vector3(0.050, 0.215, 0.000), Vector3(0.050, 0.040, axle.z + 0.100),
+	_shock(steer, Vector3(0.050, 0.205, -0.175), Vector3(0.050, 0.035, axle.z + 0.165),
 		0.014, _accent)
 	# Красный суппорт.
 	_rbox(steer, Vector3(0.024, 0.044, 0.030),

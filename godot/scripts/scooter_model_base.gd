@@ -534,7 +534,7 @@ func _lever(parent: Node3D, side: float, bar_y: float, bar_z: float) -> void:
 	_rbox(parent, Vector3(0.034, 0.040, 0.044), Vector3(x, bar_y - 0.004, bar_z),
 		_plastic, Vector3.ZERO, 0.006)
 	var blade := _rbox(parent, Vector3(0.016, 0.012, 0.115),
-		Vector3(x + side * 0.012, bar_y - 0.012, bar_z - 0.062), _alu, Vector3.ZERO, 0.004)
+		Vector3(x + side * 0.012, bar_y - 0.012, bar_z - 0.062), _rim, Vector3.ZERO, 0.004)
 	blade.rotation = Vector3(deg_to_rad(-9.0), side * deg_to_rad(6.0), 0.0)
 	_cyl(parent, 0.008, 0.026, Vector3(x, bar_y - 0.006, bar_z - 0.008), _steel,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
