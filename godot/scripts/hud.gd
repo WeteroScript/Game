@@ -180,8 +180,6 @@ func _add_zone(root: Control, zone_id: String, rect: Rect2, caption: String) -> 
 	_zone_rect_nodes[zone_id] = background
 
 
-## Нажатие попало в экранную кнопку? Нужно камере, чтобы свайп по пустому
-## месту крутил обзор, а не сбивал управление.
 ## Сбросить зажатые кнопки (ставим на паузу — иначе газ остаётся вжатым).
 func release_touches() -> void:
 	_active_touch.clear()
@@ -189,6 +187,8 @@ func release_touches() -> void:
 		input.clear_touch()
 
 
+## Нажатие попало в экранную кнопку? Нужно камере, чтобы свайп по пустому
+## месту крутил обзор, а не сбивал управление.
 func is_over_controls(point: Vector2) -> bool:
 	return _zone_at(point) != ""
 
