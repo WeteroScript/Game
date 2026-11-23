@@ -6,7 +6,7 @@ class_name CameraRig
 extends Camera3D
 
 ## Через сколько секунд без ввода камера начинает возвращаться назад.
-const ORBIT_IDLE_TIME := 1.6
+const ORBIT_IDLE_TIME := 2.5
 const ORBIT_PITCH_MIN := -0.30
 const ORBIT_PITCH_MAX := 1.00
 

@@ -70,7 +70,7 @@ func tick(delta: float, held: bool, throttle: float, body_pitch_input: float,
 	# Поднять нос можно и почти с места: на медленном ходу подъём идёт плавнее.
 	var can_lift := grounded and not is_crashed and speed_kmh > MIN_SPEED_KMH
 	# Уже поднятый самокат не роняем, если скорость чуть просела.
-	var can_hold := active and grounded and not is_crashed and speed_kmh > 2.0
+	var can_hold := active and grounded and not is_crashed and speed_kmh > 0.4
 
 	var lift_time: float = lerpf(spec.wheelie_lift_time * 1.7, spec.wheelie_lift_time * 0.75,
 		inverse_lerp(MIN_SPEED_KMH, 46.0, speed_kmh))
