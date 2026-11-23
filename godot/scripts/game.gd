@@ -462,8 +462,11 @@ func _take_screenshots() -> void:
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_drive")
 
+	# На кадре станта газ средний: на полном контроллер уводит нос почти
+	# в вертикаль (перегазовка), и позу не разобрать.
+	input_state.touch_throttle = 0.55
 	input_state.request_wheelie_toggle()
-	await get_tree().create_timer(1.6).timeout
+	await get_tree().create_timer(2.4).timeout
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_wheelie")
 
