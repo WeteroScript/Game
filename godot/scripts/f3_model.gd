@@ -5,7 +5,7 @@ class_name F3Model
 extends ScooterModelBase
 
 const STEM_BASE_Y := 0.36
-const BAR_Y := 1.10
+const BAR_Y := 1.19
 const ARM_X := 0.082
 
 
