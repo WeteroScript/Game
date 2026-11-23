@@ -23,8 +23,11 @@ func _build_body(root: Node3D) -> void:
 func _deck(root: Node3D) -> void:
 	var z0 := 0.04
 	# Короб-аккумулятор: низ на уровне осей, скруглённые рёбра.
-	_rbox(root, Vector3(deck_w, deck_top, deck_len), Vector3(0.0, deck_top * 0.5, z0),
-		_paint, Vector3.ZERO, 0.016)
+	_rbox(root, Vector3(deck_w, deck_top * 0.82, deck_len),
+		Vector3(0.0, deck_top * 0.59, z0), _paint, Vector3.ZERO, 0.014)
+	# Нижняя часть — узкая балка-короб под аккумулятор.
+	_rbox(root, Vector3(deck_w - 0.030, deck_top * 0.42, deck_len - 0.06),
+		Vector3(0.0, deck_top * 0.18, z0), _paint_dark, Vector3.ZERO, 0.010)
 	# Нос деки: скос вниз, к которому крепится рычаг.
 	_rbox(root, Vector3(deck_w - 0.012, deck_top * 0.72, 0.10),
 		Vector3(0.0, deck_top * 0.34, z0 - deck_len * 0.5 - 0.02), _paint,

@@ -24,8 +24,10 @@ func _build_body(root: Node3D) -> void:
 func _deck(root: Node3D) -> void:
 	var z0 := 0.04
 	# Чёрная дека-короб, чуть сужается к носу.
-	_rbox(root, Vector3(deck_w, deck_top, deck_len), Vector3(0.0, deck_top * 0.5, z0),
-		_paint, Vector3.ZERO, 0.015)
+	_rbox(root, Vector3(deck_w, deck_top * 0.80, deck_len),
+		Vector3(0.0, deck_top * 0.60, z0), _paint, Vector3.ZERO, 0.013)
+	_rbox(root, Vector3(deck_w - 0.034, deck_top * 0.44, deck_len - 0.07),
+		Vector3(0.0, deck_top * 0.18, z0), _paint_dark, Vector3.ZERO, 0.010)
 	_rbox(root, Vector3(deck_w - 0.014, deck_top * 0.80, 0.09),
 		Vector3(0.0, deck_top * 0.38, z0 - deck_len * 0.5 - 0.015), _paint,
 		Vector3(deg_to_rad(-16.0), 0.0, 0.0), 0.010)
