@@ -455,10 +455,11 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 	if motor:
 		_torus(pivot, radius * 0.245, radius * 0.285, _rim, Vector3.ZERO, Vector3.ZERO, 24)
 	if absf(disc_side) > 0.01:
-		_ring(pivot, radius * 0.42, radius * 0.24, 0.0035, _steel, 26,
-			Vector3(disc_side * 0.055, 0.0, 0.0))
-		_rbox(pivot, Vector3(0.030, 0.055, 0.036),
-			Vector3(disc_side * 0.058, radius * 0.33, radius * 0.12), _caliper, Vector3.ZERO, 0.005)
+		# Тормозной диск — тонкое кольцо внутри покрышки, не «белый блин».
+		_ring(pivot, radius * 0.375, radius * 0.235, 0.003, _steel, 26,
+			Vector3(disc_side * 0.040, 0.0, 0.0))
+		_rbox(pivot, Vector3(0.026, 0.050, 0.032),
+			Vector3(disc_side * 0.043, radius * 0.30, radius * 0.10), _caliper, Vector3.ZERO, 0.005)
 	# Ниппель.
 	_cyl(pivot, 0.005, 0.02, Vector3(0.0, radius * 0.52, 0.0), _steel, Vector3.ZERO, 8)
 	return pivot
