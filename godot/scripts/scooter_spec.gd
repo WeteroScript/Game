@@ -133,8 +133,8 @@ static func create_g4() -> ScooterSpec:
 	s.wheelie_equilibrium = 37.0
 
 	# По фото: серый gunmetal с оранжевыми шевронами и надписями.
-	s.frame_color = Color(0.26, 0.27, 0.29)
-	s.accent_color = Color(1.00, 0.43, 0.06)
+	s.frame_color = Color(0.335, 0.340, 0.335)
+	s.accent_color = Color(0.98, 0.42, 0.07)
 	s.suspension_color = Color(0.36, 0.38, 0.41)
 	s.brand_text = "KUKIRIN G4"
 	s.front_fender = false

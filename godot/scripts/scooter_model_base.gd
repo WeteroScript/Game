@@ -7,7 +7,7 @@
 class_name ScooterModelBase
 extends RefCounted
 
-const RUBBER := Color(0.036, 0.036, 0.040)
+const RUBBER := Color(0.075, 0.074, 0.078)
 
 const TAPE := Color(0.055, 0.055, 0.060)
 const STEEL := Color(0.80, 0.82, 0.85)
@@ -20,7 +20,7 @@ const TAIL := Color(1.0, 0.14, 0.10)
 const AMBER := Color(1.0, 0.55, 0.06)
 
 var spec: ScooterSpec
-var radius := 0.14
+var radius := 0.162
 var base := 1.06
 var deck_top := 0.10
 var deck_len := 0.64
@@ -81,7 +81,7 @@ func _make_materials() -> void:
 	_accent = _mat(spec.accent_color, 0.10, 0.36)
 	_plastic = _mat(DARK_PLASTIC, 0.15, 0.55)
 	_rubber = _mat(RUBBER, 0.0, 0.92, Color.BLACK, 0.0, true)
-	_rubber.albedo_texture = _speckle(Color(0.048, 0.048, 0.052), 0.25, 48, 777)
+	_rubber.albedo_texture = _speckle(Color(0.078, 0.077, 0.081), 0.25, 48, 777)
 	_rubber.uv1_scale = Vector3(4.0, 4.0, 4.0)
 	_tape = _mat(TAPE, 0.0, 0.95)
 	_tape.albedo_texture = _speckle(Color(0.062, 0.062, 0.067), 0.22)
