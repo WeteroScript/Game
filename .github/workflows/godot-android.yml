@@ -23,6 +23,58 @@ env:
   PROJECT_PATH: godot
 
 jobs:
+  screenshots:
+    name: Render model screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Отдельная задача: картинки нужны для проверки внешнего вида и не должны
+    # ронять сборку APK.
+    continue-on-error: true
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: false
+
+      - name: Install xvfb and software OpenGL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1 libglx-mesa0 libegl1 libxcursor1 libxinerama1 libxrandr2 libxi6 libasound2 || true
+
+      - name: Import project
+        run: godot --headless --path "$PROJECT_PATH" --import || true
+
+      - name: Render screenshots
+        run: |
+          export SHOT_DIR="$GITHUB_WORKSPACE/shots"
+          xvfb-run -a -s "-screen 0 1600x900x24" \
+            godot --path "$PROJECT_PATH" --rendering-driver opengl3 \
+            --rendering-method gl_compatibility --resolution 1280x720 -- --shot 2>&1 | tee /tmp/shot.log || true
+          grep -E "SHOT|ERROR|SCRIPT" /tmp/shot.log | head -40
+          ls -la "$SHOT_DIR" || true
+          test -n "$(ls -A "$SHOT_DIR" 2>/dev/null)"
+
+      - name: Publish the screenshots branch
+        run: |
+          mkdir -p screenshots
+          cp "$GITHUB_WORKSPACE"/shots/*.png screenshots/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan shots
+          git rm -rf --cached . > /dev/null
+          git add -f screenshots
+          git commit -q -m "screenshots: ${GITHUB_SHA}"
+          git push --force origin shots:ci-screenshots
+          echo "Скриншоты: https://github.com/$GITHUB_REPOSITORY/tree/ci-screenshots/screenshots"
+
   build:
     name: Build APK (Godot 4.3 · Android)
     runs-on: ubuntu-latest

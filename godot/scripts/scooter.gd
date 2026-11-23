@@ -20,7 +20,11 @@ var front_wheel: VehicleWheel3D
 var rear_wheel: VehicleWheel3D
 var front_visual: Node3D
 var rear_visual: Node3D
-var steer_visual: Node3D
+var front_steer: Node3D
+var bar_left: Node3D
+var bar_right: Node3D
+var foot_left: Node3D
+var foot_right: Node3D
 
 var wheelie: Wheelie
 
@@ -130,7 +134,11 @@ func _ready() -> void:
 	add_child(model["root"])
 	front_visual = model["front_wheel"]
 	rear_visual = model["rear_wheel"]
-	steer_visual = model["handlebar"]
+	front_steer = model["front_steer"]
+	bar_left = model["bar_left"]
+	bar_right = model["bar_right"]
+	foot_left = model["foot_left"]
+	foot_right = model["foot_right"]
 	respawn_position = global_position
 	respawn_basis = global_transform.basis
 
@@ -547,8 +555,9 @@ func _update_wheel_visuals(delta: float) -> void:
 
 	# Качение вперёд — вращение вокруг -X, поэтому спин берём со знаком минус.
 	if front_visual != null:
-		front_visual.rotation = Vector3(-_front_spin, deg_to_rad(steer_input * spec.steer_angle_max), 0.0)
+		front_visual.rotation = Vector3(-_front_spin, 0.0, 0.0)
 	if rear_visual != null:
 		rear_visual.rotation = Vector3(-_rear_spin, 0.0, 0.0)
-	if steer_visual != null:
-		steer_visual.rotation = Vector3(0.0, deg_to_rad(steer_input * spec.steer_angle_max * 0.85), 0.0)
+	if front_steer != null:
+		# Поворачивается вся передняя сборка: вилка, крыло, стойка, руль.
+		front_steer.rotation = Vector3(0.0, deg_to_rad(steer_input * spec.steer_angle_max), 0.0)

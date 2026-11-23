@@ -68,6 +68,8 @@ func _ready() -> void:
 
 	if OS.get_cmdline_user_args().has("--smoke"):
 		_start_smoke()
+	elif OS.get_cmdline_user_args().has("--shot"):
+		_start_screenshots()
 
 
 # ---- окружение --------------------------------------------------------------
@@ -279,6 +281,48 @@ func _tick_smoke(delta: float) -> void:
 
 	if fmod(_smoke_timer, 3.0) < delta:
 		print("SMOKE t=%.1f %s" % [_smoke_timer, _telemetry()])
+
+
+# ---- скриншоты для CI --------------------------------------------------------
+# `godot --rendering-driver opengl3 -- --shot` под xvfb снимает оба самоката
+# с трёх ракурсов и складывает PNG в каталог из переменной SHOT_DIR.
+func _start_screenshots() -> void:
+	menu.visible = false
+	hud.visible = false
+	_take_screenshots()
+
+
+func _take_screenshots() -> void:
+	var shot_dir := OS.get_environment("SHOT_DIR")
+	if shot_dir.is_empty():
+		shot_dir = "/tmp/kugoo-shots"
+	DirAccess.make_dir_recursive_absolute(shot_dir)
+
+	var offsets := [
+		Vector3(1.45, 0.95, -2.35),
+		Vector3(2.55, 0.75, 0.35),
+		Vector3(-1.15, 1.35, 2.35),
+	]
+
+	for spec_id in ["g4", "f3"]:
+		_build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
+		camera_rig.target = null
+		await get_tree().create_timer(0.8).timeout
+		for index in offsets.size():
+			var center: Vector3 = scooter.global_position + Vector3.UP * 0.62
+			camera_rig.global_position = center + offsets[index]
+			camera_rig.look_at(center, Vector3.UP)
+			camera_rig.fov = 48.0
+			for frame in 4:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			var image := get_viewport().get_texture().get_image()
+			var path := "%s/%s_%d.png" % [shot_dir, spec_id, index]
+			var error := image.save_png(path)
+			print("SHOT %s err=%d" % [path, error])
+
+	print("SHOTS DONE %s" % shot_dir)
+	get_tree().quit()
 
 
 # ---- кадр -------------------------------------------------------------------
