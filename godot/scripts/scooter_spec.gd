@@ -190,7 +190,7 @@ static func create_f3_pro_max() -> ScooterSpec:
 	# По фото: чёрный корпус, оранжевые рычаги подвески и кольца на дисках.
 	s.frame_color = Color(0.075, 0.075, 0.085)
 	s.accent_color = Color(0.96, 0.47, 0.10)
-	s.suspension_color = Color(0.96, 0.47, 0.10)
+	s.suspension_color = Color(0.88, 0.44, 0.11)
 	s.brand_text = "KUGOO"
 	s.front_fender = true
 	s.off_road_tires = false

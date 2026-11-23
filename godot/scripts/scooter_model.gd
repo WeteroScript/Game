@@ -135,8 +135,8 @@ func _body(root: Node3D) -> void:
 	var rear_axle := Vector3(0.0, 0.0, base * 0.5)
 	for side in [-1.0, 1.0]:
 		var arm_from2 := rear_pivot + Vector3(side * 0.072, 0.0, 0.0)
-		_plate_between(root, arm_from2, arm_from2.lerp(rear_axle + Vector3(side * 0.072, 0.0, 0.0), 0.97),
-			0.046, 0.016, _susp)
+		_plate_between(root, arm_from2, arm_from2.lerp(rear_axle + Vector3(side * 0.072, 0.0, 0.0), 0.94),
+			0.038, 0.015, _susp)
 		_box(root, Vector3(0.014, 0.03, 0.03),
 			rear_pivot + Vector3(side * 0.072, 0.0, 0.0), _accent)
 	_shock(root, Vector3(0.0, deck_top + 0.02, deck_len * 0.5 - 0.16),
@@ -181,8 +181,8 @@ func _front_assembly(root: Node3D) -> Node3D:
 	# Передний рычаг подвески (две пластины вокруг колеса).
 	for side in [-1.0, 1.0]:
 		var arm_from := pivot + Vector3(side * 0.076, 0.0, 0.0)
-		_plate_between(steer, arm_from, arm_from.lerp(axle + Vector3(side * 0.076, 0.0, 0.0), 0.97),
-			0.046, 0.016, _susp)
+		_plate_between(steer, arm_from, arm_from.lerp(axle + Vector3(side * 0.076, 0.0, 0.0), 0.94),
+			0.038, 0.015, _susp)
 		_box(steer, Vector3(0.014, 0.032, 0.032), pivot + Vector3(side * 0.076, 0.0, 0.0), _accent)
 		_box(steer, Vector3(0.016, 0.05, 0.02), axle + Vector3(side * 0.076, 0.0, 0.02), _susp)
 	# Распорка между пластинами.
