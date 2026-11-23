@@ -336,11 +336,11 @@ func _tick_smoke(delta: float) -> void:
 	input_state.touch_throttle = 0.75 if _smoke_wheelie_on else 1.0
 	if _smoke_phase == 0 and not _steer_checked:
 		# Короткое окно с полным рулём вправо: смотрим, куда реально едет.
-		if _smoke_timer > 3.6:
+		if _smoke_timer > 3.40:
 			if _steer_yaw_start == 0.0:
 				_steer_yaw_start = rad_to_deg(scooter.global_rotation.y) + 0.001
 			input_state.touch_steer = 1.0
-			if _smoke_timer > 4.4:
+			if _smoke_timer > 3.85:
 				_steer_checked = true
 				var delta_yaw := rad_to_deg(scooter.global_rotation.y) - (_steer_yaw_start - 0.001)
 				print("SMOKE steer +1 (вправо) -> yaw=%.2f град (минус = вправо)" % delta_yaw)
