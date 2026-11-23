@@ -69,9 +69,9 @@ func _rear_arm(root: Node3D) -> void:
 	var pivot := Vector3(ARM_X, deck_top * 0.74, deck_len * 0.5 - 0.05)
 	var axle := Vector3(ARM_X, 0.0, base * 0.5)
 	# Оранжевый рычаг: балка + косынка + усиление.
-	_plate_between(root, pivot, axle, 0.070, 0.026, _accent)
+	_plate_between(root, pivot, axle, 0.054, 0.021, _accent)
 	_plate_between(root, pivot + Vector3(0.0, 0.0, 0.10), axle + Vector3(0.0, 0.035, 0.0),
-		0.032, 0.016, _accent)
+x)
 	_cyl(root, 0.022, 0.056, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(root, 0.017, 0.062, axle, _alu, Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Красный суппорт сбоку колеса.
@@ -143,14 +143,14 @@ func _build_steer(root: Node3D) -> Node3D:
 ## Характерный для F3 угловатый «стакан»: толстый блок от деки к стойке
 ## плюс площадка над передним колесом.
 func _triangle_neck(steer: Node3D) -> void:
-	_rbox(steer, Vector3(0.112, 0.235, 0.125), Vector3(0.0, 0.235, 0.070), _paint,
+	_rbox(steer, Vector3(0.092, 0.210, 0.100), Vector3(0.0, 0.232, 0.068), _paint,
 		Vector3(deg_to_rad(-26.0), 0.0, 0.0), 0.012)
-	_rbox(steer, Vector3(0.100, 0.10, 0.085), Vector3(0.0, STEM_BASE_Y - 0.045, 0.045),
+	_rbox(steer, Vector3(0.084, 0.088, 0.074), Vector3(0.0, STEM_BASE_Y - 0.040, 0.048),
 		_paint, Vector3.ZERO, 0.010)
 	# Наклонная балка вдоль низа к рычагу.
 
 	# Чёрный кожух над колесом и брызговик.
-	_rbox(steer, Vector3(0.084, 0.085, 0.075), Vector3(0.0, 0.115, 0.005), _plastic,
+	_rbox(steer, Vector3(0.068, 0.074, 0.066), Vector3(0.0, 0.112, 0.006), _plastic,
 		Vector3(deg_to_rad(-20.0), 0.0, 0.0), 0.008)
 	# Оранжевая накладка на стакане.
 	_rbox(steer, Vector3(0.030, 0.075, 0.010), Vector3(0.0, 0.245, 0.020), _accent,
@@ -159,9 +159,9 @@ func _triangle_neck(steer: Node3D) -> void:
 
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
 	var pivot := Vector3(ARM_X, 0.250, -0.055)
-	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.060, 0.024, _accent)
+	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.048, 0.020, _accent)
 	_plate_between(steer, pivot + Vector3(0.0, 0.0, 0.05),
-		Vector3(ARM_X, 0.005, axle.z + 0.10), 0.030, 0.014, _accent)
+		Vector3(ARM_X, 0.005, axle.z + 0.10), 0.024, 0.011, _accent)
 	_cyl(steer, 0.021, 0.052, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.016, 0.060, axle + Vector3(ARM_X, 0.0, 0.0), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
