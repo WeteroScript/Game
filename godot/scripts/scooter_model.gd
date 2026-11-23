@@ -282,7 +282,7 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool, disc: 
 			Vector3(0.0, 0.0, deg_to_rad(90.0)), 24)
 		# Акцентное кольцо по краю обода (у F3 оранжевое).
 		_torus(pivot, radius * 0.60, radius * 0.665,
-			_accent if spec.orange_accents else _steel, Vector3.ZERO,
+			_accent if spec.orange_accents else _rim, Vector3.ZERO,
 			Vector3(side * 0.050, 0.0, 0.0))
 	_spokes(pivot, radius * 0.66, 0.045, _rim)
 	if motor:
@@ -351,8 +351,8 @@ func _spokes(parent: Node3D, rim_radius: float, half_width: float, mat: Material
 ## Задняя приподнятая площадка на треугольном кронштейне — как на фото G4.
 func _rear_step(root: Node3D) -> void:
 	var tilt := Vector3(deg_to_rad(-21.0), 0.0, 0.0)
-	var pos := Vector3(0.0, deck_top + 0.13, deck_len * 0.5 + 0.10)
-	_box(root, Vector3(0.185, 0.024, 0.205), pos, _frame, tilt)
+	var pos := Vector3(0.0, deck_top + 0.11, deck_len * 0.5 + 0.10)
+	_box(root, Vector3(0.185, 0.028, 0.205), pos, _frame, tilt)
 	_box(root, Vector3(0.17, 0.008, 0.18), pos + Vector3(0.0, 0.016, -0.005), _tape, tilt)
 	for side in [-1.0, 1.0]:
 		_box(root, Vector3(0.008, 0.02, 0.195), pos + Vector3(side * 0.094, -0.006, 0.0),
