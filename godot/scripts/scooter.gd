@@ -244,6 +244,7 @@ func _physics_process(delta: float) -> void:
 	_apply_drive(delta)
 	_apply_brakes()
 	_apply_balance()
+	_anti_sink()
 	_tick_wheelie(delta)
 	_update_battery(delta)
 	_check_failures()
@@ -339,10 +340,13 @@ func _apply_steering() -> void:
 	var falloff := lerpf(1.0, GameConfig.STEER_MIN_FACTOR,
 		inverse_lerp(GameConfig.STEER_FALLOFF_START, GameConfig.STEER_FALLOFF_END, speed))
 	var angle_deg := steer_input * spec.steer_angle_max * falloff
+	# VehicleWheel3D.steering поворачивает колесо против часовой (влево) при
+	# плюсе, а steer_input > 0 — это «вправо». Поэтому знак инвертируем:
+	# раньше самокат и колесо ехали в противоположную сторону.
 	if front_wheel != null:
-		front_wheel.steering = deg_to_rad(angle_deg)
+		front_wheel.steering = -deg_to_rad(angle_deg)
 	if rear_wheel != null:
-		rear_wheel.steering = deg_to_rad(angle_deg * GameConfig.REAR_STEER_FACTOR)
+		rear_wheel.steering = -deg_to_rad(angle_deg * GameConfig.REAR_STEER_FACTOR)
 
 
 func _apply_aerodynamics() -> void:
@@ -406,6 +410,10 @@ func _apply_brakes() -> void:
 
 	var front_force := spec.max_brake_torque * brake_front_input / maxf(0.05, spec.wheel_radius)
 	var rear_force := spec.max_brake_torque * brake_rear_input * GameConfig.REAR_BRAKE_SHARE / maxf(0.05, spec.wheel_radius)
+	# На высоко поднятом носу задний тормоз почти не работает: иначе сила
+	# вбивала заднее колесо сквозь асфальт, и самокат проваливался под карту.
+	var brake_pitch_scale := clampf(1.0 - (pitch_deg - 25.0) / 45.0, 0.15, 1.0)
+	rear_force *= brake_pitch_scale
 
 	if brake_front_input > 0.01 and front_grounded:
 		apply_force(-forward * signf(speed_mps) * front_force, front_offset)
@@ -424,6 +432,29 @@ func _apply_brakes() -> void:
 	# Резкое торможение только передним тормозом на скорости валит через руль.
 	if brake_front_input > GameConfig.FULL_FRONT_BRAKE_THRESHOLD and speed_kmh() > GameConfig.ENDO_RISK_SPEED_KMH:
 		apply_nose_up_torque(-GameConfig.ENDO_RISK_TORQUE * brake_front_input)
+
+
+## Страховка от проваливания под дорогу: если корпус оказался ниже поверхности
+## (сложилась подвеска, удар, баг физики) — выталкиваем его вверх.
+func _anti_sink() -> void:
+	var from := global_position + Vector3.UP * 2.0
+	var query := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 6.0,
+		0xFFFFFFFF, [get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return
+	# В норме корпус стоит в 0.16–0.25 м над дорогой (радиус колеса + ход
+	# подвески), поэтому порог берём ниже: сработка = реальный провал.
+	var surface: float = hit["position"].y
+	var minimum := surface + 0.10
+	if global_position.y < minimum:
+		var depth := minimum - global_position.y
+		apply_central_force(Vector3.UP * depth * spec.mass_kg * 260.0)
+		if depth > 0.25:
+			var fixed := global_transform
+			fixed.origin.y = minimum
+			global_transform = fixed
+			linear_velocity.y = maxf(linear_velocity.y, 1.5)
 
 
 func _apply_balance() -> void:
@@ -482,6 +513,9 @@ func _tick_wheelie(delta: float) -> void:
 		return
 	wheelie.tick(delta, input.wheelie, throttle_input, input.body_pitch,
 		speed_kmh(), drive_mode, spec, is_grounded(), is_crashed)
+	# Нос опустился (кончился газ) — кнопка гаснет, вилли нужно снова взвести.
+	if wheelie.finished and input != null:
+		input.clear_wheelie()
 
 
 func _update_battery(delta: float) -> void:
@@ -579,9 +613,14 @@ func respawn() -> void:
 	if wheelie != null:
 		wheelie.reset()
 
-	global_transform = Transform3D(respawn_basis, respawn_position)
+	var brought := Transform3D(respawn_basis, respawn_position + Vector3.UP * 0.12)
+	global_transform = brought
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
+	# Жёсткий телепорт: без него Bullet иногда оставляет тело на старом месте.
+	PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, brought)
+	PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+	PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
 	set_input_enabled(true)
 	respawned.emit()
 
@@ -595,8 +634,12 @@ func _update_audio() -> void:
 func _update_rider(delta: float) -> void:
 	if rider == null:
 		return
+	var wheelie_blend := 0.0
+	if wheelie != null:
+		wheelie_blend = clampf(wheelie.lift_progress, 0.0, 1.0)
 	rider.update_pose(delta, steer_input, maxf(brake_front_input, brake_rear_input),
-		speed_kmh(), is_grounded(), is_crashed, pitch_deg)
+		speed_kmh(), is_grounded(), is_crashed, pitch_deg,
+		wheelie_blend, throttle_input, pitch_rate)
 
 
 func _update_wheel_visuals(delta: float) -> void:
@@ -611,4 +654,5 @@ func _update_wheel_visuals(delta: float) -> void:
 		rear_visual.rotation = Vector3(-_rear_spin, 0.0, 0.0)
 	if front_steer != null:
 		# Поворачивается вся передняя сборка: вилка, крыло, стойка, руль.
-		front_steer.rotation = Vector3(0.0, deg_to_rad(steer_input * spec.steer_angle_max), 0.0)
+		# Знак тот же, что у физического колеса, иначе руль смотрит не туда.
+		front_steer.rotation = Vector3(0.0, -deg_to_rad(steer_input * spec.steer_angle_max), 0.0)

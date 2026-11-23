@@ -59,6 +59,8 @@ jobs:
             godot --path "$PROJECT_PATH" --rendering-driver opengl3 \
             --rendering-method gl_compatibility --resolution 1280x720 -- --shot 2>&1 | tee /tmp/shot.log || true
           grep -E "SHOT|ERROR|SCRIPT" /tmp/shot.log | head -40
+          grep -E "^SHOT stunt" /tmp/shot.log | head -2 \
+            | sed 's/^/::notice title=stunt-shot::/' || true
           ls -la "$SHOT_DIR" || true
           test -n "$(ls -A "$SHOT_DIR" 2>/dev/null)"
 

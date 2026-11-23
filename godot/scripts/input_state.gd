@@ -9,10 +9,10 @@ var brake_front := 0.0
 var brake_rear := 0.0
 var steer := 0.0
 var body_pitch := 0.0
-## Вилли — защёлка, а не удержание: одно нажатие поднимает нос и держит его,
-## второе — опускает. Углом управляет газ.
+## Вилли: одно нажатие «взводит» подъём, но нос встаёт только с газом.
+## Отпустил газ — самокат опустился, кнопка погасла (см. Wheelie).
 var wheelie := false
-var wheelie_latched := false
+var wheelie_armed := false
 var enabled := true
 
 # Разовые события (сбрасываются после обработки).
@@ -20,6 +20,7 @@ var drive_toggle_pressed := false
 var speed_mode_request := -1
 var respawn_pressed := false
 var menu_pressed := false
+var view_toggle_pressed := false
 
 # Значения, которые выставляют экранные кнопки HUD.
 var touch_throttle := 0.0
@@ -48,7 +49,7 @@ func request_wheelie_toggle() -> void:
 
 ## Сбросить вилли насильно — после аварии или респауна.
 func clear_wheelie() -> void:
-	wheelie_latched = false
+	wheelie_armed = false
 	wheelie = false
 	_wheelie_requests = 0
 	_prev_key_wheelie = false
@@ -63,7 +64,7 @@ func poll_keyboard() -> void:
 		steer = 0.0
 		body_pitch = 0.0
 		wheelie = false
-		wheelie_latched = false
+		wheelie_armed = false
 		_wheelie_requests = 0
 		_prev_key_wheelie = false
 		return
@@ -96,14 +97,14 @@ func poll_keyboard() -> void:
 	_prev_key_wheelie = key_wheelie
 	while _wheelie_requests > 0:
 		_wheelie_requests -= 1
-		wheelie_latched = not wheelie_latched
+		wheelie_armed = not wheelie_armed
 
 	throttle = clampf(maxf(key_throttle, touch_throttle), 0.0, 1.0)
 	brake_rear = clampf(maxf(key_rear_brake, touch_brake_rear), 0.0, 1.0)
 	brake_front = clampf(maxf(key_front_brake, touch_brake_front), 0.0, 1.0)
 	steer = clampf(key_steer + touch_steer, -1.0, 1.0)
 	body_pitch = clampf(key_pitch + touch_body_pitch, -1.0, 1.0)
-	wheelie = wheelie_latched
+	wheelie = wheelie_armed
 
 
 func handle_key_events(event: InputEvent) -> void:
@@ -120,6 +121,8 @@ func handle_key_events(event: InputEvent) -> void:
 			speed_mode_request = 2
 		KEY_R:
 			respawn_pressed = true
+		KEY_V, KEY_C:
+			view_toggle_pressed = true
 		KEY_ESCAPE:
 			menu_pressed = true
 
@@ -145,4 +148,10 @@ func consume_respawn() -> bool:
 func consume_menu() -> bool:
 	var value := menu_pressed
 	menu_pressed = false
+	return value
+
+
+func consume_view_toggle() -> bool:
+	var value := view_toggle_pressed
+	view_toggle_pressed = false
 	return value

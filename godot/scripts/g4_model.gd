@@ -14,7 +14,6 @@ func _build_body(root: Node3D) -> void:
 	_rear_arm(root)
 	_rear_step(root)
 	_rear_fender(root)
-	_kickstand(root)
 	_wheel(root, Vector3(0.0, 0.0, base * 0.5), "RearWheel", true, -1.0, _rim)
 	_marker(root, "FootLeft", Vector3(-0.070, deck_top + 0.020, -0.10))
 	_marker(root, "FootRight", Vector3(0.070, deck_top + 0.020, 0.10))
@@ -71,12 +70,18 @@ func _deck(root: Node3D) -> void:
 
 
 func _rear_arm(root: Node3D) -> void:
-	var pivot := Vector3(ARM_X, deck_top * 0.78, deck_len * 0.5 - 0.06)
+	var pivot_z := deck_len * 0.5 - 0.06
+	var pivot := Vector3(ARM_X, deck_top * 0.78, pivot_z)
 	var axle := Vector3(ARM_X, 0.0, base * 0.5)
-	# Односторонний рычаг: толстая балка с фаской и косынкой.
+	# Маятник двусторонний: два рычага, поперечина у оси и распорка у шарнира.
 	_plate_between(root, pivot, axle, 0.050, 0.019, _paint)
+	_plate_between(root, Vector3(-ARM_X, deck_top * 0.78, pivot_z),
+		Vector3(-ARM_X, 0.0, base * 0.5), 0.050, 0.019, _paint)
 	_plate_between(root, pivot + Vector3(0.0, 0.0, 0.10), axle + Vector3(0.0, 0.03, 0.0),
 		0.030, 0.014, _paint)
+	_cyl_between(root, pivot, Vector3(-ARM_X, deck_top * 0.78, pivot_z), 0.016, _rim)
+	_cyl_between(root, Vector3(ARM_X - 0.03, 0.0, base * 0.5),
+		Vector3(-ARM_X + 0.03, 0.0, base * 0.5), 0.013, _alu)
 	_cyl(root, 0.017, 0.040, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(root, 0.016, 0.060, axle, _alu, Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Наклейки на рычаге: шеврон и «G4».
@@ -121,15 +126,6 @@ func _rear_fender(root: Node3D) -> void:
 	# Фонарь на крыле.
 	_tail_light(root, Vector3(0.0, radius * 0.62, base * 0.5 + 0.155),
 		Vector3(0.06, 0.018, 0.010), _tail, Vector3(deg_to_rad(-30.0), 0.0, 0.0))
-
-
-func _kickstand(root: Node3D) -> void:
-	var top := Vector3(-0.075, deck_top * 0.22, 0.06)
-	var foot := Vector3(-0.155, -radius * 0.92, 0.15)
-	_plate_between(root, top, foot, 0.026, 0.016, _rim)
-	_cyl(root, 0.012, 0.040, top, _steel, Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
-	_rbox(root, Vector3(0.024, 0.010, 0.040), foot + Vector3(0.0, -0.002, 0.0), _plastic,
-		Vector3.ZERO, 0.003)
 
 
 func _build_steer(root: Node3D) -> Node3D:

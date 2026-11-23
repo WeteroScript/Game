@@ -2,7 +2,7 @@
 ## Собирает мир, самокат, камеру и интерфейс, ведёт таймеры режимов.
 extends Node3D
 
-enum State { MENU, COUNTDOWN, RUNNING, FINISHED }
+enum State { MENU, COUNTDOWN, RUNNING, FINISHED, PAUSED }
 
 const RESULTS_LAYER := 20
 
@@ -17,6 +17,7 @@ var scooter: Scooter
 var camera_rig: CameraRig
 var hud: Hud
 var menu: MenuScreen
+var pause_screen: PauseScreen
 var results_root: Control
 var results_label: Label
 var _results_built := false
@@ -39,10 +40,13 @@ var _smoke_timer := 0.0
 var _smoke_crashed := false
 var _smoke_phase := 0
 var _smoke_wheelie_on := false
+# Проверка знака руля: вправо (+) должен давать поворот по часовой (yaw вниз).
 
 # Перетаскивание камеры.
 var _camera_dragging := false
 var _camera_touch_index := -1
+## Состояние до паузы, чтобы вернуться именно туда.
+var _state_before_pause: int = State.RUNNING
 
 
 func _ready() -> void:
@@ -60,15 +64,21 @@ func _ready() -> void:
 	add_child(hud)
 	hud.setup(input_state)
 	hud.visible = false
-	hud.menu_pressed.connect(_back_to_menu)
+	hud.menu_pressed.connect(_on_menu_pressed)
 	hud.drive_toggled.connect(_toggle_drive)
 	hud.speed_mode_changed.connect(_on_speed_mode_button)
 	hud.respawn_pressed.connect(_respawn)
+	hud.view_toggled.connect(_toggle_view)
 
 	menu = MenuScreen.new()
 	add_child(menu)
 	menu.setup(ScooterSpec.all())
 	menu.start_pressed.connect(_start_run)
+
+	pause_screen = PauseScreen.new()
+	add_child(pause_screen)
+	pause_screen.resume_pressed.connect(_resume)
+	pause_screen.menu_pressed.connect(_back_to_menu)
 
 	_build_world(selected_map, selected_spec_id)
 	_enter_menu()
@@ -143,6 +153,9 @@ func _build_world(map_id: int, spec_id: String) -> void:
 
 # ---- меню -------------------------------------------------------------------
 func _enter_menu() -> void:
+	get_tree().paused = false
+	if pause_screen != null:
+		pause_screen.close()
 	state = State.MENU
 	menu.visible = true
 	menu.refresh()
@@ -168,6 +181,9 @@ func _update_menu_camera(delta: float) -> void:
 
 
 func _start_run(spec_id: String, map_id: int, mode_id: int) -> void:
+	get_tree().paused = false
+	if pause_screen != null:
+		pause_screen.close()
 	selected_spec_id = spec_id
 	selected_map = map_id
 	selected_mode = mode_id
@@ -184,6 +200,7 @@ func _start_run(spec_id: String, map_id: int, mode_id: int) -> void:
 
 	camera_rig.target = scooter
 	camera_rig.setup(scooter)
+	camera_rig.apply_view()
 
 	match mode_id:
 		GameConfig.GameMode.FREESTYLE:
@@ -203,6 +220,42 @@ func _start_run(spec_id: String, map_id: int, mode_id: int) -> void:
 func _back_to_menu() -> void:
 	_build_world(selected_map, selected_spec_id)
 	_enter_menu()
+
+
+## Кнопка МЕНЮ / Esc: во время заезда открывает паузу, на результатах — в меню.
+func _on_menu_pressed() -> void:
+	if state == State.FINISHED:
+		_back_to_menu()
+	else:
+		_open_pause()
+
+
+func _open_pause() -> void:
+	if state != State.RUNNING and state != State.COUNTDOWN:
+		return
+	_state_before_pause = state
+	state = State.PAUSED
+	input_state.enabled = false
+	if hud != null:
+		hud.release_touches()
+	if scooter != null:
+		scooter.set_input_enabled(false)
+	if pause_screen != null:
+		pause_screen.open()
+	get_tree().paused = true
+
+
+func _resume() -> void:
+	if state != State.PAUSED:
+		return
+	if pause_screen != null:
+		pause_screen.close()
+	get_tree().paused = false
+	state = _state_before_pause
+	if state == State.RUNNING:
+		input_state.enabled = true
+		if scooter != null:
+			scooter.set_input_enabled(true)
 
 
 # ---- автотест ---------------------------------------------------------------
@@ -279,7 +332,8 @@ func _tick_smoke(delta: float) -> void:
 	# В вилли автотест держит газ ниже упора: так проверяется управление углом
 	# без намеренного переворота через заднее колесо.
 	input_state.touch_throttle = 0.75 if _smoke_wheelie_on else 1.0
-	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35
+	# На ровной дороге автотест виляет рулём, в городе едет прямо.
+	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35 if _smoke_phase == 0 else 0.0
 
 	if _smoke_phase == 0:
 		if not _smoke_wheelie_on and _smoke_timer > 3.0:
@@ -408,10 +462,51 @@ func _take_screenshots() -> void:
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_drive")
 
+	# На кадре станта газ средний: на полном контроллер уводит нос почти
+	# в вертикаль (перегазовка), и позу не разобрать.
+	input_state.touch_throttle = 0.55
 	input_state.request_wheelie_toggle()
-	await get_tree().create_timer(1.6).timeout
+	await get_tree().create_timer(2.4).timeout
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_wheelie")
+
+	# Стант сбоку: видно позу райдера — опорная нога на деке, вторая в воздухе.
+	# Камеру переставляем каждый кадр: на софтверном рендере в CI кадр долгий,
+	# и статичная камера теряет уезжающий самокат.
+	hud.visible = false
+	camera_rig.target = null
+	camera_rig.fov = 38.0
+	for frame in 5:
+		var stunt_origin: Vector3 = scooter.global_position
+		camera_rig.global_position = stunt_origin + Vector3(4.3, 1.25, 1.5)
+		camera_rig.look_at(stunt_origin + Vector3(0.0, 0.85, 0.25), Vector3.UP)
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	print("SHOT stunt scooter=%s pitch=%.1f roll=%.1f y=%.2f speed=%.1f lift=%.2f active=%s crashed=%s" % [
+		str(scooter.global_position), scooter.pitch_deg, scooter.roll_deg,
+		scooter.global_position.y, scooter.speed_kmh(),
+		scooter.wheelie.lift_progress if scooter.wheelie != null else 0.0,
+		str(scooter.wheelie.active if scooter.wheelie != null else false),
+		str(scooter.is_crashed),
+	])
+	_save_shot(shot_dir, "wheelie_side")
+
+	# Пауза: проверяем новое меню с «Продолжить» и «В меню».
+	_open_pause()
+	for frame in 6:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "pause")
+	_resume()
+
+	# Вид от первого лица: райдер скрыт, камера на уровне шлема.
+	camera_rig.target = scooter
+	camera_rig.toggle_view()
+	hud.visible = true
+	for frame in 8:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "hud_fp")
 
 	print("SHOTS DONE %s" % shot_dir)
 	get_tree().quit()
@@ -489,8 +584,10 @@ func _handle_actions() -> void:
 		scooter.set_speed_mode(requested_mode)
 	if input_state.consume_respawn():
 		_respawn()
+	if input_state.consume_view_toggle():
+		_toggle_view()
 	if input_state.consume_menu():
-		_back_to_menu()
+		_on_menu_pressed()
 
 
 ## Камера: тащим мышью с зажатой ЛКМ или свайпом по экрану, где нет кнопок.
@@ -506,14 +603,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			_camera_dragging = false
 	elif event is InputEventMouseMotion and _camera_dragging:
-		camera_rig.orbit_input(-event.relative.x * 0.005, event.relative.y * 0.004)
+		camera_rig.orbit_input(event.relative.x * 0.005, -event.relative.y * 0.004)
 	elif event is InputEventScreenTouch:
 		if event.pressed:
 			_camera_touch_index = event.index if not _over_controls(event.position) else -1
 		elif event.index == _camera_touch_index:
 			_camera_touch_index = -1
 	elif event is InputEventScreenDrag and event.index == _camera_touch_index:
-		camera_rig.orbit_input(-event.relative.x * 0.006, event.relative.y * 0.005)
+		camera_rig.orbit_input(event.relative.x * 0.006, -event.relative.y * 0.005)
 
 
 func _over_controls(point: Vector2) -> bool:
@@ -536,8 +633,22 @@ func _on_speed_mode_button(_mode: int) -> void:
 
 
 func _respawn() -> void:
-	if scooter != null and state == State.RUNNING:
-		scooter.respawn()
+	if scooter == null or state != State.RUNNING:
+		return
+	scooter.respawn()
+	# Камера снова за спиной, иначе после телепорта она «улетает».
+	if camera_rig != null:
+		camera_rig.reset_orbit()
+		camera_rig.snap_behind()
+	if hud != null:
+		hud.clear_crash()
+
+
+## Переключение вида: третье лицо ⇄ первое.
+func _toggle_view() -> void:
+	if camera_rig == null or scooter == null or state == State.MENU:
+		return
+	camera_rig.toggle_view()
 
 
 func _on_crash(reason: String) -> void:
@@ -554,7 +665,10 @@ func _on_respawned() -> void:
 func _on_trick(trick_name: String, points: int) -> void:
 	if hud != null:
 		hud.show_trick(trick_name, points)
-	if scooter != null and scooter.audio != null:
+	# «Дзынь» только за прыжки и вращения. Вилли и стоппи начисляются каждые
+	# полсекунды, и писк на них раздражал больше, чем радовал.
+	var quiet := trick_name.begins_with("WHEELIE") or trick_name.begins_with("STOPPIE")
+	if not quiet and scooter != null and scooter.audio != null:
 		scooter.audio.play_chime()
 
 
