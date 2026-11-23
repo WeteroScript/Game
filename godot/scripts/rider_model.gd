@@ -91,11 +91,16 @@ func _build() -> void:
 	var stripe := _mat(accent, 0.4)
 
 	# Таз и корпус.
-	_hips = _job_sized("Hips", Vector3(0.26, 0.16, 0.19), pants)
+	_hips = _job_sized("Hips", Vector3(0.27, 0.17, 0.19), pants)
 	_chest = _job()
 	var chest_mesh := BoxMesh.new()
-	chest_mesh.size = Vector3(0.34, TORSO_LENGTH, 0.21)
+	chest_mesh.size = Vector3(0.32, TORSO_LENGTH, 0.185)
 	_chest_mesh = _mesh(_chest, chest_mesh, jacket, Vector3(0.0, -TORSO_LENGTH * 0.5, 0.0))
+	# Пояс — сужение к тазу, чтобы корпус не выглядел доской.
+	var waist := BoxMesh.new()
+	waist.size = Vector3(0.27, 0.12, 0.17)
+	_mesh(_chest, waist, pants, Vector3(0.0, -TORSO_LENGTH + 0.03, 0.0))
+
 	# Плечи в цвет акцента.
 	for side in [-1.0, 1.0]:
 		var shoulder := BoxMesh.new()
@@ -105,19 +110,20 @@ func _build() -> void:
 	# Рюкзак.
 	_backpack = _job()
 	var pack := BoxMesh.new()
-	pack.size = Vector3(0.26, 0.32, 0.14)
-	_mesh(_backpack, pack, jacket, Vector3(0.0, -0.16, 0.0))
+	pack.size = Vector3(0.24, 0.30, 0.12)
+	_mesh(_backpack, pack, jacket, Vector3.ZERO)
 	var pack_stripe := BoxMesh.new()
-	pack_stripe.size = Vector3(0.06, 0.30, 0.02)
-	_mesh(_backpack, pack_stripe, stripe, Vector3(0.0, -0.16, 0.08))
+	pack_stripe.size = Vector3(0.055, 0.26, 0.015)
+	_mesh(_backpack, pack_stripe, stripe, Vector3(0.0, 0.0, 0.065))
 
 	# Голова в шлеме.
 	_head = _job()
 	var neck := CylinderMesh.new()
-	neck.top_radius = 0.055
-	neck.bottom_radius = 0.06
-	neck.height = 0.08
-	_mesh(_head, neck, skin, Vector3(0.0, -0.03, 0.0))
+	neck.top_radius = 0.052
+	neck.bottom_radius = 0.062
+	neck.height = 0.17
+	# Низ шеи уходит в корпус, верх держит голову — иначе видна дырка.
+	_mesh(_head, neck, skin, Vector3(0.0, -0.055, 0.0))
 	var head_mesh := SphereMesh.new()
 	head_mesh.radius = 0.098
 	head_mesh.height = 0.196
@@ -199,7 +205,7 @@ func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
 
 	# Рюкзак за спиной, наклоняется вместе с корпусом.
 	_backpack.transform = Transform3D(Basis(Vector3.RIGHT, -lean),
-		hip_pos + Vector3(0.0, cos(lean) * TORSO_LENGTH * 0.62, sin(lean) * TORSO_LENGTH * 0.62 + 0.20))
+		hip_pos + Vector3(0.0, cos(lean) * TORSO_LENGTH * 0.58, sin(lean) * TORSO_LENGTH * 0.58 + 0.115))
 
 	# Кисти держатся за руль, пока райдер не упал.
 	var left_hand := _bar_point(_bar_left, Vector3(-0.01, -0.02, 0.0))
