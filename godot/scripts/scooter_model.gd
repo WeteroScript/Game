@@ -53,6 +53,8 @@ func _build(new_spec: ScooterSpec) -> Dictionary:
 	radius = spec.wheel_radius
 	base = spec.wheel_base
 	deck_top = spec.deck_height if spec.deck_height > 0.02 else radius * 0.55
+	# Длина деки-короба: площадка под ноги + запас под аккумулятор спереди и сзади.
+	deck_len = clampf(spec.deck_length + 0.13, 0.55, 0.70)
 	# Рулевой стакан стоит на 0.20 м позади передней оси — как на фото.
 	steer_z = -base * 0.5 + 0.20
 

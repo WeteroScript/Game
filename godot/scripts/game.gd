@@ -341,9 +341,9 @@ func _take_screenshots() -> void:
 		if rider_node != null:
 			rider_node.visible = true
 			var origin2: Vector3 = scooter.global_position
-			camera_rig.global_position = origin2 + Vector3(2.55, 1.25, -3.30)
-			camera_rig.look_at(origin2 + Vector3(0.0, 1.05, -0.1), Vector3.UP)
-			camera_rig.fov = 34.0
+			camera_rig.global_position = origin2 + Vector3(1.95, 0.90, -2.50)
+			camera_rig.look_at(origin2 + Vector3(0.0, 0.98, -0.1), Vector3.UP)
+			camera_rig.fov = 32.0
 			for frame in 6:
 				await get_tree().process_frame
 			await RenderingServer.frame_post_draw
