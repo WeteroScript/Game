@@ -111,7 +111,7 @@ func _rear_step(root: Node3D) -> void:
 
 func _rear_fender(root: Node3D) -> void:
 	var center := Vector3(0.0, 0.0, base * 0.5)
-	_fender(root, center, radius + 0.014, radius + 0.016, -26.0, 132.0, _plastic, 16, 0.010)
+	_fender(root, center, radius + 0.014, radius + 0.022, -26.0, 134.0, _plastic, 18, 0.014)
 	# Кронштейн крыла к рычагу.
 	_plate_between(root, Vector3(ARM_X - 0.006, 0.055, base * 0.5 + 0.10),
 		Vector3(0.0, radius + 0.03, base * 0.5 + 0.05), 0.030, 0.012, _rim)
@@ -205,10 +205,10 @@ func _stem(steer: Node3D, axle: Vector3) -> void:
 	# Оранжевая полоса с брендом вдоль стойки.
 	var mid := bottom.lerp(top, 0.58)
 	for side in [-1.0, 1.0]:
-		_rbox(steer, Vector3(0.005, 0.40, 0.030), mid + Vector3(side * 0.026, 0.0, 0.0),
+		_rbox(steer, Vector3(0.005, 0.40, 0.016), mid + Vector3(side * 0.026, 0.0, 0.0),
 			_accent, Vector3(rake, 0.0, 0.0), 0.002)
 		_label(steer, spec.brand_text, mid + Vector3(side * 0.030, 0.010, 0.0),
-			Vector3(0.0, 90.0 * side, 90.0), 0.00042, Color(0.95, 0.95, 0.96))
+			Vector3(0.0, 90.0 * side, 90.0), 0.00058, Color(0.95, 0.95, 0.96))
 	# Верхняя площадка под руль и сам руль.
 	var bar_z := top.z
 	_rbox(steer, Vector3(0.070, 0.052, 0.062), Vector3(0.0, BAR_Y - 0.030, bar_z), _rim,

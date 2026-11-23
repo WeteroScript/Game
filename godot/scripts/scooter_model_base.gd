@@ -83,7 +83,7 @@ func _make_materials() -> void:
 	_tape = _mat(TAPE, 0.0, 0.95)
 	_steel = _mat(STEEL, 0.95, 0.22)
 	_alu = _mat(ALU, 0.85, 0.30)
-	_rim = _mat(Color(0.16, 0.17, 0.19), 0.60, 0.34)
+	_rim = _mat(Color(0.095, 0.100, 0.110), 0.65, 0.30)
 	_screen = _mat(Color(0.01, 0.03, 0.05), 0.05, 0.10, SCREEN_LIGHT, 0.45)
 	_lamp = _mat(Color(0.95, 0.93, 0.86), 0.15, 0.20, LAMP, 1.6)
 	_tail = _mat(Color(0.30, 0.03, 0.03), 0.10, 0.30, TAIL, 2.2)
@@ -417,12 +417,16 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 	# Шина: широкое кольцо + шашки протектора.
 	_ring(pivot, radius * 0.975, radius * 0.62, half_w, _rubber, 30)
 	_tread(pivot)
+	# Борт шины — валик у обода, чтобы колесо читалось объёмным.
+	for side in [-1.0, 1.0]:
+		_torus(pivot, radius * 0.622, radius * 0.655, _rubber, Vector3.ZERO,
+			Vector3(side * 0.049, 0.0, 0.0), 26)
 	# Обод: диски по бокам, спицы, ступица.
 	for side in [-1.0, 1.0]:
 		# Обод — кольцо, а не сплошной диск: сквозь него видны спицы.
 		_ring(pivot, radius * 0.625, radius * 0.455, 0.011, rim_paint, 28,
 			Vector3(side * 0.042, 0.0, 0.0))
-		_torus(pivot, radius * 0.585, radius * 0.628, _rim, Vector3.ZERO,
+		_torus(pivot, radius * 0.600, radius * 0.622, _alu, Vector3.ZERO,
 			Vector3(side * 0.049, 0.0, 0.0), 28)
 	_spokes(pivot, radius * 0.47, 0.038, _alu)
 	_cyl(pivot, radius * 0.245, 0.088, Vector3.ZERO, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)

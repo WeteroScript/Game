@@ -102,7 +102,7 @@ func _rear_step(root: Node3D) -> void:
 
 func _rear_fender(root: Node3D) -> void:
 	var center := Vector3(0.0, 0.0, base * 0.5)
-	_fender(root, center, radius + 0.012, radius + 0.014, -18.0, 128.0, _plastic, 16, 0.010)
+	_fender(root, center, radius + 0.012, radius + 0.020, -18.0, 130.0, _plastic, 18, 0.014)
 	_plate_between(root, Vector3(ARM_X - 0.006, 0.050, base * 0.5 + 0.10),
 		Vector3(0.0, radius + 0.028, base * 0.5 + 0.06), 0.028, 0.012, _rim)
 
@@ -129,7 +129,7 @@ func _build_steer(root: Node3D) -> Node3D:
 	_stem(steer, rake, stem_top_z)
 	_wheel(steer, axle, "Wheel", true, -1.0, _rim)
 	# Переднее крыло (у F3 оно есть).
-	_fender(steer, axle, radius + 0.012, radius + 0.014, -20.0, 120.0, _plastic, 16, 0.010)
+	_fender(steer, axle, radius + 0.012, radius + 0.020, -20.0, 122.0, _plastic, 18, 0.014)
 	_plate_between(steer, Vector3(ARM_X, 0.06, axle.z + 0.06),
 		Vector3(0.0, radius + 0.03, axle.z + 0.10), 0.026, 0.012, _rim)
 
@@ -180,7 +180,7 @@ func _stem(steer: Node3D, rake: float, top_z: float) -> void:
 	# Большая оранжевая графика с белой стрелкой — визитная карточка F3.
 	var mid := bottom.lerp(top, 0.52)
 	for side in [-1.0, 1.0]:
-		_rbox(steer, Vector3(0.005, 0.46, 0.040), mid + Vector3(side * 0.024, 0.0, 0.0),
+		_rbox(steer, Vector3(0.005, 0.46, 0.022), mid + Vector3(side * 0.024, 0.0, 0.0),
 			_accent, Vector3(rake, 0.0, 0.0), 0.002)
 		_label(steer, spec.brand_text, mid + Vector3(side * 0.028, 0.010, 0.0),
 			Vector3(0.0, 90.0 * side, 90.0), 0.00040, Color(0.14, 0.14, 0.16))
