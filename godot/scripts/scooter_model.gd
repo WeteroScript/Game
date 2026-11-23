@@ -80,7 +80,7 @@ func _build(new_spec: ScooterSpec) -> Dictionary:
 
 func _make_materials() -> void:
 	_frame = _mat(spec.frame_color, 0.55, 0.35)
-	_accent = _mat(spec.accent_color, 0.35, 0.30)
+	_accent = _mat(spec.accent_color, 0.12, 0.46)
 	_susp = _mat(spec.suspension_color, 0.45, 0.35)
 	_dark = _mat(DARK_STEEL, 0.30, 0.62)
 	_plastic = _mat(Color(0.055, 0.058, 0.068), 0.10, 0.72)

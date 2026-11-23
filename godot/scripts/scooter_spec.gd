@@ -133,7 +133,7 @@ static func create_g4() -> ScooterSpec:
 
 	# По фото: серый gunmetal с оранжевыми шевронами и надписями.
 	s.frame_color = Color(0.33, 0.35, 0.38)
-	s.accent_color = Color(0.93, 0.45, 0.09)
+	s.accent_color = Color(1.00, 0.43, 0.06)
 	s.suspension_color = Color(0.36, 0.38, 0.41)
 	s.brand_text = "KUKIRIN G4"
 	s.front_fender = false
@@ -192,7 +192,7 @@ static func create_f3_pro_max() -> ScooterSpec:
 
 	# По фото: чёрный корпус, оранжевые рычаги подвески и кольца на дисках.
 	s.frame_color = Color(0.075, 0.075, 0.085)
-	s.accent_color = Color(0.96, 0.47, 0.10)
+	s.accent_color = Color(1.00, 0.40, 0.04)
 	s.suspension_color = Color(0.88, 0.44, 0.11)
 	s.brand_text = "KUGOO"
 	s.front_fender = true
