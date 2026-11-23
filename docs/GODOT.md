@@ -18,7 +18,7 @@ Android SDK ставится за минуту.
 | `ScooterSpec` | `scripts/scooter_spec.gd` |
 | `ScooterController` (Rigidbody + WheelCollider) | `scripts/scooter.gd` (`VehicleBody3D` + `VehicleWheel3D`) |
 | `WheelieController` | `scripts/wheelie.gd` |
-| `ScooterFactory` / `MeshUtil` | `scripts/scooter_model.gd` |
+| `ScooterFactory` / `MeshUtil` | `scripts/scooter_model.gd` (+ `rider_model.gd` — райдер) |
 | `TrackMap` / `CityMap` / `WorldBuilder` | `scripts/world_builder.gd` |
 | `CameraRig` | `scripts/camera_rig.gd` |
 | `TrickSystem` | `scripts/trick_system.gd` |
@@ -26,7 +26,7 @@ Android SDK ставится за минуту.
 | `MenuScreen` / `UiFactory` | `scripts/menu_screen.gd` / `scripts/ui_factory.gd` |
 | `InputController` | `scripts/input_state.gd` |
 | `GameRoot` / `GameBootstrap` | `scripts/game.gd` + `scenes/main.tscn` |
-| `ScooterAudio` | пока не портирован |
+| `ScooterAudio` | `scripts/scooter_audio.gd` (синтез, без файлов) |
 
 ## 3. Физика самоката
 
@@ -75,9 +75,22 @@ Android SDK ставится за минуту.
 Первые прогоны могут потребовать подстройки — например, если версия шаблонов экспорта не совпадёт
 с версией движка (`GODOT_VERSION` в workflow) или Android SDK попросит другую build-tools.
 
-## 5. Что осталось за кадром
+## 5. Скриншоты и как они снимаются
 
-* Звук мотора/ветра (`ScooterAudio.cs` в Unity) не портирован.
+В workflow есть отдельная задача `screenshots` (не блокирует APK):
+
+1. `godot --headless --import` — импорт.
+2. `xvfb-run godot --rendering-driver opengl3 --rendering-method gl_compatibility -- --shot`
+   — игра сама расставляет камеру и сохраняет PNG в `SHOT_DIR`.
+3. Кадры: `g4_*` и `f3_*` — пять ракурсов каждого самоката (спереди, сбоку, сзади, руль,
+   колесо), `menu.png`, `hud_drive.png`, `hud_wheelie.png`.
+4. Задача коммитит картинки в ветку `ci-screenshots` (force-push), чтобы их можно было
+   открыть с телефона.
+
+## 6. Что осталось за кадром
+
 * Ворота-чекпоинты Time Attack: в Godot-версии режим считает очки за дистанцию и время.
 * Модели процедурные; для замены на готовый меш достаточно положить `.glb` в `godot/models/`
   и вернуть его из `ScooterModel.build()`.
+* Звук синтетический: замена на записи — положить `.ogg` в `godot/audio/` и отдать его
+  `AudioStreamPlayer3D` вместо сгенерированных `AudioStreamWAV`.
