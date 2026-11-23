@@ -148,8 +148,8 @@ func _triangle_neck(steer: Node3D) -> void:
 	# Наклонная балка вдоль низа к рычагу.
 
 	# Чёрный кожух над колесом и брызговик.
-	_plate_between(steer, Vector3(0.0, 0.225, 0.085), Vector3(0.0, 0.055, -0.130),
-		0.080, 0.026, _plastic)
+	_rbox(steer, Vector3(0.084, 0.085, 0.075), Vector3(0.0, 0.115, 0.005), _plastic,
+		Vector3(deg_to_rad(-20.0), 0.0, 0.0), 0.008)
 	# Оранжевая накладка на стакане.
 	_rbox(steer, Vector3(0.030, 0.075, 0.010), Vector3(0.0, 0.245, 0.020), _accent,
 		Vector3(deg_to_rad(-26.0), 0.0, 0.0), 0.003)

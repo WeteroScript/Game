@@ -157,9 +157,9 @@ func _neck(steer: Node3D) -> void:
 		Vector3(deg_to_rad(-16.0), 0.0, 0.0), 0.012)
 	_rbox(steer, Vector3(0.098, 0.085, 0.070), Vector3(0.0, STEM_BASE_Y - 0.055, 0.030),
 		_paint, Vector3.ZERO, 0.010)
-	# Чёрный кожух вилки за колесом.
-	_plate_between(steer, Vector3(0.0, 0.235, 0.075), Vector3(0.0, 0.055, -0.115),
-		0.075, 0.028, _plastic)
+	# Компактный чёрный грязевик под стаканом.
+	_rbox(steer, Vector3(0.080, 0.075, 0.070), Vector3(0.0, 0.115, 0.020), _plastic,
+		Vector3(deg_to_rad(-18.0), 0.0, 0.0), 0.008)
 	# Фара в носу + оранжевая кромка.
 	_headlight(steer, Vector3(0.0, 0.245, 0.055), 0.030)
 	_rbox(steer, Vector3(0.088, 0.012, 0.014), Vector3(0.0, 0.175, 0.090), _accent,

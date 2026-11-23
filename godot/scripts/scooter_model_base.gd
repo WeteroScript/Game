@@ -419,11 +419,12 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 	_tread(pivot)
 	# Обод: диски по бокам, спицы, ступица.
 	for side in [-1.0, 1.0]:
-		_cyl(pivot, radius * 0.60, 0.016, Vector3(side * 0.042, 0.0, 0.0), rim_paint,
-			Vector3(0.0, 0.0, deg_to_rad(90.0)), 26)
-		_torus(pivot, radius * 0.565, radius * 0.615, rim_paint, Vector3.ZERO,
-			Vector3(side * 0.050, 0.0, 0.0), 26)
-	_spokes(pivot, radius * 0.575, 0.040, _alu)
+		# Обод — кольцо, а не сплошной диск: сквозь него видны спицы.
+		_ring(pivot, radius * 0.625, radius * 0.455, 0.011, rim_paint, 28,
+			Vector3(side * 0.042, 0.0, 0.0))
+		_torus(pivot, radius * 0.585, radius * 0.628, _alu, Vector3.ZERO,
+			Vector3(side * 0.049, 0.0, 0.0), 28)
+	_spokes(pivot, radius * 0.47, 0.038, _alu)
 	_cyl(pivot, radius * 0.30, 0.115, Vector3.ZERO, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)
 	for side in [-1.0, 1.0]:
 		_cyl(pivot, radius * 0.115, 0.012, Vector3(side * 0.062, 0.0, 0.0), _steel,
