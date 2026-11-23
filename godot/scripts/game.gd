@@ -40,6 +40,9 @@ var _smoke_timer := 0.0
 var _smoke_crashed := false
 var _smoke_phase := 0
 var _smoke_wheelie_on := false
+# Проверка знака руля: вправо (+) должен давать поворот по часовой (yaw вниз).
+var _steer_checked := false
+var _steer_yaw_start := 0.0
 
 # Перетаскивание камеры.
 var _camera_dragging := false
@@ -331,7 +334,21 @@ func _tick_smoke(delta: float) -> void:
 	# В вилли автотест держит газ ниже упора: так проверяется управление углом
 	# без намеренного переворота через заднее колесо.
 	input_state.touch_throttle = 0.75 if _smoke_wheelie_on else 1.0
-	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35
+	if _smoke_phase == 0 and not _steer_checked:
+		# Короткое окно с полным рулём вправо: смотрим, куда реально едет.
+		if _smoke_timer > 1.3:
+			if _steer_yaw_start == 0.0:
+				_steer_yaw_start = rad_to_deg(scooter.global_rotation.y) + 0.001
+			input_state.touch_steer = 1.0
+			if _smoke_timer > 2.0:
+				_steer_checked = true
+				var delta_yaw := rad_to_deg(scooter.global_rotation.y) - (_steer_yaw_start - 0.001)
+				print("SMOKE steer +1 (вправо) -> yaw=%.2f град (минус = вправо)" % delta_yaw)
+				input_state.touch_steer = 0.0
+		else:
+			input_state.touch_steer = 0.0
+	else:
+		input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35 if _smoke_phase == 0 else 0.0
 
 	if _smoke_phase == 0:
 		if not _smoke_wheelie_on and _smoke_timer > 3.0:
