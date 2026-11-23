@@ -84,7 +84,7 @@ func _make_materials() -> void:
 	_steel = _mat(STEEL, 0.95, 0.22)
 	_alu = _mat(ALU, 0.85, 0.30)
 	_rim = _mat(Color(0.16, 0.17, 0.19), 0.60, 0.34)
-	_screen = _mat(Color(0.01, 0.03, 0.05), 0.05, 0.12, SCREEN_LIGHT, 0.8)
+	_screen = _mat(Color(0.01, 0.03, 0.05), 0.05, 0.10, SCREEN_LIGHT, 0.45)
 	_lamp = _mat(Color(0.95, 0.93, 0.86), 0.15, 0.20, LAMP, 1.6)
 	_tail = _mat(Color(0.30, 0.03, 0.03), 0.10, 0.30, TAIL, 2.2)
 	_amber = _mat(Color(0.35, 0.18, 0.02), 0.10, 0.30, AMBER, 1.4)
@@ -422,15 +422,15 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 		# Обод — кольцо, а не сплошной диск: сквозь него видны спицы.
 		_ring(pivot, radius * 0.625, radius * 0.455, 0.011, rim_paint, 28,
 			Vector3(side * 0.042, 0.0, 0.0))
-		_torus(pivot, radius * 0.585, radius * 0.628, _alu, Vector3.ZERO,
+		_torus(pivot, radius * 0.585, radius * 0.628, _rim, Vector3.ZERO,
 			Vector3(side * 0.049, 0.0, 0.0), 28)
 	_spokes(pivot, radius * 0.47, 0.038, _alu)
-	_cyl(pivot, radius * 0.30, 0.115, Vector3.ZERO, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)
+	_cyl(pivot, radius * 0.245, 0.088, Vector3.ZERO, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)
 	for side in [-1.0, 1.0]:
-		_cyl(pivot, radius * 0.115, 0.012, Vector3(side * 0.062, 0.0, 0.0), _steel,
+		_cyl(pivot, radius * 0.095, 0.012, Vector3(side * 0.050, 0.0, 0.0), _steel,
 			Vector3(0.0, 0.0, deg_to_rad(90.0)), 6)
 	if motor:
-		_torus(pivot, radius * 0.30, radius * 0.345, _rim, Vector3.ZERO, Vector3.ZERO, 24)
+		_torus(pivot, radius * 0.245, radius * 0.285, _rim, Vector3.ZERO, Vector3.ZERO, 24)
 	if absf(disc_side) > 0.01:
 		_ring(pivot, radius * 0.42, radius * 0.24, 0.0035, _steel, 26,
 			Vector3(disc_side * 0.055, 0.0, 0.0))
@@ -572,27 +572,26 @@ func _dash(steer: Node3D, bar_y: float, bar_z: float, wide := 1.0) -> void:
 	_rbox(steer, Vector3(w * 1.06, 0.010, d * 1.15),
 		center + basis * Vector3(0.0, h * 0.5 + 0.004, 0.004), _plastic,
 		Vector3(tilt, 0.0, 0.0), 0.004)
-	# Экран.
-	var screen_pos := center + basis * Vector3(0.0, 0.004, -d * 0.5 - 0.002)
-	_rbox(steer, Vector3(w * 0.86, h * 0.62, 0.006), screen_pos, _screen,
+	# Экран смотрит на райдера (+Z), корпус с козырьком прикрывает его сверху.
+	var screen_pos := center + basis * Vector3(0.0, 0.006, d * 0.5 + 0.002)
+	_rbox(steer, Vector3(w * 0.90, h * 0.66, 0.006), screen_pos, _screen,
 		Vector3(tilt, 0.0, 0.0), 0.002)
-	# Цифры и подписи на экране.
-	var digits_pos := screen_pos + basis * Vector3(-w * 0.10, 0.0, -0.004)
-	_label(steer, "48", digits_pos, Vector3(-16.0, 0.0, 0.0), 0.0011,
-		Color(0.75, 0.98, 1.0), 64)
-	_label(steer, "KM/H", screen_pos + basis * Vector3(w * 0.26, -h * 0.12, -0.004),
-		Vector3(-16.0, 0.0, 0.0), 0.00035, Color(0.55, 0.90, 1.0))
-	_label(steer, "P", screen_pos + basis * Vector3(-w * 0.30, h * 0.20, -0.004),
-		Vector3(-16.0, 0.0, 0.0), 0.00032, Color(1.0, 0.55, 0.15))
+	var face := screen_pos + basis * Vector3(0.0, 0.0, 0.004)
+	_label(steer, "48", face + basis * Vector3(-w * 0.17, 0.004, 0.0),
+		Vector3(-16.0, 0.0, 0.0), 0.0010, Color(0.80, 0.98, 1.0), 64)
+	_label(steer, "KM/H", face + basis * Vector3(w * 0.26, -h * 0.10, 0.0),
+		Vector3(-16.0, 0.0, 0.0), 0.00028, Color(0.60, 0.92, 1.0))
+	_label(steer, "ECO", face + basis * Vector3(-w * 0.32, h * 0.16, 0.0),
+		Vector3(-16.0, 0.0, 0.0), 0.00026, Color(1.0, 0.62, 0.18))
 	# Индикатор батареи: четыре деления.
 	for i in 4:
-		_rbox(steer, Vector3(0.006, 0.010, 0.002),
-			screen_pos + basis * Vector3(w * (0.14 + 0.045 * float(i)), h * 0.22, -0.004),
+		_rbox(steer, Vector3(0.007, 0.011, 0.002),
+			face + basis * Vector3(w * (0.16 + 0.05 * float(i)), h * 0.18, 0.0),
 			_amber if i < 3 else _plastic, Vector3(tilt, 0.0, 0.0), 0.001)
 	# Кнопки под экраном.
 	for i in 3:
-		_cyl(steer, 0.006, 0.006,
-			screen_pos + basis * Vector3(w * (-0.22 + 0.13 * float(i)), -h * 0.42, -0.004),
+		_cyl(steer, 0.005, 0.005,
+			screen_pos + basis * Vector3(w * (-0.22 + 0.13 * float(i)), -h * 0.42, 0.004),
 			_alu, Vector3(deg_to_rad(-90.0 + 16.0), 0.0, 0.0), 12)
 	# Замок зажигания с ключом.
 	_cyl(steer, 0.014, 0.014, center + basis * Vector3(w * 0.5 + 0.012, 0.0, 0.0), _rim,

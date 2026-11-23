@@ -295,12 +295,12 @@ func _start_screenshots() -> void:
 	for yaw in [-70.0, 110.0]:
 		var fill := DirectionalLight3D.new()
 		fill.rotation = Vector3(deg_to_rad(-28.0), deg_to_rad(yaw), 0.0)
-		fill.light_energy = 0.85
+		fill.light_energy = 0.62
 		fill.shadow_enabled = false
 		add_child(fill)
 	for child in get_children():
 		if child is WorldEnvironment and child.environment != null:
-			child.environment.ambient_light_energy = 0.65
+			child.environment.ambient_light_energy = 0.55
 	menu.visible = false
 	hud.visible = false
 	# HUD не должен затирать виртуальные касания нулями при съёмке.
@@ -321,6 +321,7 @@ func _take_screenshots() -> void:
 		{"name": "rear", "offset": Vector3(-1.35, 0.78, 1.95), "look": Vector3(0.0, 0.50, 0.02), "fov": 34.0},
 		{"name": "bar", "offset": Vector3(0.62, 1.42, -0.85), "look": Vector3(0.0, 1.10, -0.28), "fov": 34.0},
 		{"name": "wheel", "offset": Vector3(0.70, 0.26, -0.95), "look": Vector3(0.0, 0.13, -0.50), "fov": 34.0},
+		{"name": "dash", "offset": Vector3(0.10, 1.34, 0.78), "look": Vector3(0.0, 1.10, -0.20), "fov": 34.0},
 		{"name": "deck", "offset": Vector3(0.78, 0.46, 0.16), "look": Vector3(0.0, 0.22, 0.02), "fov": 34.0},
 	]
 

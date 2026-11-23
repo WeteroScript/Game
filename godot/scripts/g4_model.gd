@@ -57,7 +57,7 @@ func _deck(root: Node3D) -> void:
 			Vector3(0.0, 90.0 * side, 0.0), 0.00026, Color(0.78, 0.80, 0.83))
 		# Шильдик с характеристиками.
 		_rbox(root, Vector3(0.004, 0.038, 0.085),
-			Vector3(x, deck_top * 0.42, z0 + 0.215), _alu, Vector3.ZERO, 0.002)
+			Vector3(x, deck_top * 0.42, z0 + 0.215), _rim, Vector3.ZERO, 0.002)
 	# Замок зажигания на борту у носа.
 	_cyl(root, 0.012, 0.010, Vector3(deck_w * 0.5 + 0.004, deck_top * 0.55, z0 - 0.19),
 		_steel, Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
@@ -74,7 +74,7 @@ func _rear_arm(root: Node3D) -> void:
 	_plate_between(root, pivot, axle, 0.062, 0.024, _paint)
 	_plate_between(root, pivot + Vector3(0.0, 0.0, 0.10), axle + Vector3(0.0, 0.03, 0.0),
 		0.030, 0.014, _paint)
-	_cyl(root, 0.021, 0.052, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
+	_cyl(root, 0.017, 0.040, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(root, 0.016, 0.060, axle, _alu, Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Наклейки на рычаге: шеврон и «G4».
 	_label(root, "G4", Vector3(pivot.x + 0.014, 0.055, pivot.z + 0.075),
@@ -169,7 +169,7 @@ func _neck(steer: Node3D) -> void:
 func _front_arm(steer: Node3D, axle: Vector3) -> void:
 	var pivot := Vector3(ARM_X, 0.135, -0.195)
 	_plate_between(steer, pivot, Vector3(ARM_X, 0.0, axle.z + 0.02), 0.062, 0.026, _paint)
-	_cyl(steer, 0.020, 0.050, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
+	_cyl(steer, 0.016, 0.038, pivot, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.015, 0.058, axle + Vector3(ARM_X, 0.0, 0.0), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 12)
 	# Амортизатор от стакана к рычагу.
