@@ -472,8 +472,15 @@ func _take_screenshots() -> void:
 	hud.visible = false
 	camera_rig.target = null
 	var stunt_origin: Vector3 = scooter.global_position
-	camera_rig.global_position = stunt_origin + Vector3(2.55, 0.95, 0.85)
-	camera_rig.look_at(stunt_origin + Vector3(0.0, 0.95, 0.15), Vector3.UP)
+	var stunt_target: Vector3 = stunt_origin + Vector3(0.0, 1.00, -0.10)
+	var stunt_eye: Vector3 = stunt_origin + Vector3(2.9, 1.05, 1.1)
+	camera_rig.global_position = stunt_eye
+	camera_rig.look_at(stunt_target, Vector3.UP)
+	print("SHOT stunt eye=%s target=%s scooter=%s yaw=%.1f pitch=%.1f wheelie=%s" % [
+		str(stunt_eye), str(stunt_target), str(stunt_origin),
+		rad_to_deg(scooter.global_rotation.y), scooter.pitch_deg,
+		str(scooter.wheelie.active if scooter.wheelie != null else false),
+	])
 	camera_rig.fov = 38.0
 	for frame in 3:
 		await get_tree().process_frame
