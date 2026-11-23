@@ -436,6 +436,8 @@ func _on_respawned() -> void:
 func _on_trick(trick_name: String, points: int) -> void:
 	if hud != null:
 		hud.show_trick(trick_name, points)
+	if scooter != null and scooter.audio != null:
+		scooter.audio.play_chime()
 
 
 # ---- финиш ------------------------------------------------------------------

@@ -204,8 +204,12 @@ func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
 		Vector3(steer * 0.015, neck_pos.y + HEAD_OFFSET, neck_pos.z - 0.02))
 
 	# Рюкзак за спиной, наклоняется вместе с корпусом.
-	_backpack.transform = Transform3D(Basis(Vector3.RIGHT, -lean),
-		hip_pos + Vector3(0.0, cos(lean) * TORSO_LENGTH * 0.58, sin(lean) * TORSO_LENGTH * 0.58 + 0.115))
+	# Рюкзак ставим вдоль спины: середина корпуса плюс пол-толщины и пол-рюкзака
+	# по нормали назад, иначе он висел в воздухе за спиной.
+	var torso_mid := hip_pos + Vector3(0.0, cos(lean) * TORSO_LENGTH * 0.55, -sin(lean) * TORSO_LENGTH * 0.55)
+	var back_dir := Vector3(0.0, sin(lean), cos(lean))
+	var pack_back := 0.185 * 0.5 + 0.12 * 0.5 + 0.015
+	_backpack.transform = Transform3D(Basis(Vector3.RIGHT, -lean), torso_mid + back_dir * pack_back)
 
 	# Кисти держатся за руль, пока райдер не упал.
 	var left_hand := _bar_point(_bar_left, Vector3(-0.01, -0.02, 0.0))

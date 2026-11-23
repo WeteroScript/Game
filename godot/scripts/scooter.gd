@@ -26,6 +26,7 @@ var bar_right: Node3D
 var foot_left: Node3D
 var foot_right: Node3D
 var rider: RiderModel
+var audio: ScooterAudio
 
 var wheelie: Wheelie
 
@@ -143,6 +144,9 @@ func _ready() -> void:
 
 	rider = RiderModel.create(spec.deck_height, spec.accent_color, bar_left, bar_right)
 	model["root"].add_child(rider)
+
+	audio = ScooterAudio.create(spec.top_speed_kmh)
+	add_child(audio)
 	respawn_position = global_position
 	respawn_basis = global_transform.basis
 
@@ -229,6 +233,7 @@ func _physics_process(delta: float) -> void:
 	if is_crashed:
 		_process_crash(delta)
 		_update_rider(delta)
+		_update_audio()
 		_update_wheel_visuals(delta)
 		return
 
@@ -243,6 +248,7 @@ func _physics_process(delta: float) -> void:
 	_update_battery(delta)
 	_check_failures()
 	_update_rider(delta)
+	_update_audio()
 	_update_wheel_visuals(delta)
 
 
@@ -514,6 +520,8 @@ func crash(reason: String) -> void:
 	is_crashed = true
 	crash_count += 1
 	crash_reason = reason
+	if audio != null:
+		audio.play_impact()
 	last_crash_reason = reason
 	crash_timer = 0.0
 	set_input_enabled(false)
@@ -554,6 +562,11 @@ func respawn() -> void:
 
 
 # ---- визуал -----------------------------------------------------------------
+func _update_audio() -> void:
+	if audio != null:
+		audio.update_state(speed_kmh(), throttle_input, is_grounded(), is_crashed)
+
+
 func _update_rider(delta: float) -> void:
 	if rider == null:
 		return
