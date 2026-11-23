@@ -175,7 +175,7 @@ func _limb(side: float, length: float, limb_radius: float, mat: Material) -> Nod
 
 # ---- поза --------------------------------------------------------------------
 func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
-		grounded: bool, crashed: bool) -> void:
+		grounded: bool, crashed: bool, pitch_deg := 0.0) -> void:
 	_time += delta
 	_crash_blend = move_toward(_crash_blend, 1.0 if crashed else 0.0, delta * 3.0)
 
@@ -233,7 +233,10 @@ func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
 	_foot["r"].transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-4.0)), foot_r + Vector3(0.0, -0.01, -0.05))
 
 	# Корпус поворачивается и наклоняется в поворот, падение — отдельная поза.
-	rotation = Vector3(0.0, -steer * deg_to_rad(4.0),
+	# На вилли и в прыжке райдер выпрямляется относительно земли: компенсируем
+	# большую часть тангажа самоката, иначе он «прибит» к деке.
+	var pitch_comp := clampf(-pitch_deg * 0.65, -35.0, 35.0) * (1.0 - _crash_blend)
+	rotation = Vector3(deg_to_rad(pitch_comp), -steer * deg_to_rad(4.0),
 		deg_to_rad(-steer * 4.0) * (1.0 - _crash_blend) + deg_to_rad(40.0) * _crash_blend)
 	position.y = sin(_time * 8.0) * 0.008 if not grounded and _crash_blend < 0.5 else 0.0
 

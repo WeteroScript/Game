@@ -77,8 +77,8 @@ const LOW_BATTERY_PERCENT := 8.0
 const LOW_BATTERY_POWER_SCALE := 0.4
 
 # ---- Камера -----------------------------------------------------------------
-const CAMERA_DISTANCE := 3.45
-const CAMERA_HEIGHT := 1.28
-const CAMERA_LOOK_AHEAD := 2.1
+const CAMERA_DISTANCE := 3.9
+const CAMERA_HEIGHT := 1.55
+const CAMERA_LOOK_AHEAD := 2.4
 const CAMERA_FOV_BASE := 62.0
 const CAMERA_FOV_MAX := 74.0

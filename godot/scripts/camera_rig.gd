@@ -47,8 +47,11 @@ func _process(delta: float) -> void:
 	_smooth_position = _smooth_position.lerp(desired, clampf(delta * 9.0, 0.0, 1.0))
 	global_position = _smooth_position
 
-	var look_point := target.global_position + Vector3.UP * 0.85 \
-		- target.global_transform.basis.z * (GameConfig.CAMERA_LOOK_AHEAD + speed_factor * 1.4)
+	# Точка взгляда строится по горизонтали: иначе на вилли камера задирается
+	# в небо вместе с носом самоката.
+	var flat_forward := -yaw_basis.z
+	var look_point := target.global_position + Vector3.UP * (0.95 + speed_factor * 0.1) \
+		+ flat_forward * (GameConfig.CAMERA_LOOK_AHEAD + speed_factor * 1.6)
 	var dir := look_point - global_position
 	if dir.length() > 0.05:
 		var wanted_basis := Basis.looking_at(dir.normalized(), Vector3.UP)

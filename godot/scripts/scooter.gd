@@ -571,7 +571,7 @@ func _update_rider(delta: float) -> void:
 	if rider == null:
 		return
 	rider.update_pose(delta, steer_input, maxf(brake_front_input, brake_rear_input),
-		speed_kmh(), is_grounded(), is_crashed)
+		speed_kmh(), is_grounded(), is_crashed, pitch_deg)
 
 
 func _update_wheel_visuals(delta: float) -> void:
