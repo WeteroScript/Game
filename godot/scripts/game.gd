@@ -300,7 +300,13 @@ func _start_screenshots() -> void:
 		add_child(fill)
 	for child in get_children():
 		if child is WorldEnvironment and child.environment != null:
-			child.environment.ambient_light_energy = 0.50
+			var env: Environment = child.environment
+			# Нейтральная засветка вместо неба: иначе серый корпус уходит в синеву,
+			# а на фото он тёплый нейтральный.
+			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+			env.ambient_light_color = Color(0.62, 0.62, 0.62)
+			env.ambient_light_energy = 0.52
+			env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	menu.visible = false
 	hud.visible = false
 	# HUD не должен затирать виртуальные касания нулями при съёмке.
