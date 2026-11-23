@@ -7,13 +7,16 @@
 class_name RiderModel
 extends Node3D
 
-const HIP_HEIGHT := 0.62
-const SHOULDER_HEIGHT := 1.06
-const HEAD_HEIGHT := 1.24
-const UPPER_ARM := 0.27
-const FOREARM := 0.26
-const THIGH := 0.34
-const SHIN := 0.32
+# Пропорции взрослого райдера: таз ~0.78 м над декой, плечи ~1.36 м,
+# руки 0.55 м — ровно чтобы дотянуться до руля с наклоном корпуса.
+const HIP_HEIGHT := 0.78
+const TORSO_LENGTH := 0.58
+const HEAD_OFFSET := 0.15
+const UPPER_ARM := 0.28
+const FOREARM := 0.27
+const THIGH := 0.42
+const SHIN := 0.40
+const LEAN_BASE_DEG := 22.0
 
 const SKIN := Color(0.78, 0.60, 0.47)
 const JACKET := Color(0.13, 0.16, 0.22)
@@ -91,8 +94,8 @@ func _build() -> void:
 	_hips = _job_sized("Hips", Vector3(0.26, 0.16, 0.19), pants)
 	_chest = _job()
 	var chest_mesh := BoxMesh.new()
-	chest_mesh.size = Vector3(0.34, SHOULDER_HEIGHT - HIP_HEIGHT, 0.21)
-	_chest_mesh = _mesh(_chest, chest_mesh, jacket, Vector3(0.0, -(SHOULDER_HEIGHT - HIP_HEIGHT) * 0.5, 0.0))
+	chest_mesh.size = Vector3(0.34, TORSO_LENGTH, 0.21)
+	_chest_mesh = _mesh(_chest, chest_mesh, jacket, Vector3(0.0, -TORSO_LENGTH * 0.5, 0.0))
 	# Плечи в цвет акцента.
 	for side in [-1.0, 1.0]:
 		var shoulder := BoxMesh.new()
@@ -168,65 +171,61 @@ func _limb(side: float, length: float, limb_radius: float, mat: Material) -> Nod
 func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
 		grounded: bool, crashed: bool) -> void:
 	_time += delta
-	var target_blend := 1.0 if crashed else 0.0
-	_crash_blend = move_toward(_crash_blend, target_blend, delta * 3.0)
+	_crash_blend = move_toward(_crash_blend, 1.0 if crashed else 0.0, delta * 3.0)
 
 	var brake_clamped := clampf(brake, 0.0, 1.0)
 	var speed_factor := clampf(speed_kmh / 55.0, 0.0, 1.0)
-	var crouch := clampf(brake_clamped * 0.9 + speed_factor * 0.25 + _crash_blend, 0.0, 1.0)
+	var crouch := clampf(brake_clamped * 0.9 + speed_factor * 0.2 + _crash_blend, 0.0, 1.0)
 
-	var hip_y := deck_top + HIP_HEIGHT - crouch * 0.11
-	var hip_z := 0.06 + crouch * 0.02
-	var shoulder_y := hip_y + (SHOULDER_HEIGHT - HIP_HEIGHT) * (1.0 - crouch * 0.12)
-	var shoulder_z := -0.02 - crouch * 0.06
+	# Наклон корпуса: чем быстрее и чем сильнее тормоз — тем ниже райдер.
+	var lean_deg := LEAN_BASE_DEG + speed_factor * 6.0 + crouch * 8.0
+	var lean := deg_to_rad(lean_deg)
 
-	# Лёгкое покачивание корпуса — райдер живой, а не манекен.
-	var sway := sin(_time * 6.0) * 0.006 * (0.4 + speed_factor)
-	var hips_pos := Vector3(0.0, hip_y + sway, hip_z)
-	_hips.transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-crouch * 12.0)), hips_pos)
+	var hip_y := deck_top + HIP_HEIGHT - crouch * 0.10 + sin(_time * 6.0) * 0.004
+	var hip_pos := Vector3(0.0, hip_y, 0.07)
+	_hips.transform = Transform3D(Basis(Vector3.RIGHT, -lean * 0.35), hip_pos)
 
-	var neck_pos := Vector3(0.0, shoulder_y, shoulder_z)
-	_aim(_chest, hips_pos + Vector3(0.0, 0.05, 0.0), neck_pos, _chest_mesh,
-		SHOULDER_HEIGHT - HIP_HEIGHT)
+	var neck_pos := hip_pos + Vector3(0.0, cos(lean) * TORSO_LENGTH, -sin(lean) * TORSO_LENGTH)
+	_aim(_chest, hip_pos + Vector3(0.0, 0.03, 0.0), neck_pos, _chest_mesh, TORSO_LENGTH)
 
-	# Голова смотрит вперёд и чуть в поворот.
-	_head.transform = Transform3D(Basis(Vector3.UP, -steer * deg_to_rad(9.0)).rotated(Vector3.RIGHT, deg_to_rad(-6.0 - crouch * 8.0)),
-		Vector3(steer * 0.02, shoulder_y + 0.16, shoulder_z - 0.03))
+	var shoulder_y := neck_pos.y - 0.05
+	var shoulder_z := neck_pos.z - 0.02
+
+	# Голова сидит на шее и смотрит вперёд, чуть в поворот.
+	var head_basis := Basis(Vector3.UP, -steer * deg_to_rad(10.0)) \
+		.rotated(Vector3.RIGHT, deg_to_rad(-(lean_deg - 14.0) * 0.5 - crouch * 6.0))
+	_head.transform = Transform3D(head_basis,
+		Vector3(steer * 0.015, neck_pos.y + HEAD_OFFSET, neck_pos.z - 0.02))
 
 	# Рюкзак за спиной, наклоняется вместе с корпусом.
-	_backpack.transform = Transform3D(
-		Basis(Vector3.RIGHT, deg_to_rad(-12.0 - crouch * 10.0)),
-		Vector3(0.0, shoulder_y - 0.16, shoulder_z + 0.20))
+	_backpack.transform = Transform3D(Basis(Vector3.RIGHT, -lean),
+		hip_pos + Vector3(0.0, cos(lean) * TORSO_LENGTH * 0.62, sin(lean) * TORSO_LENGTH * 0.62 + 0.20))
 
-	# Кисти: на руле, пока не упали.
-	var left_hand := _bar_point(_bar_left, Vector3(-0.02, -0.02, 0.0))
-	var right_hand := _bar_point(_bar_right, Vector3(0.02, -0.02, 0.0))
+	# Кисти держатся за руль, пока райдер не упал.
+	var left_hand := _bar_point(_bar_left, Vector3(-0.01, -0.02, 0.0))
+	var right_hand := _bar_point(_bar_right, Vector3(0.01, -0.02, 0.0))
 	if _crash_blend > 0.01:
-		var flail := Vector3(0.28, shoulder_y - 0.18, shoulder_z - 0.25)
-		left_hand = left_hand.lerp(flail * Vector3(1.0, 1.0, 1.0) + Vector3(-0.15, 0.0, 0.0), _crash_blend)
-		right_hand = right_hand.lerp(flail + Vector3(0.15, 0.0, 0.0), _crash_blend)
+		var flail := Vector3(0.0, shoulder_y - 0.15, shoulder_z - 0.32)
+		left_hand = left_hand.lerp(flail + Vector3(-0.30, 0.0, 0.0), _crash_blend)
+		right_hand = right_hand.lerp(flail + Vector3(0.30, 0.0, 0.0), _crash_blend)
 
-	var shoulder_l := Vector3(-0.175, shoulder_y - 0.02, shoulder_z)
-	var shoulder_r := Vector3(0.175, shoulder_y - 0.02, shoulder_z)
-	_solve_arm("l", shoulder_l, left_hand, Vector3(-1.0, 0.2, 0.6))
-	_solve_arm("r", shoulder_r, right_hand, Vector3(1.0, 0.2, 0.6))
+	var shoulder_l := Vector3(-0.175, shoulder_y, shoulder_z)
+	var shoulder_r := Vector3(0.175, shoulder_y, shoulder_z)
+	_solve_arm("l", shoulder_l, left_hand, Vector3(-1.0, 0.25, 0.7))
+	_solve_arm("r", shoulder_r, right_hand, Vector3(1.0, 0.25, 0.7))
 
-	# Ноги: стопы на деке, колени чуть вперёд (сгибаются при торможении).
+	# Ноги: стопы на деке, колени чуть вперёд и сгибаются при торможении.
 	var foot_l := Vector3(-0.075, deck_top + 0.035, -0.02)
-	var foot_r := Vector3(0.075, deck_top + 0.035, 0.16)
-	_solve_leg("l", Vector3(-0.09, hip_y - 0.03, hip_z), foot_l)
-	_solve_leg("r", Vector3(0.09, hip_y - 0.03, hip_z), foot_r)
+	var foot_r := Vector3(0.075, deck_top + 0.035, 0.17)
+	_solve_leg("l", Vector3(-0.095, hip_y - 0.02, hip_pos.z), foot_l)
+	_solve_leg("r", Vector3(0.095, hip_y - 0.02, hip_pos.z), foot_r)
+	_foot["l"].transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-4.0)), foot_l + Vector3(0.0, -0.01, -0.05))
+	_foot["r"].transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-4.0)), foot_r + Vector3(0.0, -0.01, -0.05))
 
-	_foot["l"].transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-4.0)), foot_l + Vector3(0.0, 0.0, -0.06))
-	_foot["r"].transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-4.0)), foot_r + Vector3(0.0, 0.0, -0.06))
-
-	# Корпус наклоняется в поворот вместе с самокатом.
-	var lean := deg_to_rad(-steer * 4.0)
-	rotation = Vector3(0.0, -steer * deg_to_rad(3.0), lean * (1.0 - _crash_blend) + deg_to_rad(38.0) * _crash_blend)
-	if not grounded:
-		position.y = sin(_time * 8.0) * 0.01
-	else:
-		position.y = 0.0
+	# Корпус поворачивается и наклоняется в поворот, падение — отдельная поза.
+	rotation = Vector3(0.0, -steer * deg_to_rad(4.0),
+		deg_to_rad(-steer * 4.0) * (1.0 - _crash_blend) + deg_to_rad(40.0) * _crash_blend)
+	position.y = sin(_time * 8.0) * 0.008 if not grounded and _crash_blend < 0.5 else 0.0
 
 
 func _bar_point(marker: Node3D, offset: Vector3) -> Vector3:

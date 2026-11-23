@@ -29,7 +29,7 @@ var wheel_radius := 0.14
 var wheel_base := 1.06
 var deck_length := 0.51
 ## Высота настила над осями колёс (для модели).
-var deck_height := 0.14
+var deck_height := 0.075
 var deck_width := 0.22
 
 var battery_wh := 1200.0
@@ -98,7 +98,7 @@ static func create_g4() -> ScooterSpec:
 	s.wheel_radius = 0.5 * 11.0 * 0.0254
 	s.wheel_base = 1.06
 	s.deck_length = 0.51
-	s.deck_height = 0.14
+	s.deck_height = 0.075
 	s.deck_width = 0.22
 	s.battery_wh = s.battery_voltage * s.battery_amp_hours
 	s.gear_top_speeds_kmh = [20.0, 40.0, 70.0]
@@ -152,7 +152,7 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.wheel_radius = 0.5 * 10.0 * 0.0254
 	s.wheel_base = 1.0
 	s.deck_length = 0.48
-	s.deck_height = 0.13
+	s.deck_height = 0.07
 	s.deck_width = 0.21
 	s.battery_wh = s.battery_voltage * s.battery_amp_hours
 	s.gear_top_speeds_kmh = [30.0, 51.0, 66.0]
