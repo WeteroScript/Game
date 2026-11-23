@@ -210,11 +210,14 @@ func _front_assembly(root: Node3D) -> Node3D:
 	_box(steer, Vector3(0.016, 0.02, 0.075), Vector3(0.0, 0.60, 0.085), _accent,
 		Vector3(deg_to_rad(-28.0), 0.0, 0.0))
 
-	# Деколь бренда вдоль стойки (с двух сторон).
-	var stem_decal_pos := stem_bottom.lerp(stem_top, 0.62)
+	# Цветная полоса на стойке (как на фото) и деколь бренда вдоль неё.
+	var stem_mid := stem_bottom.lerp(stem_top, 0.55)
 	for side in [-1.0, 1.0]:
-		_label(steer, spec.brand_text, stem_decal_pos + Vector3(side * 0.028, 0.0, 0.0),
-			Vector3(0.0, 90.0 * side, 90.0), 0.0008, spec.accent_color)
+		_box(steer, Vector3(0.006, 0.34, 0.036),
+			stem_mid + Vector3(side * 0.027, 0.0, 0.0), _accent,
+			Vector3(deg_to_rad(5.0), 0.0, 0.0))
+		_label(steer, spec.brand_text, stem_mid + Vector3(side * 0.031, 0.02, 0.0),
+			Vector3(0.0, 90.0 * side, 90.0), 0.00055, Color(0.96, 0.96, 0.97))
 
 	# Руль: поперечина, грипсы, ручки тормоза, дисплей, фара, звонок.
 	var bar_y := stem_top.y

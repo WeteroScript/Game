@@ -302,17 +302,23 @@ func _take_screenshots() -> void:
 
 	# offset — где стоит камера, look — куда смотрит, fov — угол.
 	var shots := [
-		{"name": "front", "offset": Vector3(1.05, 0.72, -1.75), "look": Vector3(0.0, 0.48, -0.15), "fov": 42.0},
-		{"name": "side", "offset": Vector3(2.05, 0.52, 0.05), "look": Vector3(0.0, 0.44, 0.0), "fov": 40.0},
-		{"name": "rear", "offset": Vector3(-1.05, 0.95, 1.55), "look": Vector3(0.0, 0.5, 0.1), "fov": 42.0},
-		{"name": "bar", "offset": Vector3(0.62, 1.18, -0.95), "look": Vector3(0.0, 0.86, -0.38), "fov": 38.0},
-		{"name": "wheel", "offset": Vector3(0.85, 0.30, -0.95), "look": Vector3(0.0, 0.12, -0.5), "fov": 40.0},
+		{"name": "front", "offset": Vector3(0.90, 0.58, -1.40), "look": Vector3(0.0, 0.42, -0.10), "fov": 36.0},
+		{"name": "side", "offset": Vector3(1.80, 0.42, 0.0), "look": Vector3(0.0, 0.38, 0.0), "fov": 34.0},
+		{"name": "rear", "offset": Vector3(-0.90, 0.80, 1.30), "look": Vector3(0.0, 0.44, 0.06), "fov": 36.0},
+		{"name": "bar", "offset": Vector3(0.50, 1.06, -0.60), "look": Vector3(0.0, 0.94, -0.26), "fov": 34.0},
+		{"name": "wheel", "offset": Vector3(0.58, 0.26, -0.86), "look": Vector3(0.0, 0.12, -0.53), "fov": 34.0},
+		{"name": "deck", "offset": Vector3(0.80, 0.50, 0.10), "look": Vector3(0.0, 0.14, -0.02), "fov": 34.0},
 	]
 
 	for spec_id in ["g4", "f3"]:
 		_build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
 		camera_rig.target = null
 		await get_tree().create_timer(0.8).timeout
+		# Сначала чистые кадры самой модели (без райдера), потом — с ним.
+		var rider_node: Node3D = null
+		if scooter != null and scooter.rider != null:
+			rider_node = scooter.rider
+			rider_node.visible = false
 		for index in shots.size():
 			var shot: Dictionary = shots[index]
 			var origin: Vector3 = scooter.global_position
@@ -327,6 +333,18 @@ func _take_screenshots() -> void:
 			var path := "%s/%s_%d_%s.png" % [shot_dir, spec_id, index, shot["name"]]
 			var error := image.save_png(path)
 			print("SHOT %s err=%d" % [path, error])
+
+		# Кадр с райдером.
+		if rider_node != null:
+			rider_node.visible = true
+			var origin2: Vector3 = scooter.global_position
+			camera_rig.global_position = origin2 + Vector3(1.35, 0.95, -1.75)
+			camera_rig.look_at(origin2 + Vector3(0.0, 0.92, -0.1), Vector3.UP)
+			camera_rig.fov = 38.0
+			for frame in 6:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			_save_shot(shot_dir, "%s_rider" % spec_id)
 
 	# Меню: проверяем вёрстку кнопок и карточку характеристик.
 	_enter_menu()
