@@ -87,11 +87,11 @@ func _setup_environment() -> void:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.65
+	env.ambient_light_energy = 0.32
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.72, 0.8, 0.88)
-	env.fog_density = 0.005
+	env.fog_density = 0.0012
 	env.glow_enabled = true
 	env.glow_intensity = 0.5
 
@@ -100,8 +100,8 @@ func _setup_environment() -> void:
 	add_child(world_environment)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation = Vector3(deg_to_rad(-52.0), deg_to_rad(38.0), 0.0)
-	sun.light_energy = 1.2
+	sun.rotation = Vector3(deg_to_rad(-46.0), deg_to_rad(-38.0), 0.0)
+	sun.light_energy = 1.45
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 140.0
 	add_child(sun)
@@ -298,26 +298,31 @@ func _take_screenshots() -> void:
 		shot_dir = "/tmp/kugoo-shots"
 	DirAccess.make_dir_recursive_absolute(shot_dir)
 
-	var offsets := [
-		Vector3(1.45, 0.95, -2.35),
-		Vector3(2.55, 0.75, 0.35),
-		Vector3(-1.15, 1.35, 2.35),
+	# offset — где стоит камера, look — куда смотрит, fov — угол.
+	var shots := [
+		{"name": "front", "offset": Vector3(1.05, 0.72, -1.75), "look": Vector3(0.0, 0.48, -0.15), "fov": 42.0},
+		{"name": "side", "offset": Vector3(2.05, 0.52, 0.05), "look": Vector3(0.0, 0.44, 0.0), "fov": 40.0},
+		{"name": "rear", "offset": Vector3(-1.05, 0.95, 1.55), "look": Vector3(0.0, 0.5, 0.1), "fov": 42.0},
+		{"name": "bar", "offset": Vector3(0.62, 1.18, -0.95), "look": Vector3(0.0, 0.86, -0.38), "fov": 38.0},
+		{"name": "wheel", "offset": Vector3(0.85, 0.30, -0.95), "look": Vector3(0.0, 0.12, -0.5), "fov": 40.0},
 	]
 
 	for spec_id in ["g4", "f3"]:
 		_build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
 		camera_rig.target = null
 		await get_tree().create_timer(0.8).timeout
-		for index in offsets.size():
-			var center: Vector3 = scooter.global_position + Vector3.UP * 0.62
-			camera_rig.global_position = center + offsets[index]
-			camera_rig.look_at(center, Vector3.UP)
-			camera_rig.fov = 48.0
+		for index in shots.size():
+			var shot: Dictionary = shots[index]
+			var origin: Vector3 = scooter.global_position
+			var look_point: Vector3 = origin + shot["look"]
+			camera_rig.global_position = origin + shot["offset"]
+			camera_rig.look_at(look_point, Vector3.UP)
+			camera_rig.fov = shot["fov"]
 			for frame in 4:
 				await get_tree().process_frame
 			await RenderingServer.frame_post_draw
 			var image := get_viewport().get_texture().get_image()
-			var path := "%s/%s_%d.png" % [shot_dir, spec_id, index]
+			var path := "%s/%s_%d_%s.png" % [shot_dir, spec_id, index, shot["name"]]
 			var error := image.save_png(path)
 			print("SHOT %s err=%d" % [path, error])
 

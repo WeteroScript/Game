@@ -113,6 +113,12 @@ func _body(root: Node3D) -> Node3D:
 			_box(body, Vector3(0.008, 0.016, 0.26),
 				Vector3(side * (spec.deck_width * 0.5 + 0.004), deck_top - 0.075, 0.10), _accent)
 
+	# «Шея» — переход от деки к рулевой колонке.
+	_cyl_between(body, Vector3(0.0, deck_top - 0.035, -board_length * 0.5 + 0.08),
+		Vector3(0.0, 0.30, -base * 0.5 + 0.03), 0.045, _frame)
+	_box(body, Vector3(spec.deck_width * 0.72, 0.06, 0.10),
+		Vector3(0.0, deck_top - 0.02, -board_length * 0.5 + 0.03), _accent)
+
 	# Задняя подвеска: два амортизатора от деки к оси.
 	for side in [-1.0, 1.0]:
 		_cyl_between(body, Vector3(side * 0.075, deck_top - 0.10, base * 0.5 - 0.20),
@@ -123,6 +129,11 @@ func _body(root: Node3D) -> Node3D:
 	# Подножка (сложена вдоль деки).
 	_cyl_between(body, Vector3(0.085, deck_top - 0.08, 0.28),
 		Vector3(0.115, -radius * 0.35, 0.34), 0.008, _steel)
+
+	# Брызговик под задним крылом.
+	_box(body, Vector3(spec.deck_width * 0.8, 0.09, 0.012),
+		Vector3(0.0, -radius * 0.35, base * 0.5 + radius + 0.01), _rubber,
+		Vector3(deg_to_rad(-14.0), 0.0, 0.0))
 
 	# Заднее крыло над колесом.
 	_fender(body, Vector3(0.0, 0.0, base * 0.5), radius + 0.018, spec.deck_width + 0.02, -25.0, 105.0, _frame)
@@ -184,6 +195,13 @@ func _front_assembly(root: Node3D) -> Node3D:
 	_box(steer, Vector3(0.02, 0.014, 0.055),
 		Vector3(0.19, bar_height + 0.028, bar_z - 0.02), _accent)
 
+	# Шильдик на стойке.
+	_box(steer, Vector3(0.012, 0.10, 0.045), Vector3(0.0, 0.62, 0.062), _accent,
+		Vector3(deg_to_rad(11.0), 0.0, 0.0))
+	# Тросик тормоза вдоль стойки.
+	_cyl_between(steer, Vector3(0.028, 0.90, 0.09), Vector3(0.05, 0.45, 0.04), 0.005, _rubber)
+	_cyl_between(steer, Vector3(0.05, 0.45, 0.04), Vector3(0.045, 0.16, 0.0), 0.005, _rubber)
+
 	# Дисплей-панель по центру.
 	_box(steer, Vector3(0.105, 0.05, 0.035), Vector3(0.0, bar_height + 0.032, bar_z - 0.005), _dark)
 	_box(steer, Vector3(0.08, 0.034, 0.006), Vector3(0.0, bar_height + 0.034, bar_z - 0.024), _screen)
@@ -213,11 +231,14 @@ func _wheel_pivot(parent: Node3D, pos: Vector3, node_name: String, motor: bool) 
 	parent.add_child(pivot)
 
 	# Покрышка (тор) + обод + ступица.
-	_torus(pivot, radius * 0.62, radius, _rubber)
+	_torus(pivot, radius * 0.55, radius, _rubber)
 	_cyl(pivot, radius * 0.60, 0.055, Vector3.ZERO, _steel, Vector3(0.0, 0.0, deg_to_rad(90.0)))
 	_cyl(pivot, radius * 0.58, 0.020, Vector3.ZERO, _dark, Vector3(0.0, 0.0, deg_to_rad(90.0)))
 
 	if motor:
+		# Задний тормозной диск и хаб-мотор.
+		_cyl(pivot, radius * 0.44, 0.006, Vector3(-0.05, 0.0, 0.0), _steel,
+			Vector3(0.0, 0.0, deg_to_rad(90.0)))
 		# Хаб-мотор: толстая ступица с акцентным кольцом.
 		_cyl(pivot, radius * 0.30, 0.075, Vector3.ZERO, _dark, Vector3(0.0, 0.0, deg_to_rad(90.0)))
 		_torus(pivot, radius * 0.32, radius * 0.40, _accent, Vector3.ZERO)

@@ -25,6 +25,7 @@ var bar_left: Node3D
 var bar_right: Node3D
 var foot_left: Node3D
 var foot_right: Node3D
+var rider: RiderModel
 
 var wheelie: Wheelie
 
@@ -139,6 +140,9 @@ func _ready() -> void:
 	bar_right = model["bar_right"]
 	foot_left = model["foot_left"]
 	foot_right = model["foot_right"]
+
+	rider = RiderModel.create(spec.deck_height, spec.accent_color, bar_left, bar_right)
+	model["root"].add_child(rider)
 	respawn_position = global_position
 	respawn_basis = global_transform.basis
 
@@ -224,6 +228,7 @@ func _physics_process(delta: float) -> void:
 
 	if is_crashed:
 		_process_crash(delta)
+		_update_rider(delta)
 		_update_wheel_visuals(delta)
 		return
 
@@ -237,6 +242,7 @@ func _physics_process(delta: float) -> void:
 	_tick_wheelie(delta)
 	_update_battery(delta)
 	_check_failures()
+	_update_rider(delta)
 	_update_wheel_visuals(delta)
 
 
@@ -548,6 +554,13 @@ func respawn() -> void:
 
 
 # ---- визуал -----------------------------------------------------------------
+func _update_rider(delta: float) -> void:
+	if rider == null:
+		return
+	rider.update_pose(delta, steer_input, maxf(brake_front_input, brake_rear_input),
+		speed_kmh(), is_grounded(), is_crashed)
+
+
 func _update_wheel_visuals(delta: float) -> void:
 	var spin_delta := (speed_mps / maxf(0.02, spec.wheel_radius)) * delta
 	_front_spin += spin_delta
