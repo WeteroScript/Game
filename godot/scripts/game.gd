@@ -349,10 +349,11 @@ func _tick_smoke(delta: float) -> void:
 		else:
 			input_state.touch_steer = 0.0
 	elif _smoke_phase == 0 and not _steer_fixed:
-		# Возвращаем самокат на курс после пробы руля.
+		# Возвращаем самокат на курс после пробы руля. Знак: yaw < 0 — уехали
+		# вправо, значит рулим влево (steer < 0), и наоборот.
 		var heading := rad_to_deg(scooter.global_rotation.y)
 		if absf(heading) > 2.0:
-			input_state.touch_steer = -signf(heading)
+			input_state.touch_steer = clampf(heading * 0.03, -0.45, 0.45)
 		else:
 			_steer_fixed = true
 			input_state.touch_steer = 0.0
