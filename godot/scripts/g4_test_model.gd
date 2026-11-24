@@ -785,99 +785,131 @@ func _spring(parent: Node3D, node_name: String, from: Vector3, to: Vector3,
 
 # ---- колесо -------------------------------------------------------------------
 func _tire_profile() -> Array:
-	# Замкнутый контур покрышки: борт → боковина → протектор → обратно.
+	# Замкнутый контур покрышки: борт с гребешком, боковина, плечо, беговая дорожка.
 	return [
-		Vector2(0.100, 0.032), Vector2(0.112, 0.038), Vector2(0.126, 0.040),
-		Vector2(0.138, 0.036), Vector2(0.147, 0.026), Vector2(0.1525, 0.012),
-		Vector2(0.1525, -0.012), Vector2(0.147, -0.026), Vector2(0.138, -0.036),
-		Vector2(0.126, -0.040), Vector2(0.112, -0.038), Vector2(0.100, -0.032),
-		Vector2(0.094, -0.022), Vector2(0.094, 0.022),
+		Vector2(0.0995, 0.0295), Vector2(0.1035, 0.0335), Vector2(0.1085, 0.0330),
+		Vector2(0.1125, 0.0358), Vector2(0.1260, 0.0388), Vector2(0.1380, 0.0368),
+		Vector2(0.1470, 0.0278), Vector2(0.1522, 0.0158), Vector2(0.1535, 0.0000),
+		Vector2(0.1522, -0.0158), Vector2(0.1470, -0.0278), Vector2(0.1380, -0.0368),
+		Vector2(0.1260, -0.0388), Vector2(0.1125, -0.0358), Vector2(0.1085, -0.0330),
+		Vector2(0.1035, -0.0335), Vector2(0.0995, -0.0295), Vector2(0.0935, -0.0230),
+		Vector2(0.0935, 0.0230),
 	]
-
-
 func _tread(parent: Node3D) -> void:
+	# Направленный рисунок: две дорожки центральных шашек с канавкой по центру,
+	# плечевые грунтозацепы и мелкая насечка на плече.
 	var count := 26
 	for i in count:
 		var ang := TAU * float(i) / float(count)
 		for s in [-1.0, 1.0]:
-			var tilt := 0.30 * float(s)
-			var b := Basis(Vector3.RIGHT, ang) * Basis(Vector3.UP, tilt)
-			# центральная шашка
-			var mid := b * Vector3(0.0, 0.1525, 0.0) + Vector3(0.013 * float(s), 0.0, 0.0)
-			_box(parent, "TreadCenter", Vector3(0.023, 0.0025, 0.017), Transform3D(b, mid), _m_rubber)
-			# плечевая шашка
-			var shoulder := b * Vector3(0.0, 0.1486, 0.0) + Vector3(0.030 * float(s), 0.0, 0.0)
-			_box(parent, "TreadShoulder", Vector3(0.013, 0.0025, 0.016), Transform3D(b, shoulder), _m_rubber)
-
-
+			var b := Basis(Vector3.RIGHT, ang) * Basis(Vector3.UP, 0.30 * float(s))
+			var mid := b * Vector3(0.0, 0.1528, 0.0) + Vector3(0.0125 * float(s), 0.0, 0.0)
+			_box(parent, "TreadCenter", Vector3(0.0220, 0.0025, 0.0165), Transform3D(b, mid), _m_rubber)
+			var shoulder := b * Vector3(0.0, 0.1492, 0.0) + Vector3(0.0305 * float(s), 0.0, 0.0)
+			_box(parent, "TreadShoulder", Vector3(0.0135, 0.0030, 0.0150), Transform3D(b, shoulder), _m_rubber)
+			var bevel := b * Vector3(0.0, 0.1435, 0.0) + Vector3(0.0368 * float(s), 0.0, 0.0)
+			_box(parent, "TreadBevel", Vector3(0.0075, 0.0022, 0.0090), Transform3D(b, bevel), _m_rubber)
 func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 	var tire := _node(parent, "Tire")
 	_lathe(tire, "Carcass", _m_rubber, _tire_profile(), 56)
 	_tread(tire)
 
+	# Обод: два бортовых кольца, пять сдвоенных спиц, лицо обода.
 	var rim := _node(parent, "Rim")
 	var axis := Basis(Vector3.BACK, PI * 0.5)
-	_cyl(rim, "FlangeL", 0.1015, 0.008, Transform3D(axis, Vector3(0.028, 0.0, 0.0)), _m_black, -1.0, 40)
-	_cyl(rim, "FlangeR", 0.1015, 0.008, Transform3D(axis, Vector3(-0.028, 0.0, 0.0)), _m_black, -1.0, 40)
+	_cyl(rim, "FlangeL", 0.1015, 0.0075, Transform3D(axis, Vector3(0.0285, 0.0, 0.0)), _m_black, -1.0, 44)
+	_cyl(rim, "FlangeR", 0.1015, 0.0075, Transform3D(axis, Vector3(-0.0285, 0.0, 0.0)), _m_black, -1.0, 44)
+	_lathe(rim, "RimLip", [
+		Vector2(0.0985, 0.0300), Vector2(0.1035, 0.0300),
+		Vector2(0.1035, 0.0240), Vector2(0.0985, 0.0240),
+	], 44, Transform3D(Basis.IDENTITY, Vector3.ZERO))
+	_lathe(rim, "RimLipR", [
+		Vector2(0.0985, -0.0240), Vector2(0.1035, -0.0240),
+		Vector2(0.1035, -0.0300), Vector2(0.0985, -0.0300),
+	], 44, Transform3D(Basis.IDENTITY, Vector3.ZERO))
 	for i in 5:
 		var ang := TAU * float(i) / 5.0
 		var dir := Vector3(0.0, cos(ang), sin(ang))
 		var tang := Vector3(0.0, -sin(ang), cos(ang))
 		for s in [-1.0, 1.0]:
-			var p0 := dir * 0.028 + tang * (0.009 * float(s))
-			var p1 := dir * 0.062 + tang * (0.024 * float(s))
-			var p2 := dir * 0.088 + tang * (0.030 * float(s))
+			# сдвоенная спица: две ветви от ступицы к ободу
+			var p0 := dir * 0.030 + tang * (0.010 * float(s))
+			var p1 := dir * 0.064 + tang * (0.026 * float(s))
+			var p2 := dir * 0.090 + tang * (0.034 * float(s))
 			_sweep(rim, "Spoke", _m_black, [p0, p1, p2],
-				[0.030, 0.048, 0.066], [0.020, 0.018, 0.015], [0.005, 0.005, 0.004],
+				[0.017, 0.024, 0.032], [0.019, 0.017, 0.014], [0.004, 0.004, 0.003],
 				Vector3.RIGHT)
-		# ступичная площадка спицы
-		_box(rim, "SpokePad", Vector3(0.026, 0.030, 0.024),
-			Transform3D(Basis(Vector3.RIGHT, ang), dir * 0.082), _m_black)
+		# перемычка у обода и литой «палец» у ступицы
+		_box(rim, "SpokeBridge", Vector3(0.030, 0.030, 0.016),
+			Transform3D(Basis(Vector3.RIGHT, ang), dir * 0.0855), _m_black)
+		_box(rim, "SpokeFoot", Vector3(0.014, 0.020, 0.020),
+			Transform3D(Basis(Vector3.RIGHT, ang), dir * 0.034), _m_black)
+		_bolt(rim, "SpokeBolt", Vector3(0.014, cos(ang) * 0.0825, sin(ang) * 0.0825),
+			Vector3.RIGHT, 0.0035, 0.008, _m_steel)
+	# лицо обода: кольцо с фаской
+	_lathe(rim, "FaceRing", [
+		Vector2(0.086, 0.0130), Vector2(0.0965, 0.0130),
+		Vector2(0.0965, 0.0175), Vector2(0.086, 0.0175),
+	], 44)
 
+	# Ступица.
 	var hub := _node(parent, "Hub")
-	_cyl(hub, "HubBody", 0.041, 0.082, Transform3D(axis, Vector3.ZERO), _m_black, -1.0, 28)
+	_cyl(hub, "HubBody", 0.040, 0.080, Transform3D(axis, Vector3.ZERO), _m_black, -1.0, 28)
+	_cyl(hub, "HubFace", 0.0345, 0.010, Transform3D(axis, Vector3(0.045, 0.0, 0.0)), _m_black_d, -1.0, 28)
+	_cyl(hub, "HubFaceR", 0.0345, 0.010, Transform3D(axis, Vector3(-0.045, 0.0, 0.0)), _m_black_d, -1.0, 28)
 	if motor:
-		_cyl(hub, "MotorShell", 0.053, 0.096, Transform3D(axis, Vector3.ZERO), _m_black, -1.0, 32)
-		for i in 3:
-			_cyl(hub, "MotorFin", 0.056, 0.004,
-				Transform3D(axis, Vector3(-0.030 + i * 0.030, 0.0, 0.0)), _m_black_d, -1.0, 32)
-		_cyl(hub, "MotorCover", 0.048, 0.006, Transform3D(axis, Vector3(0.050, 0.0, 0.0)), _m_black_d, -1.0, 32)
-		_decal(hub, "MotorLabel", "1000W", 0.008, Color(0.72, 0.74, 0.78),
-			Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0.054, 0.0, 0.024)))
-	# ось и гайки
-	_cyl(hub, "Axle", 0.010, 0.180, Transform3D(axis, Vector3.ZERO), _m_steel, -1.0, 12)
-	_bolt(hub, "AxleNutL", Vector3(0.084, 0.0, 0.0), Vector3.RIGHT, 0.014, 0.016, _m_steel)
-	_bolt(hub, "AxleNutR", Vector3(-0.084, 0.0, 0.0), Vector3.LEFT, 0.014, 0.016, _m_steel)
-	_cyl(hub, "Valve", 0.004, 0.020, Transform3D(Basis(Vector3.BACK, PI * 0.35),
-		Vector3(0.026, 0.0, 0.070)), _m_steel, -1.0, 8)
+		_cyl(hub, "MotorShell", 0.0555, 0.098, Transform3D(axis, Vector3.ZERO), _m_black, -1.0, 32)
+		# рёбра охлаждения по всей окружности
+		for i in 12:
+			var a := TAU * float(i) / 12.0
+			_box(hub, "MotorFin", Vector3(0.086, 0.004, 0.008),
+				Transform3D(Basis(Vector3.RIGHT, a), Vector3(0.0, cos(a) * 0.0555, sin(a) * 0.0555)),
+				_m_black_d)
+		_cyl(hub, "MotorCover", 0.0485, 0.006, Transform3D(axis, Vector3(0.051, 0.0, 0.0)), _m_black_d, -1.0, 32)
+		_cyl(hub, "MotorRing", 0.0500, 0.003, Transform3D(axis, Vector3(0.055, 0.0, 0.0)), _m_alu, -1.0, 32)
+		_decal(hub, "MotorLabel", "1000W", 0.008, Color(0.70, 0.72, 0.76),
+			Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0.0575, 0.0, 0.022)))
+		# вывод кабеля с громметом
+		_cyl(hub, "CableBoss", 0.010, 0.016,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.040, -0.030, -0.042)), _m_black_d, -1.0, 12)
+		_cyl(hub, "CableGrommet", 0.0065, 0.008,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.049, -0.030, -0.042)), _m_plastic, -1.0, 10)
+	for i in 5:
+		var a := TAU * float(i) / 5.0
+		_bolt(hub, "HubBolt", Vector3(0.049, cos(a) * 0.026, sin(a) * 0.026), Vector3.RIGHT,
+			0.0035, 0.008, _m_steel)
+	_cyl(hub, "Axle", 0.0095, 0.186, Transform3D(axis, Vector3.ZERO), _m_steel, -1.0, 14)
+	_bolt(hub, "AxleNutL", Vector3(0.088, 0.0, 0.0), Vector3.RIGHT, 0.0145, 0.016, _m_steel)
+	_bolt(hub, "AxleNutR", Vector3(-0.088, 0.0, 0.0), Vector3.LEFT, 0.0145, 0.016, _m_steel)
+	_cyl(hub, "Valve", 0.0038, 0.022, Transform3D(Basis(Vector3.BACK, PI * 0.35),
+		Vector3(0.026, 0.0, 0.074)), _m_steel, -1.0, 8)
 
+	# Тормозной диск: несущее кольцо, волновой венец, паук, болты.
 	var brake := _node(parent, "BrakeDisc")
 	var rotor_x := 0.020
-	# Кольцо ротора: внутри — окна, поэтому спицы обода остаются видны.
-	_lathe(brake, "Rotor", _m_rotor, [
-		Vector2(0.052, rotor_x - 0.0018), Vector2(0.076, rotor_x - 0.0018),
-		Vector2(0.076, rotor_x + 0.0018), Vector2(0.052, rotor_x + 0.0018),
+	_lathe(brake, "RotorCarrier", [
+		Vector2(0.048, rotor_x - 0.0016), Vector2(0.057, rotor_x - 0.0016),
+		Vector2(0.057, rotor_x + 0.0016), Vector2(0.048, rotor_x + 0.0016),
 	], 56)
-	for i in 5:
-		var ang := TAU * float(i) / 5.0 + 0.2
-		var inner := Vector3(rotor_x, cos(ang) * 0.032, sin(ang) * 0.032)
-		var outer := Vector3(rotor_x, cos(ang) * 0.060, sin(ang) * 0.060)
-		_cyl_between(brake, "RotorSpoke", inner, outer, 0.0055, _m_rotor, 6)
-	for i in 10:
-		var ang := TAU * float(i) / 10.0 + 0.14
-		var p := Vector3(rotor_x, cos(ang) * 0.068, sin(ang) * 0.068)
-		_cyl(brake, "RotorHole", 0.0042, 0.006,
-			Transform3D(Basis(Vector3.BACK, PI * 0.5), p), _m_black_d, -1.0, 8)
-	# паук диска
-	_cyl(brake, "RotorSpider", 0.032, 0.005,
+	_lathe(brake, "Rotor", [
+		Vector2(0.056, rotor_x - 0.0014), Vector2(0.0755, rotor_x - 0.0014),
+		Vector2(0.0755, rotor_x + 0.0014), Vector2(0.056, rotor_x + 0.0014),
+	], 72)
+	for i in 12:
+		var ang := TAU * float(i) / 12.0 + 0.12
+		# прорези в венце
+		var slot := Vector3(rotor_x, cos(ang) * 0.0665, sin(ang) * 0.0665)
+		_box(brake, "RotorSlot", Vector3(0.0034, 0.0145, 0.0026),
+			Transform3D(Basis(Vector3.BACK, PI * 0.5) * Basis(Vector3.RIGHT, ang), slot), _m_black_d)
+		_bolt(brake, "RotorBolt", Vector3(rotor_x + 0.003, cos(ang) * 0.0525, sin(ang) * 0.0525),
+			Vector3.RIGHT, 0.0032, 0.010, _m_steel)
+	_cyl(brake, "RotorSpider", 0.030, 0.005,
 		Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(rotor_x, 0.0, 0.0)), _m_rotor, -1.0, 24)
 	for i in 5:
-		var ang := TAU * float(i) / 5.0
-		_bolt(brake, "RotorBolt", Vector3(rotor_x + 0.004, cos(ang) * 0.030, sin(ang) * 0.030),
-			Vector3.RIGHT, 0.004, 0.010, _m_steel)
-
-
-# ---- дека ---------------------------------------------------------------------
+		var ang := TAU * float(i) / 5.0 + 0.2
+		var inner := Vector3(rotor_x, cos(ang) * 0.030, sin(ang) * 0.030)
+		var outer := Vector3(rotor_x, cos(ang) * 0.058, sin(ang) * 0.058)
+		_cyl_between(brake, "RotorSpoke", inner, outer, 0.0050, _m_rotor, 6)
 func _deck_profile() -> Array:
 	# (z, полуширина, полувысота, радиус скругления)
 	return [
@@ -1082,77 +1114,136 @@ func _build_kickstand(root: Node3D) -> void:
 func _build_front_suspension(root: Node3D) -> void:
 	var susp := _node(root, "FrontSuspension")
 	susp.position = Vector3(0.0, -HINGE_Y, -HEAD_Z)
+	# Траверса: связывает обе стойки с кронштейном рамы.
+	_box(susp, "Crown", Vector3(0.136, 0.028, 0.054),
+		Transform3D(Basis(Vector3.RIGHT, -0.22), Vector3(0.0, 0.072, -0.298)), _m_black)
+	for side in [-1.0, 1.0]:
+		_bolt(susp, "CrownBolt", Vector3(0.048 * float(side), 0.086, -0.284),
+			Vector3.UP, 0.0055, 0.014, _m_steel)
 	for side in [-1.0, 1.0]:
 		var sx := 0.060 * float(side)
-		_sweep(susp, "Arm", _m_frame_d, [
+		var n := Vector3(float(side), 0.0, 0.0)
+		# Рычаг вилки: литая стойка от проушины качания к оси колеса.
+		_sweep(susp, "ForkLeg", _m_frame_d, [
 			Vector3(sx, 0.062, -0.300),
 			Vector3(sx * 1.03, 0.036, -0.380),
 			Vector3(sx * 1.05, 0.008, -0.446),
-		], [0.026, 0.024, 0.022], [0.076, 0.066, 0.056],
-			[0.008, 0.008, 0.012], Vector3.RIGHT)
-		# проушина у оси
-		_cyl(susp, "AxleEye", 0.020, 0.024,
+		], [0.026, 0.025, 0.023], [0.076, 0.068, 0.058], [0.008, 0.009, 0.012], Vector3.RIGHT)
+		# проушина качания: бобышка, ось, гайка, шайба
+		_cyl(susp, "PivotEye", 0.0215, 0.034,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx, 0.062, -0.300)), _m_frame_d, -1.0, 18)
+		_cyl(susp, "PivotBush", 0.0150, 0.040,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx, 0.062, -0.300)), _m_black_d, -1.0, 14)
+		_bolt(susp, "PivotBolt", Vector3(sx + 0.021 * float(side), 0.062, -0.300), n,
+			0.0075, 0.014, _m_steel)
+		# ребро жёсткости по наружному борту рычага
+		_sweep(susp, "Rib", _m_frame_d, [
+			Vector3(sx * 1.06, 0.056, -0.316),
+			Vector3(sx * 1.09, 0.032, -0.372),
+			Vector3(sx * 1.10, 0.012, -0.424),
+		], [0.010, 0.009, 0.008], [0.030, 0.026, 0.020], [0.004, 0.004, 0.004], Vector3.RIGHT)
+		# проушина у оси колеса и тормозной кронштейн
+		_cyl(susp, "AxleEye", 0.0205, 0.026,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx * 1.05, 0.0, AXLE_F)),
 			_m_frame_d, -1.0, 18)
-		_bolt(susp, "ArmBoltA", Vector3(sx * 1.06, 0.050, -0.336), Vector3(float(side), 0.0, 0.0),
+		_bolt(susp, "ArmBoltA", Vector3(sx * 1.06 + 0.012 * float(side), 0.050, -0.336), n,
 			0.006, 0.012, _m_steel)
-		_bolt(susp, "ArmBoltB", Vector3(sx * 1.06, 0.022, -0.408), Vector3(float(side), 0.0, 0.0),
+		_bolt(susp, "ArmBoltB", Vector3(sx * 1.06 + 0.012 * float(side), 0.022, -0.408), n,
 			0.006, 0.012, _m_steel)
-		_chevron(susp, "ArmChevron", 0.026,
-			Transform3D(Basis(Vector3.UP, PI * 0.5 * float(side)),
-				Vector3(sx * 1.42, 0.042, -0.330)))
 		_decal(susp, "ArmCode", "B-01", 0.011, C_ORANGE,
 			Transform3D(Basis(Vector3.UP, PI * 0.5 * float(side)),
-				Vector3(sx * 1.42, 0.020, -0.372)))
-		# пружина с амортизатором
-		var spr_from := Vector3(sx * 1.02, 0.196, -0.360)
-		var spr_to := Vector3(sx * 1.06, 0.044, -0.372)
-		_cyl_between(susp, "DamperRod", spr_from, spr_to, 0.0075, _m_steel, 12)
-		_spring(susp, "DamperSpring", spr_from.lerp(spr_to, 0.08), spr_from.lerp(spr_to, 0.92),
-			0.019, 0.0040, 7, _m_black_d)
-		_cyl(susp, "DamperEyeTop", 0.013, 0.018,
-			Transform3D(Basis(Vector3.BACK, PI * 0.5), spr_from), _m_black, -1.0, 14)
-		_cyl(susp, "DamperEyeBot", 0.013, 0.018,
-			Transform3D(Basis(Vector3.BACK, PI * 0.5), spr_to), _m_black, -1.0, 14)
-
-
+				Vector3(sx * 1.06 + 0.0135 * float(side), 0.018, -0.372)))
+		# кронштейн амортизатора на горловине
+		var top := Vector3(sx * 1.02, 0.196, -0.360)
+		var bot := Vector3(sx * 1.06, 0.044, -0.372)
+		_sweep(susp, "DamperMount", _m_frame_d, [
+			Vector3(sx * 0.50, 0.212, -0.352),
+			Vector3(sx * 0.86, 0.204, -0.356),
+			top,
+		], [0.030, 0.026, 0.022], [0.048, 0.040, 0.032], [0.006, 0.006, 0.008], Vector3.RIGHT)
+		_cyl(susp, "DamperEyeTop", 0.0135, 0.026,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), top), _m_black, -1.0, 14)
+		_bolt(susp, "DamperBoltTop", Vector3(top.x + 0.017 * float(side), top.y, top.z), n,
+			0.0055, 0.012, _m_steel)
+		# амортизатор: корпус сверху, шток снизу, пружина на опорах
+		var axis := bot - top
+		var dir := axis.normalized()
+		_cyl(susp, "DamperBody", 0.0150, 0.074,
+			Transform3D(_basis_y(dir), top + dir * 0.046), _m_black, -1.0, 16)
+		_cyl(susp, "DamperRod", 0.0078, 0.072,
+			Transform3D(_basis_y(dir), top + dir * 0.116), _m_steel, -1.0, 12)
+		_cyl(susp, "SpringSeat", 0.0225, 0.006,
+			Transform3D(_basis_y(dir), top + dir * 0.014), _m_black_d, -1.0, 20)
+		_cyl(susp, "SpringSeatBot", 0.0225, 0.006,
+			Transform3D(_basis_y(dir), bot - dir * 0.010), _m_black_d, -1.0, 20)
+		_spring(susp, "DamperSpring", top + dir * 0.017, bot - dir * 0.013,
+			0.0192, 0.0044, 11, _m_black_d)
+		# вилка-проушина снизу и её болт
+		_cyl(susp, "DamperEyeBot", 0.0135, 0.026,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), bot), _m_black, -1.0, 14)
+		_bolt(susp, "DamperBoltBot", Vector3(bot.x + 0.017 * float(side), bot.y, bot.z), n,
+			0.0055, 0.012, _m_steel)
+		# отбойник на штоке
+		_cyl(susp, "BumpStop", 0.0125, 0.014,
+			Transform3D(_basis_y(dir), bot - dir * 0.030), _m_plastic, -1.0, 12)
 func _build_rear_suspension(root: Node3D) -> void:
 	var susp := _node(root, "RearSuspension")
+	# Поперечина маятника у шарнира.
+	_box(susp, "SwingBridge", Vector3(0.128, 0.030, 0.034),
+		Transform3D(Basis(Vector3.RIGHT, 0.55), Vector3(0.0, 0.036, 0.252)), _m_frame_d)
+	_cyl(susp, "SwingPivot", 0.0105, 0.150,
+		Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.0, 0.040, 0.248)), _m_steel, -1.0, 14)
 	for side in [-1.0, 1.0]:
 		var sx := 0.062 * float(side)
+		var n := Vector3(float(side), 0.0, 0.0)
 		_sweep(susp, "SwingArm", _m_frame_d, [
 			Vector3(sx, 0.040, 0.248),
 			Vector3(sx * 1.02, 0.020, 0.336),
-			Vector3(sx * 1.05, 0.002, AXLE_R - 0.010),
-		], [0.019, 0.018, 0.017], [0.058, 0.052, 0.046],
-			[0.008, 0.008, 0.012], Vector3.RIGHT)
-		_cyl(susp, "AxleEye", 0.020, 0.022,
+			Vector3(sx * 1.05, 0.002, AXLE_R - 0.008),
+		], [0.019, 0.019, 0.018], [0.058, 0.052, 0.046], [0.008, 0.009, 0.012], Vector3.RIGHT)
+		# проушина шарнира с болтом
+		_cyl(susp, "SwingEye", 0.0175, 0.028,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx, 0.040, 0.248)), _m_frame_d, -1.0, 16)
+		_bolt(susp, "SwingBolt", Vector3(sx + 0.018 * float(side), 0.040, 0.248), n,
+			0.0070, 0.012, _m_steel)
+		# проушина оси колеса
+		_cyl(susp, "AxleEye", 0.0205, 0.024,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx * 1.05, 0.0, AXLE_R)),
 			_m_frame_d, -1.0, 18)
-		_bolt(susp, "ArmBoltA", Vector3(sx * 1.06, 0.026, 0.316), Vector3(float(side), 0.0, 0.0),
+		_bolt(susp, "ArmBoltA", Vector3(sx * 1.06 + 0.012 * float(side), 0.026, 0.316), n,
 			0.006, 0.012, _m_steel)
-		_chevron(susp, "ArmChevron", 0.026,
-			Transform3D(Basis(Vector3.UP, PI * 0.5 * float(side)),
-				Vector3(sx * 1.30, 0.028, 0.320)))
 		_decal(susp, "ArmCode", "B-06", 0.011, C_ORANGE,
 			Transform3D(Basis(Vector3.UP, PI * 0.5 * float(side)),
-				Vector3(sx * 1.30, 0.008, 0.352)))
-		# пружины сзади
+				Vector3(sx * 1.05 + 0.0135 * float(side), 0.006, 0.352)))
+		# амортизатор сзади: опора на раме, корпус, шток, пружина
 		var top := Vector3(sx * 1.10, 0.132, 0.292)
 		var bot := Vector3(sx * 1.08, 0.030, 0.348)
-		_cyl_between(susp, "DamperRod", top, bot, 0.0080, _m_steel, 12)
-		_spring(susp, "DamperSpring", top.lerp(bot, 0.06), top.lerp(bot, 0.94),
-			0.023, 0.0044, 8, _m_black_d)
-		_cyl(susp, "DamperEyeTop", 0.014, 0.020,
+		var dir := (bot - top).normalized()
+		_sweep(susp, "DamperMount", _m_frame_d, [
+			Vector3(sx * 0.55, 0.152, 0.276),
+			Vector3(sx * 0.88, 0.140, 0.286),
+			top,
+		], [0.028, 0.024, 0.020], [0.044, 0.036, 0.030], [0.006, 0.006, 0.008], Vector3.RIGHT)
+		_cyl(susp, "DamperEyeTop", 0.0140, 0.028,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), top), _m_black, -1.0, 14)
-		_cyl(susp, "DamperEyeBot", 0.014, 0.020,
+		_bolt(susp, "DamperBoltTop", Vector3(top.x + 0.018 * float(side), top.y, top.z), n,
+			0.0055, 0.012, _m_steel)
+		_cyl(susp, "DamperBody", 0.0165, 0.056,
+			Transform3D(_basis_y(dir), top + dir * 0.036), _m_black, -1.0, 16)
+		_cyl(susp, "DamperRod", 0.0082, 0.054,
+			Transform3D(_basis_y(dir), top + dir * 0.088), _m_steel, -1.0, 12)
+		_cyl(susp, "SpringSeat", 0.0245, 0.006,
+			Transform3D(_basis_y(dir), top + dir * 0.012), _m_black_d, -1.0, 20)
+		_cyl(susp, "SpringSeatBot", 0.0245, 0.006,
+			Transform3D(_basis_y(dir), bot - dir * 0.010), _m_black_d, -1.0, 20)
+		_spring(susp, "DamperSpring", top + dir * 0.015, bot - dir * 0.013,
+			0.0212, 0.0046, 10, _m_black_d)
+		_cyl(susp, "DamperEyeBot", 0.0140, 0.028,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), bot), _m_black, -1.0, 14)
-	# поперечина маятника
-	_box(susp, "SwingBridge", Vector3(0.116, 0.024, 0.030),
-		Transform3D(Basis(Vector3.RIGHT, 0.55), Vector3(0.0, 0.034, 0.258)), _m_frame_d)
-
-
-## Цилиндр между двумя точками (штоки амортизаторов, тяги).
+		_bolt(susp, "DamperBoltBot", Vector3(bot.x + 0.018 * float(side), bot.y, bot.z), n,
+			0.0055, 0.012, _m_steel)
+		_cyl(susp, "BumpStop", 0.0130, 0.014,
+			Transform3D(_basis_y(dir), bot - dir * 0.030), _m_plastic, -1.0, 12)
 func _cyl_between(parent: Node3D, node_name: String, from: Vector3, to: Vector3,
 		radius: float, mat: Material, segs := 12) -> MeshInstance3D:
 	var dir := to - from
@@ -1247,6 +1338,21 @@ func _build_stem(steer: Node3D) -> void:
 			Vector3(float(side), 0.0, 0.0), 0.0052, 0.010, _m_steel)
 		_bolt(clamp, "ClampBoltB", Vector3(0.035 * float(side), 0.100, tan(RAKE) * 0.100),
 			Vector3(float(side), 0.0, 0.0), 0.0052, 0.010, _m_steel)
+	# шарнирная проушина спереди с осью и шплинтом
+	for y0 in [0.014, 0.086]:
+		_cyl(clamp, "HingeKnuckle", 0.0135, 0.058,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5),
+				Vector3(0.0, y0, tan(RAKE) * y0 - 0.040)), _m_black_d, -1.0, 16)
+	_cyl(clamp, "HingePin", 0.0075, 0.084,
+		Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.0, 0.050, tan(RAKE) * 0.050 - 0.040)),
+		_m_steel, -1.0, 14)
+	_bolt(clamp, "HingePinEnd", Vector3(0.043, 0.050, tan(RAKE) * 0.050 - 0.040),
+		Vector3.RIGHT, 0.0090, 0.008, _m_steel)
+	# стяжная шпилька с гайкой сбоку
+	for side in [-1.0, 1.0]:
+		_cyl(clamp, "TieRod", 0.0060, 0.020,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5),
+				Vector3(0.040 * float(side), 0.072, tan(RAKE) * 0.072 - 0.014)), _m_steel, -1.0, 10)
 	# быстросъёмный рычаг
 	_box(clamp, "Lever", Vector3(0.014, 0.030, 0.070),
 		Transform3D(Basis(Vector3.RIGHT, -0.55), Vector3(0.040, 0.050, tan(RAKE) * 0.050 + 0.056)),
@@ -1254,13 +1360,87 @@ func _build_stem(steer: Node3D) -> void:
 	_cyl(clamp, "LeverPin", 0.008, 0.020,
 		Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.024, 0.050, tan(RAKE) * 0.050 + 0.048)),
 		_m_steel, -1.0, 12)
-	# верхний хомут руля
-	var top := _bar_local()
-	_box(stem, "BarClamp", Vector3(0.086, 0.044, 0.058),
-		Transform3D(Basis(Vector3.RIGHT, -0.10), Vector3(0.0, top.y - 0.026, top.z + 0.004)), _m_black)
+	_build_stem_top(stem)
+	_build_cables(steer, clamp)
+
+
+## Верх стойки: площадка, разрезной хомут руля и стяжные болты.
+func _build_stem_top(stem: Node3D) -> void:
+	var c := _bar_local()
+	var top := _node(stem, "BarClamp")
+	_box(top, "TopPlate", Vector3(0.058, 0.012, 0.062),
+		Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(0.0, c.y - 0.026, c.z - 0.014)), _m_black_d)
+	_box(top, "ClampBase", Vector3(0.092, 0.022, 0.050),
+		Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(0.0, c.y - 0.012, c.z - 0.001)), _m_black)
+	_box(top, "ClampCap", Vector3(0.092, 0.015, 0.050),
+		Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(0.0, c.y + 0.0125, c.z - 0.001)), _m_black)
+	_box(top, "ClampSeam", Vector3(0.094, 0.0025, 0.046),
+		Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(0.0, c.y + 0.0005, c.z - 0.001)), _m_black_d)
 	for side in [-1.0, 1.0]:
-		_bolt(stem, "BarClampBolt", Vector3(0.028 * float(side), top.y + 0.002, top.z + 0.004),
-			Vector3.UP, 0.0050, 0.010, _m_steel)
+		for zz in [-0.017, 0.015]:
+			_bolt(top, "ClampBolt", Vector3(0.036 * float(side), c.y + 0.0205,
+				c.z + zz), Vector3.UP, 0.0042, 0.016, _m_steel)
+			_cyl(top, "ClampNut", 0.0062, 0.007,
+				Transform3D(Basis.IDENTITY, Vector3(0.036 * float(side), c.y - 0.025,
+					c.z + zz)), _m_steel, -1.0, 6)
+	# прилив под стойкой
+	_box(top, "Neck", Vector3(0.050, 0.020, 0.056),
+		Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(0.0, c.y - 0.038, c.z - 0.020)), _m_black)
+
+
+## Прокладка кабелей: два тормозных шланга и жгут по задней кромке стойки,
+## с обходом стяжного хомута, клипсами и резиновым вводом в раму.
+func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
+	var cables := _node(steer, "Cables")
+	var c := _bar_local()
+	var runs: Array = [
+		{"x": -0.0175, "r": 0.0050, "off": 0.038, "name": "BrakeHoseL"},
+		{"x": 0.0175, "r": 0.0050, "off": 0.038, "name": "BrakeHoseR"},
+		{"x": 0.0, "r": 0.0072, "off": 0.043, "name": "Harness"},
+	]
+	for run in runs:
+		var x := float(run["x"])
+		var off := float(run["off"])
+		var path: Array = [
+			Vector3(x, c.y - 0.030, c.z + 0.026),
+			Vector3(x, c.y - 0.090, c.z + 0.014),
+			Vector3(x, 0.470, tan(RAKE) * 0.470 + off + 0.002),
+			Vector3(x, 0.330, tan(RAKE) * 0.330 + off),
+			Vector3(x, 0.190, tan(RAKE) * 0.190 + off),
+			Vector3(x, 0.128, tan(RAKE) * 0.128 + off + 0.008),
+			Vector3(x, 0.074, tan(RAKE) * 0.074 + off + 0.011),
+			Vector3(x, 0.020, tan(RAKE) * 0.020 + off + 0.006),
+			Vector3(x, -0.032, tan(RAKE) * -0.032 + off - 0.008),
+			Vector3(x, -0.062, 0.030),
+		]
+		_tube(cables, str(run["name"]), _m_black_d, path, float(run["r"]), 8)
+		# резиновый ввод в основание стойки
+		_cyl(cables, "CableBoot", float(run["r"]) + 0.006, 0.014,
+			Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(x, -0.052, 0.040)), _m_plastic, -1.0, 12)
+		# ввод у приборки
+		_cyl(cables, "CableGrommet", float(run["r"]) + 0.004, 0.010,
+			Transform3D(Basis(Vector3.RIGHT, RAKE + 0.5), Vector3(x, c.y - 0.034, c.z + 0.020)),
+			_m_plastic, -1.0, 10)
+	# спиральная обмотка жгута
+	for i in 9:
+		var y := 0.480 - float(i) * 0.036
+		_cyl(cables, "Wrap", 0.0092, 0.0055,
+			Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(0.0, y, tan(RAKE) * y + 0.045)),
+			_m_black_d, -1.0, 12)
+	# клипсы крепления к стойке
+	for y0 in [0.250, 0.410]:
+		_box(cables, "CableClip", Vector3(0.062, 0.008, 0.012),
+			Transform3D(Basis(Vector3.RIGHT, RAKE),
+				Vector3(0.0, y0, tan(RAKE) * y0 + 0.040)), _m_black_d)
+	# шланг переднего тормоза к калиперу вдоль вилки
+	var drop: Array = [
+		Vector3(0.052, 0.230, tan(RAKE) * 0.230 + 0.030),
+		Vector3(0.070, 0.120, tan(RAKE) * 0.120 + 0.020),
+		Vector3(0.078, 0.000, tan(RAKE) * 0.0 + 0.008),
+		Vector3(0.074, -0.140, -0.010),
+		Vector3(0.062, -0.250, -0.030),
+	]
+	_tube(cables, "FrontBrakeHose", _m_black_d, drop, 0.0048, 8)
 
 
 # ---- руль ---------------------------------------------------------------------
@@ -1326,16 +1506,6 @@ func _build_bar(steer: Node3D) -> void:
 	# кнопка и разъём на перекладине
 	_box(bar, "BarSwitch", Vector3(0.036, 0.020, 0.026),
 		Transform3D(Basis.IDENTITY, Vector3(0.060, c.y + 0.012, c.z + 0.014)), _m_black)
-	# тросы тормозов и проводка
-	for side in [-1.0, 1.0]:
-		var hose: Array = [
-			Vector3(0.030 * float(side), c.y - 0.006, c.z + 0.026),
-			Vector3(0.046 * float(side), c.y - 0.140, c.z + 0.040),
-			Vector3(0.052 * float(side), c.y - 0.330, c.z + 0.010),
-			Vector3(0.048 * float(side), c.y - 0.520, c.z - 0.030),
-			Vector3(0.040 * float(side), c.y - 0.640, c.z - 0.062),
-		]
-		_tube(bar, "Hose", _m_black_d, hose, 0.0052, 8)
 	if HAS_FRONT_FENDER:
 		_build_front_fender(steer)
 
@@ -1359,64 +1529,94 @@ func _build_front_fender(steer: Node3D) -> void:
 
 # ---- приборная панель и фара ---------------------------------------------------
 func _build_dash(steer: Node3D) -> void:
+	# Приборка G4: гранёный корпус-«шлем» 156×92×108 мм, отдельные дисплей,
+	# стекло и рамка, козырёк, три кнопки, кронштейн и фара-планка внизу.
 	var dash := _node(steer, "Dash")
 	var c := _bar_local()
-	var cz := c.z + 0.024
-	var base := c.y - 0.016
-	var pts: Array = []
-	var wid: Array = [0.138, 0.150, 0.146, 0.120, 0.088]
-	var dep: Array = [0.094, 0.106, 0.100, 0.082, 0.060]
-	var rad: Array = [0.018, 0.020, 0.020, 0.018, 0.016]
-	for row in 5:
-		pts.append(Vector3(0.0, base + row * 0.025, cz))
-	_sweep(dash, "Housing", _m_black, pts, wid, dep, rad, Vector3.FORWARD)
+	var cz := c.z + 0.006
+	var base := c.y - 0.020
 
-	# козырёк над экраном
-	_box(dash, "Visor", Vector3(0.128, 0.008, 0.024),
-		Transform3D(Basis(Vector3.RIGHT, -0.30), Vector3(0.0, base + 0.096, cz + 0.046)), _m_black_d)
-	# рамка экрана и стекло
-	var screen_basis := Basis(Vector3.RIGHT, -0.42)
-	var screen_pos := Vector3(0.0, base + 0.060, cz + 0.056)
-	# слой экрана: текстура приборки
+	var ys: Array = [0.598, 0.614, 0.640, 0.664, 0.680, 0.690]
+	var wid: Array = [0.140, 0.156, 0.157, 0.147, 0.121, 0.086]
+	var dep: Array = [0.100, 0.108, 0.109, 0.101, 0.079, 0.050]
+	var zoff: Array = [0.004, 0.004, 0.002, -0.002, -0.008, -0.014]
+	var rad: Array = [0.007, 0.007, 0.006, 0.006, 0.005, 0.004]
+	var pts: Array = []
+	for i in ys.size():
+		pts.append(Vector3(0.0, ys[i], cz + zoff[i]))
+	_sweep(dash, "Housing", _m_black, pts, wid, dep, rad, Vector3.FORWARD)
+	# линия разъёма корпуса и боковые «крылья»
+	_sweep(dash, "SplitLine", _m_black_d, [Vector3(0.0, 0.628, cz + 0.003), Vector3(0.0, 0.632, cz + 0.003)],
+		[0.158, 0.158], [0.111, 0.111], [0.007, 0.007], Vector3.FORWARD)
+	for side in [-1.0, 1.0]:
+		_box(dash, "SideWing", Vector3(0.010, 0.036, 0.070),
+			Transform3D(Basis(Vector3.RIGHT, -0.16), Vector3(0.079 * float(side), 0.642, cz)), _m_black_d)
+
+	# ---- экран: рамка, прокладка, стекло, дисплей ----------------------------
+	var screen := _node(dash, "Screen")
+	var tilt := -0.62
+	var sb := Basis(Vector3.RIGHT, tilt)
+	var center := Vector3(0.0, 0.652, cz + 0.058)
+	_box(screen, "Gasket", Vector3(0.136, 0.062, 0.004), Transform3D(sb, center + sb.z * 0.001), _m_plastic)
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.126, 0.051)
-	var inst := MeshInstance3D.new()
-	inst.name = "ScreenPanel"
-	inst.mesh = quad
-	inst.material_override = _m_screen
-	inst.transform = Transform3D(screen_basis, screen_pos)
-	dash.add_child(inst)
+	quad.size = Vector2(0.124, 0.050)
+	var panel := MeshInstance3D.new()
+	panel.name = "Display"
+	panel.mesh = quad
+	panel.material_override = _m_screen
+	panel.transform = Transform3D(sb, center)
+	screen.add_child(panel)
+	# рамка из четырёх митрованных планок
+	_box(screen, "FrameTop", Vector3(0.140, 0.009, 0.006),
+		Transform3D(sb, center + Vector3(0.0, 0.0305, 0.004)), _m_black_d)
+	_box(screen, "FrameBottom", Vector3(0.140, 0.009, 0.006),
+		Transform3D(sb, center + Vector3(0.0, -0.0305, 0.004)), _m_black_d)
+	for side in [-1.0, 1.0]:
+		_box(screen, "FrameSide", Vector3(0.008, 0.071, 0.006),
+			Transform3D(sb, center + Vector3(0.066 * float(side), 0.0, 0.004)), _m_black_d)
 	var glass := QuadMesh.new()
-	glass.size = Vector2(0.134, 0.058)
+	glass.size = Vector2(0.126, 0.052)
 	var ginst := MeshInstance3D.new()
-	ginst.name = "ScreenGlass"
+	ginst.name = "Glass"
 	ginst.mesh = glass
 	ginst.material_override = _m_glass
-	ginst.transform = Transform3D(screen_basis, screen_pos + Vector3(0.0, 0.0, 0.0035))
-	dash.add_child(ginst)
-	# боковые скосы рамки
-	for side in [-1.0, 1.0]:
-		_box(dash, "FrameSide", Vector3(0.009, 0.008, 0.062),
-			Transform3D(screen_basis, Vector3(0.074 * float(side), base + 0.060, cz + 0.056)), _m_black_d)
-	_box(dash, "FrameTop", Vector3(0.154, 0.009, 0.009),
-		Transform3D(screen_basis, Vector3(0.0, base + 0.088, cz + 0.041)), _m_black_d)
-	_box(dash, "FrameBottom", Vector3(0.154, 0.009, 0.009),
-		Transform3D(screen_basis, Vector3(0.0, base + 0.032, cz + 0.071)), _m_black_d)
-	# центральный кронштейн и нижнее крепление
-	_box(dash, "CenterBracket", Vector3(0.052, 0.030, 0.044),
-		Transform3D(Basis.IDENTITY, Vector3(0.0, base - 0.014, cz - 0.004)), _m_steel)
-	_box(dash, "LowerMount", Vector3(0.076, 0.012, 0.052),
-		Transform3D(Basis.IDENTITY, Vector3(0.0, base - 0.002, cz - 0.002)), _m_black)
-	for side in [-1.0, 1.0]:
-		_bolt(dash, "MountBolt", Vector3(0.026 * float(side), base - 0.020, cz + 0.006),
-			Vector3.UP, 0.0045, 0.012, _m_steel)
-	# логотип KuKirin на козырьке
-	_decal(dash, "DashLogo", "KUKIRIN", 0.008, Color(0.80, 0.82, 0.84),
-		Transform3D(Basis(Vector3.RIGHT, -0.30), Vector3(0.0, base + 0.096, cz + 0.052)))
-	# фара в нижней передней части корпуса
-	_build_headlight_assembly(dash, Vector3(0.0, base + 0.016, cz - 0.058))
+	ginst.transform = Transform3D(sb, center + sb.z * 0.0065)
+	screen.add_child(ginst)
 
+	# ---- козырёк над экраном ------------------------------------------------
+	var visor := _node(dash, "Visor")
+	_box(visor, "Hood", Vector3(0.146, 0.007, 0.030),
+		Transform3D(Basis(Vector3.RIGHT, -0.42), Vector3(0.0, 0.694, cz + 0.036)), _m_black)
+	for side in [-1.0, 1.0]:
+		_box(visor, "Cheek", Vector3(0.006, 0.020, 0.026),
+			Transform3D(Basis(Vector3.RIGHT, -0.42) * Basis(Vector3.UP, 0.10 * float(side)),
+				Vector3(0.070 * float(side), 0.686, cz + 0.038)), _m_black)
+	var lb := Basis(Vector3(-1.0, 0.0, 0.0), Vector3(0.0, -0.408, 0.913), Vector3(0.0, 0.913, 0.408))
+	_decal(visor, "Logo", "KUKIRIN", 0.0075, Color(0.82, 0.84, 0.86),
+		Transform3D(lb, Vector3(0.0, 0.6975, cz + 0.0375)), 6, true)
 
+	# ---- кнопки --------------------------------------------------------------
+	var buttons := _node(dash, "Buttons")
+	for i in 3:
+		var bx := -0.026 + i * 0.026
+		_cyl(buttons, "ButtonRing", 0.0082, 0.0035,
+			Transform3D(Basis(Vector3.RIGHT, -0.42), Vector3(bx, 0.6845, cz + 0.020)), _m_black_d, -1.0, 12)
+		_cyl(buttons, "Button", 0.0060, 0.0045,
+			Transform3D(Basis(Vector3.RIGHT, -0.42), Vector3(bx, 0.6855, cz + 0.020)), _m_plastic, -1.0, 12)
+	_cyl(buttons, "PowerButton", 0.0068, 0.0040,
+		Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.0785, 0.622, cz + 0.030)), _m_plastic, -1.0, 12)
+
+	# ---- кронштейн крепления к стойке ---------------------------------------
+	var mount := _node(dash, "Mount")
+	_box(mount, "Bracket", Vector3(0.054, 0.026, 0.044),
+		Transform3D(Basis.IDENTITY, Vector3(0.0, base + 0.006, cz - 0.004)), _m_steel)
+	_box(mount, "RubberPad", Vector3(0.060, 0.006, 0.050),
+		Transform3D(Basis.IDENTITY, Vector3(0.0, base + 0.020, cz - 0.004)), _m_plastic)
+	for side in [-1.0, 1.0]:
+		_bolt(mount, "MountBolt", Vector3(0.022 * float(side), base + 0.002, cz + 0.006),
+			Vector3.UP, 0.0045, 0.014, _m_steel)
+
+	_build_headlight_assembly(dash, Vector3(0.0, base + 0.020, cz - 0.062))
 func _build_headlight(steer: Node3D) -> void:
 	# фара уже встроена в корпус приборки; узел оставлен для иерархии GLB.
 	var lamp := _node(steer, "Headlight")
@@ -1425,29 +1625,29 @@ func _build_headlight(steer: Node3D) -> void:
 
 
 func _build_headlight_assembly(parent: Node3D, pos: Vector3) -> void:
+	# Фара-планка G4: посадочное гнездо, хромированный отражатель, шесть диодов,
+	# прозрачная линза и ободок.
 	var lamp := _node(parent, "Headlight")
-	# корпус фары
-	_box(lamp, "LampHousing", Vector3(0.116, 0.026, 0.024),
+	_box(lamp, "Recess", Vector3(0.126, 0.034, 0.014),
 		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.0, 0.004)), _m_black_d)
-	# хромированный отражатель
-	_box(lamp, "Reflector", Vector3(0.104, 0.018, 0.006),
-		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.0, -0.006)), _m_alu)
-	# линза
+	_box(lamp, "Reflector", Vector3(0.114, 0.024, 0.004),
+		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.0, -0.002)), _m_alu)
+	for i in 6:
+		var x := -0.045 + i * 0.018
+		_box(lamp, "Led", Vector3(0.013, 0.014, 0.004),
+			Transform3D(Basis.IDENTITY, pos + Vector3(x, 0.0, -0.004)), _m_lamp)
 	var lens := QuadMesh.new()
-	lens.size = Vector2(0.104, 0.018)
+	lens.size = Vector2(0.118, 0.028)
 	var lin := MeshInstance3D.new()
 	lin.name = "Lens"
 	lin.mesh = lens
 	lin.material_override = _m_lamp
-	lin.transform = Transform3D(Basis(Vector3.RIGHT, PI), pos + Vector3(0.0, 0.0, -0.010))
+	lin.transform = Transform3D(Basis(Vector3.RIGHT, PI), pos + Vector3(0.0, 0.0, -0.007))
 	lamp.add_child(lin)
-	# отдельные светодиоды
-	for i in 5:
-		var x := -0.040 + i * 0.020
-		_box(lamp, "Led", Vector3(0.012, 0.012, 0.006),
-			Transform3D(Basis.IDENTITY, pos + Vector3(x, 0.0, -0.007)), _m_lamp)
-	# ободок линзы
-	_box(lamp, "BezelTop", Vector3(0.110, 0.004, 0.008),
-		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.011, -0.008)), _m_alu)
-	_box(lamp, "BezelBottom", Vector3(0.110, 0.004, 0.008),
-		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, -0.011, -0.008)), _m_alu)
+	_box(lamp, "BezelTop", Vector3(0.124, 0.005, 0.010),
+		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.016, -0.008)), _m_alu)
+	_box(lamp, "BezelBottom", Vector3(0.124, 0.005, 0.010),
+		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, -0.016, -0.008)), _m_alu)
+	for side in [-1.0, 1.0]:
+		_box(lamp, "BezelSide", Vector3(0.005, 0.037, 0.010),
+			Transform3D(Basis.IDENTITY, pos + Vector3(0.061 * float(side), 0.0, -0.008)), _m_alu)
