@@ -125,7 +125,7 @@ func _rear_step(root: Node3D) -> void:
 	_rbox(root, Vector3(0.156, 0.008, 0.166), pos + Vector3(0.0, 0.015, -0.004), _tape,
 		tilt, 0.004)
 	for side in [-1.0, 1.0]:
-		_rbox(root, Vector3(0.007, 0.016, 0.176), pos + Vector3(side * 0.082, -0.004, 0.0),
+		_rbox(root, Vector3(0.006, 0.011, 0.176), pos + Vector3(side * 0.083, -0.005, 0.0),
 			_accent, tilt, 0.002)
 	_beam(root, Vector3(0.0, 0.140, DECK_Z + 0.228), Vector3(0.0, STEP_Y - 0.016, DECK_Z + 0.286),
 		Vector2(0.132, 0.028), Vector2(0.144, 0.020), _paint, 0.010, 2)
@@ -208,10 +208,10 @@ func _build_steer(root: Node3D) -> Node3D:
 	var top_z := _stem(steer)
 	_wheel(steer, axle, "Wheel", true, -1.0, _rim, true, true)
 	# Переднее крыло (у F3 оно есть) с брызговиком.
-	_fender(steer, axle, radius + 0.012, 0.150, 92.0, -30.0, _plastic, 18, 0.012)
+	_fender(steer, axle, radius + 0.008, 0.148, 86.0, -34.0, _plastic, 18, 0.010)
 	for side in [-1.0, 1.0]:
-		_plate_between(steer, Vector3(side * (ARM_X - 0.006), 0.070, axle.z + 0.068),
-			Vector3(side * 0.044, radius + 0.024, axle.z + 0.028), 0.018, 0.009, _rim)
+		_plate_between(steer, Vector3(side * (ARM_X - 0.006), 0.062, axle.z + 0.058),
+			Vector3(side * 0.042, radius + 0.018, axle.z + 0.020), 0.016, 0.008, _rim)
 	_rbox(steer, Vector3(0.094, 0.040, 0.010), Vector3(0.0, radius * 0.22, axle.z - radius * 0.86),
 		_plastic, Vector3(deg_to_rad(54.0), 0.0, 0.0), 0.004)
 	_marker(steer, "BarLeft", Vector3(-0.198, BAR_Y, top_z))
@@ -236,26 +236,26 @@ func _neck(steer: Node3D) -> void:
 
 
 func _front_fork(steer: Node3D, axle: Vector3) -> void:
-	_beam(steer, Vector3(-ARM_X - 0.010, 0.205, -0.020), Vector3(ARM_X + 0.010, 0.205, -0.020),
-		Vector2(0.072, 0.054), Vector2(0.072, 0.054), _paint_dark, 0.010, 2)
+	_beam(steer, Vector3(-ARM_X - 0.010, 0.168, -0.052), Vector3(ARM_X + 0.010, 0.168, -0.052),
+		Vector2(0.070, 0.054), Vector2(0.070, 0.054), _paint_dark, 0.010, 2)
 	for side in [-1.0, 1.0]:
 		var x: float = side * ARM_X
 		# Оранжевый рычаг подвески.
-		_beam(steer, Vector3(x, 0.203, -0.020), Vector3(x, 0.004, axle.z + 0.010),
-			Vector2(0.052, 0.070), Vector2(0.036, 0.050), _accent, 0.010, 3)
+		_beam(steer, Vector3(x, 0.166, -0.050), Vector3(x, 0.004, axle.z + 0.010),
+			Vector2(0.054, 0.064), Vector2(0.036, 0.046), _accent, 0.010, 3)
 		# Ступичная бобышка на конце рычага.
 		_cyl(steer, 0.034, 0.030, Vector3(x - side * 0.004, 0.004, axle.z + 0.010), _rim,
 			Vector3(0.0, 0.0, deg_to_rad(90.0)), 18)
-		_rbox(steer, Vector3(0.010, 0.044, 0.058), Vector3(x, 0.168, -0.048), _accent,
-			Vector3(deg_to_rad(-62.0), 0.0, 0.0), 0.005)
+		_rbox(steer, Vector3(0.010, 0.040, 0.050), Vector3(x, 0.140, -0.078), _accent,
+			Vector3(deg_to_rad(-58.0), 0.0, 0.0), 0.005)
 		# Ухо крепления амортизатора.
-		_rbox(steer, Vector3(0.028, 0.028, 0.018), Vector3(side * 0.058, 0.238, -0.010),
+		_rbox(steer, Vector3(0.028, 0.028, 0.018), Vector3(side * 0.058, 0.226, -0.038),
 			_paint_dark, Vector3.ZERO, 0.004)
 		# Пружинный амортизатор от стакана к рычагу.
-		_shock(steer, Vector3(x, 0.238, -0.010), Vector3(x, 0.096, -0.104),
+		_shock(steer, Vector3(x, 0.226, -0.038), Vector3(x, 0.082, -0.118),
 			0.012, _accent)
 	# Шарнир и ось.
-	_cyl(steer, 0.016, ARM_X * 2.0 + 0.030, Vector3(0.0, 0.205, -0.020), _rim,
+	_cyl(steer, 0.016, ARM_X * 2.0 + 0.030, Vector3(0.0, 0.168, -0.052), _rim,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
 	_cyl(steer, 0.014, ARM_X * 2.0 + 0.028, Vector3(0.0, 0.004, axle.z + 0.010), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 14)
@@ -263,11 +263,11 @@ func _front_fork(steer: Node3D, axle: Vector3) -> void:
 	var lamp_y := STEM_BASE_Y + 0.30
 	var rake := deg_to_rad(spec.stem_rake_deg)
 	var lamp_z: float = 0.060 + tan(rake) * (lamp_y - STEM_BASE_Y) - 0.070
-	_beam(steer, Vector3(0.0, lamp_y, lamp_z + 0.062), Vector3(0.0, lamp_y, lamp_z + 0.012),
-		Vector2(0.034, 0.020), Vector2(0.040, 0.024), _rim, 0.006, 1)
-	_headlight(steer, Vector3(0.0, lamp_y, lamp_z), 0.030)
-	_torus(steer, 0.032, 0.040, _accent, Vector3(0.0, deg_to_rad(90.0), 0.0),
-		Vector3(0.0, lamp_y, lamp_z - 0.002), 22)
+	_beam(steer, Vector3(0.0, lamp_y, lamp_z + 0.052), Vector3(0.0, lamp_y, lamp_z + 0.018),
+		Vector2(0.034, 0.018), Vector2(0.040, 0.022), _rim, 0.006, 1)
+	_headlight(steer, Vector3(0.0, lamp_y, lamp_z + 0.006), 0.026)
+	_torus(steer, 0.026, 0.032, _accent, Vector3(0.0, deg_to_rad(90.0), 0.0),
+		Vector3(0.0, lamp_y, lamp_z + 0.004), 20)
 
 
 func _stem(steer: Node3D) -> float:

@@ -127,7 +127,7 @@ func _rear_step(root: Node3D) -> void:
 	_rbox(root, Vector3(0.164, 0.008, 0.174), pos + Vector3(0.0, 0.016, -0.004), _tape,
 		tilt, 0.004)
 	for side in [-1.0, 1.0]:
-		_rbox(root, Vector3(0.006, 0.014, 0.172), pos + Vector3(side * 0.086, -0.004, 0.0),
+		_rbox(root, Vector3(0.006, 0.011, 0.172), pos + Vector3(side * 0.087, -0.005, 0.0),
 			_accent, tilt, 0.002)
 	# Кронштейн от деки к площадке.
 	_beam(root, Vector3(0.0, 0.146, DECK_Z + 0.238), Vector3(0.0, STEP_Y - 0.018, DECK_Z + 0.292),
