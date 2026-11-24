@@ -27,12 +27,12 @@ const R := 0.153
 const BASE := 0.905
 const AXLE_F := -0.4525
 const AXLE_R := 0.4525
-const DECK_TOP := 0.160
+const DECK_TOP := 0.168
 const DECK_BOT := 0.075
 const DECK_W := 0.215
 const DECK_FRONT := -0.237
 const DECK_REAR := 0.2395
-const STEP_TOP := 0.216
+const STEP_TOP := 0.224
 const STEP_REAR := 0.344
 ## Шарнир стойки стоит на 0.08 м позади передней оси — как на ортопрофиле.
 const HEAD_Z := -0.373
@@ -1121,21 +1121,21 @@ func _build_rear_fender(root: Node3D) -> void:
 	for i in steps + 1:
 		var t := float(i) / float(steps)
 		var ang := lerpf(a0, a1, t)
-		var r := R + 0.021
+		var r := R + 0.015
 		pts.append(center + Vector3(0.0, cos(ang) * r, sin(ang) * r))
 		var taper := 1.0 - 0.16 * absf(t - 0.45) * 2.0
 		wid.append(0.011)
-		hei.append(0.106 * taper)
+		hei.append(0.104 * taper)
 		rad.append(0.005)
 	_sweep(fender, "Hugger", _m_black, pts, wid, hei, rad, Vector3.RIGHT)
 	# отбортовка по торцам и рёбра внутри
 	for a in [a0, a1]:
-		var p := center + Vector3(0.0, cos(a) * (R + 0.021), sin(a) * (R + 0.021))
+		var p := center + Vector3(0.0, cos(a) * (R + 0.015), sin(a) * (R + 0.015))
 		_box(fender, "Lip", Vector3(0.100, 0.008, 0.014),
 			Transform3D(Basis(Vector3.RIGHT, -a), p), _m_black_d)
 	for i in 3:
 		var ang := lerpf(a0 + 0.35, a1 - 0.35, float(i) * 0.5)
-		var p := center + Vector3(0.0, cos(ang) * (R + 0.014), sin(ang) * (R + 0.014))
+		var p := center + Vector3(0.0, cos(ang) * (R + 0.009), sin(ang) * (R + 0.009))
 		_box(fender, "Fin", Vector3(0.090, 0.010, 0.006),
 			Transform3D(Basis(Vector3.RIGHT, -ang), p), _m_black_d)
 	# шевроны на бортах крыла
@@ -1145,10 +1145,10 @@ func _build_rear_fender(root: Node3D) -> void:
 		var radial := Vector3(0.0, cos(ang), sin(ang))
 		var x_axis := -tang if float(side) > 0.0 else tang
 		var b := Basis(x_axis, radial, Vector3(float(side), 0.0, 0.0))
-		var p := center + Vector3(0.054 * float(side), cos(ang) * (R + 0.021), sin(ang) * (R + 0.021))
+		var p := center + Vector3(0.054 * float(side), cos(ang) * (R + 0.015), sin(ang) * (R + 0.015))
 		_chevron(fender, "FenderChevron", 0.024, Transform3D(b, p))
 	# стоп-сигнал на хвосте крыла
-	var tail_pos := center + Vector3(0.0, cos(a1) * (R + 0.034), sin(a1) * (R + 0.034))
+	var tail_pos := center + Vector3(0.0, cos(a1) * (R + 0.028), sin(a1) * (R + 0.028))
 	_box(fender, "TailBezel", Vector3(0.098, 0.026, 0.012),
 		Transform3D(Basis(Vector3.RIGHT, -a1), tail_pos), _m_black)
 	_box(fender, "TailLight", Vector3(0.084, 0.014, 0.006),
@@ -1221,11 +1221,11 @@ func _build_front_suspension(root: Node3D) -> void:
 			Transform3D(Basis(Vector3.UP, PI * 0.5 * float(side)),
 				Vector3(sx * 1.06 + 0.0135 * float(side), 0.082, -0.372)))
 		# кронштейн амортизатора на горловине
-		var top := Vector3(sx * 1.02, 0.268, -0.360)
+		var top := Vector3(sx * 1.02, 0.244, -0.360)
 		var bot := Vector3(sx * 1.06, 0.044, -0.372)
 		_sweep(susp, "DamperMount", _m_frame_d, [
-			Vector3(sx * 0.50, 0.286, -0.352),
-			Vector3(sx * 0.86, 0.278, -0.356),
+			Vector3(sx * 0.50, 0.262, -0.352),
+			Vector3(sx * 0.86, 0.254, -0.356),
 			top,
 		], [0.030, 0.026, 0.022], [0.048, 0.040, 0.032], [0.006, 0.006, 0.008], Vector3.RIGHT)
 		_cyl(susp, "DamperEyeTop", 0.0135, 0.026,
@@ -1235,16 +1235,16 @@ func _build_front_suspension(root: Node3D) -> void:
 		# амортизатор: корпус сверху, шток снизу, пружина на опорах
 		var axis := bot - top
 		var dir := axis.normalized()
-		_cyl(susp, "DamperBody", 0.0150, 0.092,
+		_cyl(susp, "DamperBody", 0.0150, 0.084,
 			Transform3D(_basis_y(dir), top + dir * 0.056), _m_black, -1.0, 16)
-		_cyl(susp, "DamperRod", 0.0078, 0.108,
+		_cyl(susp, "DamperRod", 0.0078, 0.096,
 			Transform3D(_basis_y(dir), top + dir * 0.168), _m_steel, -1.0, 12)
 		_cyl(susp, "SpringSeat", 0.0225, 0.006,
 			Transform3D(_basis_y(dir), top + dir * 0.014), _m_black_d, -1.0, 20)
 		_cyl(susp, "SpringSeatBot", 0.0225, 0.006,
 			Transform3D(_basis_y(dir), bot - dir * 0.010), _m_black_d, -1.0, 20)
 		_spring(susp, "DamperSpring", top + dir * 0.017, bot - dir * 0.013,
-			0.0192, 0.0044, 15, _m_black_d)
+			0.0192, 0.0044, 13, _m_black_d)
 		# вилка-проушина снизу и её болт
 		_cyl(susp, "DamperEyeBot", 0.0135, 0.026,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), bot), _m_black, -1.0, 14)
