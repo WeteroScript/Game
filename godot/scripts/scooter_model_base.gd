@@ -605,10 +605,6 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 		Vector2(r * 0.700, -half_w * 1.00), Vector2(r * 0.630, -half_w * 0.80),
 	]
 	_revolve(pivot, tyre, 52, _rubber)
-	# Плечевые буртики — тонкие рёбра по краю беговой дорожки.
-	for side_w in [-1.0, 1.0]:
-		_ring(pivot, r * 1.010, r * 0.980, 0.0035, _rubber_dark, 44,
-			Vector3(0.0, 0.0, side_w * half_w * 0.72))
 	_tread(pivot, knobby)
 
 	# Обод: профиль от борта к полке с плавным переходом.
@@ -672,8 +668,8 @@ func _tread(pivot: Node3D, knobby := false) -> void:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var r := radius
 	var rows := 30 if knobby else 40
-	var lift := 0.996 if knobby else 0.9995
-	var thick := 0.014 if knobby else 0.008
+	var lift := 0.989 if knobby else 0.997
+	var thick := 0.010 if knobby else 0.006
 	var wide := 0.030 if knobby else 0.022
 	var length := 0.014 if knobby else 0.009
 	for i in rows:
@@ -683,10 +679,10 @@ func _tread(pivot: Node3D, knobby := false) -> void:
 			_add_box(st, Transform3D(Basis(Vector3.RIGHT, angle), pos),
 				Vector3(wide, thick, length))
 		var mid := angle + PI / float(rows) * 0.5
-		var center_pos := Vector3(0.0, cos(mid) * r * (lift + 0.001),
-			sin(mid) * r * (lift + 0.001))
+		var center_pos := Vector3(0.0, cos(mid) * r * (lift + 0.0008),
+			sin(mid) * r * (lift + 0.0008))
 		_add_box(st, Transform3D(Basis(Vector3.RIGHT, mid), center_pos),
-			Vector3(wide * 1.7, thick * 0.9, length * 1.3))
+			Vector3(wide * 1.35, thick * 0.9, length * 1.35))
 	st.generate_normals()
 	var instance := MeshInstance3D.new()
 	instance.mesh = st.commit()
