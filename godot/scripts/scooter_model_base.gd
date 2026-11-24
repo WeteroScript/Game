@@ -102,8 +102,7 @@ func _make_materials() -> void:
 	_tail = _mat(Color(0.30, 0.03, 0.03), 0.10, 0.30, TAIL, 2.2)
 	_amber = _mat(Color(0.35, 0.18, 0.02), 0.10, 0.30, AMBER, 1.4)
 	_rubber_dark = _mat(Color(0.055, 0.054, 0.058), 0.0, 0.80)
-	_caliper = _mat(spec.accent_color if spec.orange_accents else Color(0.55, 0.10, 0.09),
-		0.30, 0.35)
+	_caliper = _mat(Color(0.62, 0.085, 0.065), 0.35, 0.32)
 
 
 # ---- наследники --------------------------------------------------------------

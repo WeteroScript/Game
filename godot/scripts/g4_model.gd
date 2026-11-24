@@ -79,6 +79,12 @@ func _deck(root: Node3D) -> void:
 		_rbox(root, Vector3(0.168, 0.010, 0.014),
 			Vector3(0.0, 0.004, DECK_Z - 0.120 + 0.120 * float(k)), _rim,
 			Vector3.ZERO, 0.004)
+	# Крепёж по борту: гайки на линии разъёма.
+	for side in [-1.0, 1.0]:
+		for k in 4:
+			var bz: float = -0.190 + 0.120 * float(k)
+			_cyl(root, 0.0055, 0.008, Vector3(side * (_half_at(bz) + 0.002), 0.070, DECK_Z + bz),
+				_steel, Vector3(0.0, 0.0, deg_to_rad(90.0)), 6)
 	# Замок зажигания на борту у носа.
 	_cyl(root, 0.011, 0.010, Vector3(0.106, 0.112, DECK_Z - 0.150), _steel,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 14)
@@ -268,18 +274,18 @@ func _stem(steer: Node3D) -> float:
 	var bottom := Vector3(0.0, STEM_BASE_Y, 0.056)
 	var top := Vector3(0.0, BAR_Y, bottom.z + tan(rake) * (BAR_Y - STEM_BASE_Y))
 	# Стойка: сужающееся фрезерованное лезвие вместо плоской пластины.
-	_beam(steer, bottom, top, Vector2(0.068, 0.032), Vector2(0.052, 0.026), _paint,
-		0.009, 5, Vector3.BACK)
+	_beam(steer, bottom, top, Vector2(0.070, 0.044), Vector2(0.054, 0.036), _rim,
+		0.010, 5, Vector3.BACK)
 	_beam(steer, bottom - Vector3(0.0, 0.030, 0.0), bottom.lerp(top, 0.14),
-		Vector2(0.074, 0.042), Vector2(0.070, 0.036), _paint, 0.010, 2, Vector3.BACK)
+		Vector2(0.076, 0.054), Vector2(0.072, 0.048), _rim, 0.012, 2, Vector3.BACK)
 	var mid := bottom.lerp(top, 0.54)
 	for side in [-1.0, 1.0]:
 		# Фрезерованный канал и оранжевая вставка по бокам стойки.
-		_rbox(steer, Vector3(0.005, 0.320, 0.010), mid + Vector3(side * 0.026, 0.012, 0.0),
-			_paint_dark, Vector3(rake, 0.0, 0.0), 0.002)
-		_rbox(steer, Vector3(0.004, 0.130, 0.007), mid + Vector3(side * 0.027, -0.126, 0.0),
+		_rbox(steer, Vector3(0.005, 0.320, 0.012), mid + Vector3(side * 0.028, 0.012, 0.0),
+			_plastic, Vector3(rake, 0.0, 0.0), 0.002)
+		_rbox(steer, Vector3(0.004, 0.130, 0.008), mid + Vector3(side * 0.029, -0.126, 0.0),
 			_accent, Vector3(rake, 0.0, 0.0), 0.002)
-		_label(steer, spec.brand_text, mid + Vector3(side * 0.030, 0.048, 0.0),
+		_label(steer, spec.brand_text, mid + Vector3(side * 0.032, 0.048, 0.0),
 			Vector3(0.0, 90.0 * side, 90.0), 0.00052, Color(0.94, 0.95, 0.96))
 	# Шахматный логотип у основания стойки.
 	for k in 3:

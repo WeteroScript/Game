@@ -74,6 +74,11 @@ func _deck(root: Node3D) -> void:
 			_rbox(root, Vector3(0.008, 0.020, 0.152),
 				Vector3(side * (_half_at(mz) + 0.001), 0.048, DECK_Z + mz), _plastic,
 				Vector3.ZERO, 0.005)
+		# Оранжевая панель в носу деки.
+		var oz: float = -0.214
+		_rbox(root, Vector3(0.004, 0.060, 0.120),
+			Vector3(side * (_half_at(oz) + 0.001), 0.098, DECK_Z + oz), _accent,
+			Vector3.ZERO, 0.003)
 		# Белая полоса-панель и надписи на боку деки.
 		var wz: float = 0.040
 		_rbox(root, Vector3(0.004, 0.020, 0.170),
@@ -96,6 +101,12 @@ func _deck(root: Node3D) -> void:
 		_paint_dark, Vector3.ZERO, 0.010)
 	_rbox(root, Vector3(0.120, 0.008, 0.200), Vector3(0.0, -0.004, DECK_Z + 0.060),
 		_accent, Vector3.ZERO, 0.003)
+	# Крепёж по борту и вентиляционная решётка в носу деки.
+	for side in [-1.0, 1.0]:
+		for k in 4:
+			var bz: float = -0.170 + 0.110 * float(k)
+			_cyl(root, 0.0055, 0.008, Vector3(side * (_half_at(bz) + 0.002), 0.062, DECK_Z + bz),
+				_steel, Vector3(0.0, 0.0, deg_to_rad(90.0)), 6)
 	# Вентиляционная решётка в носу деки — характерная деталь F3.
 	_rbox(root, Vector3(0.030, 0.052, 0.016), Vector3(0.062, 0.096, DECK_Z - 0.200), _rim,
 		Vector3(deg_to_rad(-10.0), 0.0, 0.0), 0.004)
