@@ -219,10 +219,7 @@ func _make_materials() -> void:
 	_m_tape = _mat(Color(0.048, 0.048, 0.052), 0.0, 0.94)
 	_m_tape.resource_name = "GripTape"
 	_m_tape.albedo_texture = _tape_texture()
-	_m_tape.normal_enabled = true
-	_m_tape.normal_texture = nrm_fine
-	_m_tape.normal_scale = 0.35
-	_m_tape.uv1_scale = Vector3(7.0, 7.0, 7.0)
+	_m_tape.uv1_scale = Vector3(3.0, 3.0, 3.0)
 
 	var screen_tex := _screen_texture()
 	_m_screen = _mat(Color(0.02, 0.02, 0.03), 0.05, 0.20)
@@ -390,11 +387,10 @@ func _decal(parent: Node3D, node_name: String, text: String, height_m: float,
 		_decal_cache[key] = tex
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	mat.alpha_scissor_threshold = 0.45
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.albedo_texture = tex
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
 	var w := height_m * float(tex.get_width()) / float(tex.get_height())
 	var quad := QuadMesh.new()
 	quad.size = Vector2(w, height_m)
@@ -427,8 +423,7 @@ func _chevron(parent: Node3D, node_name: String, size_m: float, xform: Transform
 		_decal_cache[key] = tex
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	mat.alpha_scissor_threshold = 0.45
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.albedo_texture = tex
 	var quad := QuadMesh.new()
@@ -1034,17 +1029,17 @@ func _build_rear_fender(root: Node3D) -> void:
 	var wid: Array = []
 	var hei: Array = []
 	var rad: Array = []
-	var a0 := -1.30
-	var a1 := 1.62
-	var steps := 11
+	var a0 := -1.40
+	var a1 := 1.75
+	var steps := 12
 	for i in steps + 1:
 		var t := float(i) / float(steps)
 		var ang := lerpf(a0, a1, t)
-		var r := R + 0.016
+		var r := R + 0.012
 		pts.append(center + Vector3(0.0, cos(ang) * r, sin(ang) * r))
 		var taper := 1.0 - 0.22 * absf(t - 0.5) * 2.0
 		wid.append(0.012)
-		hei.append(0.118 * taper)
+		hei.append(0.100 * taper)
 		rad.append(0.005)
 	_sweep(fender, "Hugger", _m_black, pts, wid, hei, rad, Vector3.RIGHT)
 	# рёбра жёсткости сверху
