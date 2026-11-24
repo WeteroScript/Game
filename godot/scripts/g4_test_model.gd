@@ -178,7 +178,7 @@ func _make_materials() -> void:
 
 	_m_alu = _mat(C_ALU, 0.70, 0.34)
 	_m_alu.resource_name = "Aluminium"
-	_m_rotor = _mat(Color(0.230, 0.238, 0.250), 0.35, 0.55)
+	_m_rotor = _mat(Color(0.190, 0.198, 0.210), 0.25, 0.60)
 	_m_rotor.resource_name = "BrakeRotor"
 
 	_m_rubber = _mat(C_RUBBER, 0.0, 0.93)
@@ -817,8 +817,8 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 
 	var rim := _node(parent, "Rim")
 	var axis := Basis(Vector3.BACK, PI * 0.5)
-	_cyl(rim, "FlangeL", 0.1015, 0.008, Transform3D(axis, Vector3(0.028, 0.0, 0.0)), _m_alu, -1.0, 40)
-	_cyl(rim, "FlangeR", 0.1015, 0.008, Transform3D(axis, Vector3(-0.028, 0.0, 0.0)), _m_alu, -1.0, 40)
+	_cyl(rim, "FlangeL", 0.1015, 0.008, Transform3D(axis, Vector3(0.028, 0.0, 0.0)), _m_black, -1.0, 40)
+	_cyl(rim, "FlangeR", 0.1015, 0.008, Transform3D(axis, Vector3(-0.028, 0.0, 0.0)), _m_black, -1.0, 40)
 	for i in 5:
 		var ang := TAU * float(i) / 5.0
 		var dir := Vector3(0.0, cos(ang), sin(ang))
@@ -841,7 +841,7 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 		for i in 3:
 			_cyl(hub, "MotorFin", 0.056, 0.004,
 				Transform3D(axis, Vector3(-0.030 + i * 0.030, 0.0, 0.0)), _m_black_d, -1.0, 32)
-		_cyl(hub, "MotorCover", 0.048, 0.006, Transform3D(axis, Vector3(0.050, 0.0, 0.0)), _m_alu, -1.0, 32)
+		_cyl(hub, "MotorCover", 0.048, 0.006, Transform3D(axis, Vector3(0.050, 0.0, 0.0)), _m_black_d, -1.0, 32)
 		_decal(hub, "MotorLabel", "1000W", 0.008, Color(0.72, 0.74, 0.78),
 			Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0.054, 0.0, 0.024)))
 	# ось и гайки
