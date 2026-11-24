@@ -9,7 +9,7 @@ const STEM_BASE_Y := 0.40
 const BAR_Y := 1.15
 const ARM_X := 0.082
 const DECK_Z := 0.04
-const STEP_Y := 0.245
+const STEP_Y := 0.224
 
 ## Полуширина деки по длине: по ней ставятся кант, молдинг и вся графика.
 const DECK_HALF := [
@@ -45,13 +45,13 @@ func _half_at(z_local: float) -> float:
 func _deck(root: Node3D) -> void:
 	# Оболочка с сужением к носу и подъёмом на корме — не коробка.
 	var sections := [
-		{"pos": Vector3(0.0, 0.125, DECK_Z - 0.345), "w": 0.140, "h": 0.070, "r": 0.024},
-		{"pos": Vector3(0.0, 0.108, DECK_Z - 0.318), "w": 0.192, "h": 0.104, "r": 0.028},
-		{"pos": Vector3(0.0, 0.095, DECK_Z - 0.230), "w": 0.216, "h": 0.120, "r": 0.030},
-		{"pos": Vector3(0.0, 0.093, DECK_Z), "w": 0.220, "h": 0.124, "r": 0.030},
-		{"pos": Vector3(0.0, 0.097, DECK_Z + 0.180), "w": 0.214, "h": 0.116, "r": 0.030},
-		{"pos": Vector3(0.0, 0.109, DECK_Z + 0.248), "w": 0.192, "h": 0.092, "r": 0.024},
-		{"pos": Vector3(0.0, 0.130, DECK_Z + 0.292), "w": 0.158, "h": 0.060, "r": 0.018},
+		{"pos": Vector3(0.0, 0.125, DECK_Z - 0.345), "w": 0.140, "h": 0.070, "r": 0.012},
+		{"pos": Vector3(0.0, 0.108, DECK_Z - 0.318), "w": 0.192, "h": 0.104, "r": 0.014},
+		{"pos": Vector3(0.0, 0.095, DECK_Z - 0.230), "w": 0.216, "h": 0.120, "r": 0.016},
+		{"pos": Vector3(0.0, 0.093, DECK_Z), "w": 0.220, "h": 0.124, "r": 0.016},
+		{"pos": Vector3(0.0, 0.097, DECK_Z + 0.180), "w": 0.214, "h": 0.116, "r": 0.016},
+		{"pos": Vector3(0.0, 0.109, DECK_Z + 0.248), "w": 0.192, "h": 0.092, "r": 0.014},
+		{"pos": Vector3(0.0, 0.130, DECK_Z + 0.292), "w": 0.158, "h": 0.060, "r": 0.010},
 	]
 	var shell := _loft_rect(root, sections, _paint)
 	shell.name = "Deck"
@@ -122,7 +122,7 @@ func _deck_graphics(root: Node3D) -> void:
 func _rear_step(root: Node3D) -> void:
 	var tilt := Vector3(deg_to_rad(-9.0), 0.0, 0.0)
 	var pos := Vector3(0.0, STEP_Y, DECK_Z + 0.372)
-	var plate := _rbox(root, Vector3(0.182, 0.026, 0.196), pos, _paint, tilt, 0.010)
+	var plate := _rbox(root, Vector3(0.182, 0.024, 0.196), pos, _paint, tilt, 0.006)
 	plate.name = "RearStep"
 	_rbox(root, Vector3(0.164, 0.008, 0.174), pos + Vector3(0.0, 0.016, -0.004), _tape,
 		tilt, 0.004)
@@ -218,7 +218,7 @@ func _build_steer(root: Node3D) -> Node3D:
 func _neck(steer: Node3D) -> void:
 	# Горловина: литой клин от деки к стакану, с наклонной передней гранью.
 	_beam(steer, Vector3(0.0, 0.112, 0.046), Vector3(0.0, 0.336, 0.056),
-		Vector2(0.152, 0.150), Vector2(0.092, 0.110), _paint, 0.030, 4, Vector3.BACK)
+		Vector2(0.152, 0.150), Vector2(0.092, 0.110), _paint, 0.016, 4, Vector3.BACK)
 	# Тень под клином и резиновый грязевик.
 	_rbox(steer, Vector3(0.132, 0.036, 0.118), Vector3(0.0, 0.104, 0.046), _paint_dark,
 		Vector3(deg_to_rad(-8.0), 0.0, 0.0), 0.010)
@@ -275,9 +275,9 @@ func _stem(steer: Node3D) -> float:
 	var top := Vector3(0.0, BAR_Y, bottom.z + tan(rake) * (BAR_Y - STEM_BASE_Y))
 	# Стойка: сужающееся фрезерованное лезвие вместо плоской пластины.
 	_beam(steer, bottom, top, Vector2(0.070, 0.044), Vector2(0.054, 0.036), _rim,
-		0.010, 5, Vector3.BACK)
+		0.006, 5, Vector3.BACK)
 	_beam(steer, bottom - Vector3(0.0, 0.030, 0.0), bottom.lerp(top, 0.14),
-		Vector2(0.076, 0.054), Vector2(0.072, 0.048), _rim, 0.012, 2, Vector3.BACK)
+		Vector2(0.076, 0.054), Vector2(0.072, 0.048), _rim, 0.008, 2, Vector3.BACK)
 	var mid := bottom.lerp(top, 0.54)
 	for side in [-1.0, 1.0]:
 		# Фрезерованный канал и оранжевая вставка по бокам стойки.

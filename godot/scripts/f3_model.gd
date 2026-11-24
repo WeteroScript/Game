@@ -8,7 +8,7 @@ const STEM_BASE_Y := 0.36
 const BAR_Y := 1.19
 const ARM_X := 0.078
 const DECK_Z := 0.03
-const STEP_Y := 0.238
+const STEP_Y := 0.196
 
 ## Полуширина деки по длине: по ней ставятся кант, полосы и надписи.
 const DECK_HALF := [
@@ -45,13 +45,13 @@ func _half_at(z_local: float) -> float:
 func _deck(root: Node3D) -> void:
 	var white := _mat(Color(0.90, 0.91, 0.93), 0.10, 0.30)
 	var sections := [
-		{"pos": Vector3(0.0, 0.118, DECK_Z - 0.348), "w": 0.140, "h": 0.066, "r": 0.022},
-		{"pos": Vector3(0.0, 0.100, DECK_Z - 0.298), "w": 0.184, "h": 0.100, "r": 0.026},
-		{"pos": Vector3(0.0, 0.090, DECK_Z - 0.200), "w": 0.206, "h": 0.114, "r": 0.028},
-		{"pos": Vector3(0.0, 0.088, DECK_Z), "w": 0.210, "h": 0.118, "r": 0.028},
-		{"pos": Vector3(0.0, 0.092, DECK_Z + 0.170), "w": 0.206, "h": 0.112, "r": 0.028},
-		{"pos": Vector3(0.0, 0.104, DECK_Z + 0.238), "w": 0.184, "h": 0.088, "r": 0.024},
-		{"pos": Vector3(0.0, 0.122, DECK_Z + 0.282), "w": 0.150, "h": 0.058, "r": 0.018},
+		{"pos": Vector3(0.0, 0.118, DECK_Z - 0.348), "w": 0.140, "h": 0.066, "r": 0.011},
+		{"pos": Vector3(0.0, 0.100, DECK_Z - 0.298), "w": 0.184, "h": 0.100, "r": 0.013},
+		{"pos": Vector3(0.0, 0.090, DECK_Z - 0.200), "w": 0.206, "h": 0.114, "r": 0.015},
+		{"pos": Vector3(0.0, 0.088, DECK_Z), "w": 0.210, "h": 0.118, "r": 0.015},
+		{"pos": Vector3(0.0, 0.092, DECK_Z + 0.170), "w": 0.206, "h": 0.112, "r": 0.015},
+		{"pos": Vector3(0.0, 0.104, DECK_Z + 0.238), "w": 0.184, "h": 0.088, "r": 0.013},
+		{"pos": Vector3(0.0, 0.122, DECK_Z + 0.282), "w": 0.150, "h": 0.058, "r": 0.009},
 	]
 	var shell := _loft_rect(root, sections, _paint)
 	shell.name = "Deck"
@@ -120,28 +120,28 @@ func _deck(root: Node3D) -> void:
 func _rear_step(root: Node3D) -> void:
 	var tilt := Vector3(deg_to_rad(-10.0), 0.0, 0.0)
 	var pos := Vector3(0.0, STEP_Y, DECK_Z + 0.352)
-	var plate := _rbox(root, Vector3(0.174, 0.024, 0.188), pos, _paint, tilt, 0.010)
+	var plate := _rbox(root, Vector3(0.172, 0.022, 0.170), pos, _paint, tilt, 0.006)
 	plate.name = "RearStep"
-	_rbox(root, Vector3(0.156, 0.008, 0.166), pos + Vector3(0.0, 0.015, -0.004), _tape,
+	_rbox(root, Vector3(0.154, 0.007, 0.150), pos + Vector3(0.0, 0.014, -0.004), _tape,
 		tilt, 0.004)
 	for side in [-1.0, 1.0]:
-		_rbox(root, Vector3(0.006, 0.011, 0.176), pos + Vector3(side * 0.083, -0.005, 0.0),
+		_rbox(root, Vector3(0.006, 0.010, 0.160), pos + Vector3(side * 0.082, -0.004, 0.0),
 			_accent, tilt, 0.002)
-	_beam(root, Vector3(0.0, 0.140, DECK_Z + 0.228), Vector3(0.0, STEP_Y - 0.016, DECK_Z + 0.286),
-		Vector2(0.132, 0.028), Vector2(0.144, 0.020), _paint, 0.010, 2)
+	_beam(root, Vector3(0.0, 0.134, DECK_Z + 0.226), Vector3(0.0, STEP_Y - 0.014, DECK_Z + 0.272),
+		Vector2(0.132, 0.026), Vector2(0.144, 0.018), _paint, 0.008, 2)
 	for side in [-1.0, 1.0]:
-		_rbox(root, Vector3(0.013, 0.052, 0.028),
-			Vector3(side * 0.050, STEP_Y - 0.040, DECK_Z + 0.306), _paint,
+		_rbox(root, Vector3(0.013, 0.040, 0.026),
+			Vector3(side * 0.050, STEP_Y - 0.030, DECK_Z + 0.292), _paint,
 			Vector3(deg_to_rad(-10.0), 0.0, 0.0), 0.005)
 	for side in [-1.0, 1.0]:
 		_plate_between(root, Vector3(side * 0.070, 0.040, base * 0.5 - 0.030),
-			Vector3(side * 0.074, STEP_Y - 0.018, DECK_Z + 0.400), 0.022, 0.011, _accent)
-	_tail_light(root, Vector3(0.0, pos.y + 0.004, pos.z + 0.098), Vector3(0.080, 0.022, 0.012),
+			Vector3(side * 0.074, STEP_Y - 0.016, DECK_Z + 0.372), 0.022, 0.011, _accent)
+	_tail_light(root, Vector3(0.0, pos.y + 0.004, pos.z + 0.089), Vector3(0.080, 0.022, 0.012),
 		_tail, tilt)
 	for side in [-1.0, 1.0]:
 		_rbox(root, Vector3(0.020, 0.012, 0.010),
-			Vector3(side * 0.058, pos.y + 0.002, pos.z + 0.094), _amber, tilt, 0.003)
-	_rbox(root, Vector3(0.140, 0.011, 0.058), Vector3(0.0, pos.y - 0.030, pos.z + 0.056),
+			Vector3(side * 0.058, pos.y + 0.002, pos.z + 0.085), _amber, tilt, 0.003)
+	_rbox(root, Vector3(0.138, 0.010, 0.052), Vector3(0.0, pos.y - 0.026, pos.z + 0.050),
 		_plastic, tilt, 0.006)
 
 
@@ -157,7 +157,7 @@ func _rear_arm(root: Node3D) -> void:
 		_rbox(root, Vector3(0.010, 0.050, 0.068), Vector3(x, 0.110, pivot_z - 0.032),
 			_accent, Vector3(deg_to_rad(18.0), 0.0, 0.0), 0.006)
 		# Амортизатор от площадки к рычагу.
-		_shock(root, Vector3(x * 0.64, 0.182, DECK_Z + 0.286),
+		_shock(root, Vector3(x * 0.64, 0.156, DECK_Z + 0.286),
 			Vector3(x * 0.64, 0.046, axle_z - 0.070), 0.012, _accent)
 	# Шарнир, ось, поперечина.
 	_cyl(root, 0.016, ARM_X * 2.0 + 0.028, Vector3(0.0, 0.092, pivot_z), _rim,
@@ -208,7 +208,7 @@ func _build_steer(root: Node3D) -> Node3D:
 	var top_z := _stem(steer)
 	_wheel(steer, axle, "Wheel", true, -1.0, _rim, true, true)
 	# Переднее крыло (у F3 оно есть) с брызговиком.
-	_fender(steer, axle, radius + 0.008, 0.148, 86.0, -34.0, _plastic, 18, 0.010)
+	_fender(steer, axle, radius + 0.008, 0.126, 76.0, -28.0, _plastic, 18, 0.009)
 	for side in [-1.0, 1.0]:
 		_plate_between(steer, Vector3(side * (ARM_X - 0.006), 0.062, axle.z + 0.058),
 			Vector3(side * 0.042, radius + 0.018, axle.z + 0.020), 0.016, 0.008, _rim)
@@ -222,7 +222,7 @@ func _build_steer(root: Node3D) -> Node3D:
 func _neck(steer: Node3D) -> void:
 	# Компактный угловатый стакан.
 	_beam(steer, Vector3(0.0, 0.106, 0.038), Vector3(0.0, 0.302, 0.060),
-		Vector2(0.152, 0.140), Vector2(0.084, 0.098), _paint, 0.024, 3, Vector3.BACK)
+		Vector2(0.152, 0.140), Vector2(0.084, 0.098), _paint, 0.014, 3, Vector3.BACK)
 	_rbox(steer, Vector3(0.128, 0.034, 0.108), Vector3(0.0, 0.100, 0.038), _paint_dark,
 		Vector3(deg_to_rad(-10.0), 0.0, 0.0), 0.010)
 	# Чёрный кожух перед колесом и оранжевая накладка на стакане.
@@ -275,7 +275,7 @@ func _stem(steer: Node3D) -> float:
 	var bottom := Vector3(0.0, STEM_BASE_Y, 0.060)
 	var top := Vector3(0.0, BAR_Y, bottom.z + tan(rake) * (BAR_Y - STEM_BASE_Y))
 	_beam(steer, bottom, top, Vector2(0.064, 0.032), Vector2(0.050, 0.026), _paint,
-		0.009, 5, Vector3.BACK)
+		0.006, 5, Vector3.BACK)
 	_beam(steer, bottom - Vector3(0.0, 0.026, 0.0), bottom.lerp(top, 0.16),
 		Vector2(0.070, 0.042), Vector2(0.066, 0.036), _paint, 0.010, 2, Vector3.BACK)
 	# Графика F3: оранжевые полосы со стрелкой и надпись.

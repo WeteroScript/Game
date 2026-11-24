@@ -912,7 +912,7 @@ func _fender(parent: Node3D, center: Vector3, rad: float, width: float,
 		# Ширина сужается к концам, как у литого крыла.
 		var w := width * lerpf(taper, 1.0, sin(PI * t))
 		var half := w * 0.5
-		var arch := half * 0.30
+		var arch := half * 0.16
 		var n := Vector3(0.0, cos(a), -sin(a))
 		var ring := PackedVector3Array()
 		for k in arch_steps:
