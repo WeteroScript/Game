@@ -461,6 +461,68 @@ func _take_part_shots(shot_dir: String, spec_id: String) -> void:
 	print("PART SHOTS: снято %d" % made)
 
 
+## Собрать отдельные детали-меши: повторяющиеся (шашки протектора, болты) — по 2 образца.
+func _collect_detail_meshes(node: Node, out: Array, seen: Dictionary) -> void:
+	for child in node.get_children():
+		if child is MeshInstance3D and child.mesh != null:
+			var base := str(child.name)
+			var cut := base.rfind("_")
+			if cut > 0 and base.substr(cut + 1).is_valid_int():
+				base = base.substr(0, cut)
+			var key := "%s/%s" % [str(node.get_path()), base]
+			var count: int = int(seen.get(key, 0))
+			seen[key] = count + 1
+			if count > 1:
+				continue
+			var box: AABB = child.global_transform * child.mesh.get_aabb()
+			if box.size.length() < 0.004:
+				continue
+			out.append({"mesh": child, "box": box, "group": str(node.get_path())})
+		elif child is Node:
+			_collect_detail_meshes(child, out, seen)
+
+
+## Кадры отдельных деталей: имя файла = группа + имя меша.
+func _take_detail_shots(shot_dir: String, spec_id: String) -> void:
+	var model_root: Node3D = null
+	if scooter != null:
+		model_root = scooter.get_node_or_null("Model")
+	if model_root == null:
+		return
+	var items: Array = []
+	_collect_detail_meshes(model_root, items, {})
+	print("DETAIL SHOTS: деталей %d" % items.size())
+	var made := 0
+	for item in items:
+		var box: AABB = item["box"]
+		var center := box.get_center()
+		var radius := maxf(box.size.length() * 0.5, 0.008)
+		var dist := radius * 3.4 + 0.10
+		var dir := Vector3(0.60, 0.52, -0.60)
+		if center.x < -0.015:
+			dir = Vector3(-0.60, 0.52, -0.60)
+		dir = dir.normalized()
+		camera_rig.target = null
+		camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
+		camera_rig.fov = 36.0
+		camera_rig.global_position = center + dir * dist
+		camera_rig.look_at(center, Vector3.UP)
+		for frame in 2:
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var image := get_viewport().get_texture().get_image()
+		image.resize(640, 360, Image.INTERPOLATE_BILINEAR)
+		var group := str(item["group"])
+		var cut := group.find("Model/")
+		if cut >= 0:
+			group = group.substr(cut + 6)
+		var path := "%s/%s_detail_%s-%s.png" % [shot_dir, spec_id,
+			group.replace("/", "-"), str(item["mesh"].name)]
+		image.save_png(path)
+		made += 1
+	print("DETAIL SHOTS: снято %d" % made)
+
+
 func _take_screenshots() -> void:
 	var shot_dir := OS.get_environment("SHOT_DIR")
 	if shot_dir.is_empty():
@@ -531,6 +593,7 @@ func _take_screenshots() -> void:
 		# Кадры каждой группы деталей модели — чтобы можно было дорабатывать по отдельности.
 		if spec_id == "g4_test":
 			await _take_part_shots(shot_dir, spec_id)
+			await _take_detail_shots(shot_dir, spec_id)
 
 		# Кадр с райдером.
 		if rider_node != null:

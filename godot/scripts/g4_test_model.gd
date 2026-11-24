@@ -178,7 +178,7 @@ func _make_materials() -> void:
 	_m_black.clearcoat = 0.06
 	_m_black.clearcoat_roughness = 0.40
 
-	_m_black_d = _mat(C_BLACK.darkened(0.20), 0.12, 0.52)
+	_m_black_d = _mat(C_BLACK.darkened(0.20), 0.06, 0.62)
 	_m_black_d.resource_name = "PaintedBlackMatte"
 
 	_m_steel = _mat(C_STEEL, 0.72, 0.30)
@@ -1124,14 +1124,14 @@ func _build_rear_fender(root: Node3D) -> void:
 		var r := R + 0.015
 		pts.append(center + Vector3(0.0, cos(ang) * r, sin(ang) * r))
 		var taper := 1.0 - 0.16 * absf(t - 0.45) * 2.0
-		wid.append(0.011)
-		hei.append(0.104 * taper)
+		wid.append(0.014)
+		hei.append(0.110 * taper)
 		rad.append(0.005)
 	_sweep(fender, "Hugger", _m_black, pts, wid, hei, rad, Vector3.RIGHT)
 	# отбортовка по торцам и рёбра внутри
 	for a in [a0, a1]:
 		var p := center + Vector3(0.0, cos(a) * (R + 0.015), sin(a) * (R + 0.015))
-		_box(fender, "Lip", Vector3(0.100, 0.008, 0.014),
+		_box(fender, "Lip", Vector3(0.108, 0.012, 0.020),
 			Transform3D(Basis(Vector3.RIGHT, -a), p), _m_black_d)
 	for i in 3:
 		var ang := lerpf(a0 + 0.35, a1 - 0.35, float(i) * 0.5)
@@ -1529,7 +1529,17 @@ func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
 			Vector3(x, 0.150, _stem_front_z(0.150) + off + 0.004),
 			Vector3(x, 0.118, tan(RAKE) * 0.118 - 0.042),
 		]
-		_tube(cables, str(run["name"]), _m_black_d, path, float(run["r"]), 8)
+		if float(run["r"]) > 0.008:
+			var w_flat: Array = []
+			var h_flat: Array = []
+			var r_flat: Array = []
+			for k in path.size():
+				w_flat.append(float(run["r"]) * 2.0)
+				h_flat.append(float(run["r"]) * 0.95)
+				r_flat.append(float(run["r"]) * 0.45)
+			_sweep(cables, str(run["name"]), _m_black_d, path, w_flat, h_flat, r_flat, Vector3.RIGHT)
+		else:
+			_tube(cables, str(run["name"]), _m_black_d, path, float(run["r"]), 8)
 		_cyl(cables, "CableBoot", float(run["r"]) + 0.005, 0.012,
 			Transform3D(Basis(Vector3.RIGHT, RAKE + 0.35), Vector3(x, 0.114, tan(RAKE) * 0.114 - 0.036)),
 			_m_plastic, -1.0, 12)
