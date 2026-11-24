@@ -814,12 +814,12 @@ func _tread(parent: Node3D) -> void:
 		var ang := TAU * float(i) / float(count)
 		for s in [-1.0, 1.0]:
 			var b := Basis(Vector3.RIGHT, ang) * Basis(Vector3.UP, 0.30 * float(s))
-			var mid := b * Vector3(0.0, 0.1520, 0.0) + Vector3(0.0125 * float(s), 0.0, 0.0)
-			_box(parent, "TreadCenter", Vector3(0.0220, 0.0018, 0.0165), Transform3D(b, mid), _m_rubber)
-			var shoulder := b * Vector3(0.0, 0.1444, 0.0) + Vector3(0.0300 * float(s), 0.0, 0.0)
-			_box(parent, "TreadShoulder", Vector3(0.0135, 0.0022, 0.0150), Transform3D(b, shoulder), _m_rubber)
-			var bevel := b * Vector3(0.0, 0.1370, 0.0) + Vector3(0.0355 * float(s), 0.0, 0.0)
-			_box(parent, "TreadBevel", Vector3(0.0075, 0.0016, 0.0090), Transform3D(b, bevel), _m_rubber)
+			var mid := b * Vector3(0.0, 0.1500, 0.0) + Vector3(0.0090 * float(s), 0.0, 0.0)
+			_box(parent, "TreadCenter", Vector3(0.0160, 0.0016, 0.0160), Transform3D(b, mid), _m_rubber)
+			var shoulder := b * Vector3(0.0, 0.1446, 0.0) + Vector3(0.0245 * float(s), 0.0, 0.0)
+			_box(parent, "TreadShoulder", Vector3(0.0110, 0.0018, 0.0140), Transform3D(b, shoulder), _m_rubber)
+			var bevel := b * Vector3(0.0, 0.1362, 0.0) + Vector3(0.0330 * float(s), 0.0, 0.0)
+			_box(parent, "TreadBevel", Vector3(0.0070, 0.0014, 0.0090), Transform3D(b, bevel), _m_rubber)
 func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 	var tire := _node(parent, "Tire")
 	_lathe(tire, "Carcass", _m_rubber, _tire_profile(), 56)
