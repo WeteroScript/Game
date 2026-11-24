@@ -10,6 +10,12 @@ const ARM_X := 0.078
 const DECK_Z := 0.03
 const STEP_Y := 0.238
 
+## Полуширина деки по длине: по ней ставятся кант, полосы и надписи.
+const DECK_HALF := [
+	[-0.348, 0.070], [-0.298, 0.092], [-0.200, 0.103], [0.0, 0.105],
+	[0.170, 0.103], [0.238, 0.092], [0.282, 0.075],
+]
+
 
 func _build_body(root: Node3D) -> void:
 	_deck(root)
@@ -20,6 +26,19 @@ func _build_body(root: Node3D) -> void:
 	_wheel(root, Vector3(0.0, 0.0, base * 0.5), "RearWheel", true, 1.0, _rim, true, true)
 	_marker(root, "FootLeft", Vector3(-0.070, deck_top + 0.014, -0.09))
 	_marker(root, "FootRight", Vector3(0.070, deck_top + 0.014, 0.10))
+
+
+## Полуширина деки на заданном z — чтобы графика лежала на её боку.
+func _half_at(z_local: float) -> float:
+	for i in DECK_HALF.size() - 1:
+		var a: Array = DECK_HALF[i]
+		var b: Array = DECK_HALF[i + 1]
+		if z_local >= float(a[0]) and z_local <= float(b[0]):
+			var t: float = (z_local - float(a[0])) / (float(b[0]) - float(a[0]))
+			return lerpf(float(a[1]), float(b[1]), t)
+	if z_local < float(DECK_HALF[0][0]):
+		return float(DECK_HALF[0][1])
+	return float(DECK_HALF[DECK_HALF.size() - 1][1])
 
 
 # ---- дека --------------------------------------------------------------------
@@ -43,23 +62,35 @@ func _deck(root: Node3D) -> void:
 			Vector3(side * 0.050, 0.155, DECK_Z - 0.004), _accent)
 	# Оранжевая кромка по борту, белая полоса и надписи.
 	for side in [-1.0, 1.0]:
-		var sx: float = side * 0.100
 		var yaw: float = 90.0 * side
-		_rbox(root, Vector3(0.007, 0.012, 0.320), Vector3(sx, 0.138, DECK_Z + 0.010),
-			_accent, Vector3.ZERO, 0.004)
-		_rbox(root, Vector3(0.004, 0.020, 0.180), Vector3(sx + side * 0.002, 0.096, DECK_Z + 0.040),
-			white, Vector3.ZERO, 0.002)
-		_label(root, spec.brand_text, Vector3(sx + side * 0.004, 0.108, DECK_Z + 0.140),
-			Vector3(0.0, yaw, 0.0), 0.00046, Color(0.12, 0.12, 0.14))
-		_label(root, "PRO MAX", Vector3(sx + side * 0.004, 0.078, DECK_Z + 0.086),
-			Vector3(0.0, yaw, 0.0), 0.00026, Color(0.92, 0.93, 0.95))
+		# Оранжевый кант по обводу и чёрный молдинг снизу.
+		for k in 5:
+			var bz: float = -0.290 + 0.118 * float(k)
+			_rbox(root, Vector3(0.006, 0.012, 0.122),
+				Vector3(side * (_half_at(bz) + 0.002), 0.130, DECK_Z + bz), _accent,
+				Vector3.ZERO, 0.003)
+		for k in 4:
+			var mz: float = -0.280 + 0.146 * float(k)
+			_rbox(root, Vector3(0.008, 0.020, 0.152),
+				Vector3(side * (_half_at(mz) + 0.001), 0.048, DECK_Z + mz), _plastic,
+				Vector3.ZERO, 0.005)
+		# Белая полоса-панель и надписи на боку деки.
+		var wz: float = 0.040
+		_rbox(root, Vector3(0.004, 0.020, 0.170),
+			Vector3(side * (_half_at(wz) + 0.002), 0.096, DECK_Z + wz), white,
+			Vector3.ZERO, 0.002)
+		var lz: float = 0.140
+		_label(root, spec.brand_text, Vector3(side * (_half_at(lz) + 0.004), 0.110, DECK_Z + lz),
+			Vector3(0.0, yaw, 0.0), 0.00046, Color(0.92, 0.93, 0.95))
+		var pz: float = 0.052
+		_label(root, "PRO MAX", Vector3(side * (_half_at(pz) + 0.004), 0.082, DECK_Z + pz),
+			Vector3(0.0, yaw, 0.0), 0.00026, Color(0.14, 0.14, 0.16))
 		# Косые оранжевые штрихи у носа.
 		for k in 3:
+			var cz: float = -0.196 + 0.036 * float(k)
 			_rbox(root, Vector3(0.005, 0.026, 0.011),
-				Vector3(sx, 0.104, DECK_Z - 0.200 + 0.036 * float(k)), _accent,
+				Vector3(side * (_half_at(cz) + 0.002), 0.104, DECK_Z + cz), _accent,
 				Vector3(deg_to_rad(40.0), 0.0, 0.0), 0.002)
-		_rbox(root, Vector3(0.009, 0.022, 0.360), Vector3(side * 0.101, 0.048, DECK_Z + 0.010),
-			_plastic, Vector3.ZERO, 0.005)
 	# Аккумуляторный блок под кормой и рёбра.
 	_rbox(root, Vector3(0.152, 0.034, 0.240), Vector3(0.0, 0.014, DECK_Z + 0.060),
 		_paint_dark, Vector3.ZERO, 0.010)
@@ -115,8 +146,8 @@ func _rear_arm(root: Node3D) -> void:
 		_rbox(root, Vector3(0.010, 0.050, 0.068), Vector3(x, 0.110, pivot_z - 0.032),
 			_accent, Vector3(deg_to_rad(18.0), 0.0, 0.0), 0.006)
 		# Амортизатор от площадки к рычагу.
-		_shock(root, Vector3(x * 0.64, 0.184, DECK_Z + 0.292),
-			Vector3(x * 0.64, 0.048, axle_z - 0.084), 0.012, _accent)
+		_shock(root, Vector3(x * 0.64, 0.182, DECK_Z + 0.286),
+			Vector3(x * 0.64, 0.046, axle_z - 0.070), 0.012, _accent)
 	# Шарнир, ось, поперечина.
 	_cyl(root, 0.016, ARM_X * 2.0 + 0.028, Vector3(0.0, 0.092, pivot_z), _rim,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
@@ -134,17 +165,17 @@ func _rear_arm(root: Node3D) -> void:
 
 ## Пружина-коромысло под декой — характерная деталь F3.
 func _under_spring(root: Node3D) -> void:
-	_shock(root, Vector3(0.0, 0.018, DECK_Z + 0.020),
-		Vector3(0.0, -0.012, DECK_Z + 0.170), 0.011, _accent)
-	_rbox(root, Vector3(0.086, 0.014, 0.020), Vector3(0.0, 0.024, DECK_Z + 0.012),
+	_shock(root, Vector3(0.0, 0.020, DECK_Z + 0.080),
+		Vector3(0.0, -0.010, DECK_Z + 0.222), 0.011, _accent)
+	_rbox(root, Vector3(0.086, 0.014, 0.020), Vector3(0.0, 0.026, DECK_Z + 0.072),
 		_rim, Vector3.ZERO, 0.004)
-	_rbox(root, Vector3(0.066, 0.012, 0.018), Vector3(0.0, -0.006, DECK_Z + 0.166),
+	_rbox(root, Vector3(0.066, 0.012, 0.018), Vector3(0.0, -0.004, DECK_Z + 0.218),
 		_rim, Vector3.ZERO, 0.004)
 
 
 func _rear_hugger(root: Node3D) -> void:
 	var center := Vector3(0.0, 0.0, base * 0.5)
-	_fender(root, center, radius + 0.018, 0.138, -98.0, 72.0, _plastic, 20, 0.012)
+	_fender(root, center, radius + 0.012, 0.156, -84.0, 68.0, _plastic, 20, 0.012)
 	for side in [-1.0, 1.0]:
 		_plate_between(root, Vector3(side * (ARM_X - 0.004), 0.056, base * 0.5 + 0.052),
 			Vector3(side * 0.046, radius + 0.026, base * 0.5 + 0.020), 0.018, 0.010, _rim)
@@ -166,7 +197,7 @@ func _build_steer(root: Node3D) -> Node3D:
 	var top_z := _stem(steer)
 	_wheel(steer, axle, "Wheel", true, -1.0, _rim, true, true)
 	# Переднее крыло (у F3 оно есть) с брызговиком.
-	_fender(steer, axle, radius + 0.018, 0.126, 96.0, -26.0, _plastic, 18, 0.012)
+	_fender(steer, axle, radius + 0.012, 0.150, 92.0, -30.0, _plastic, 18, 0.012)
 	for side in [-1.0, 1.0]:
 		_plate_between(steer, Vector3(side * (ARM_X - 0.006), 0.070, axle.z + 0.068),
 			Vector3(side * 0.044, radius + 0.024, axle.z + 0.028), 0.018, 0.009, _rim)
@@ -199,8 +230,11 @@ func _front_fork(steer: Node3D, axle: Vector3) -> void:
 	for side in [-1.0, 1.0]:
 		var x: float = side * ARM_X
 		# Оранжевый рычаг подвески.
-		_beam(steer, Vector3(x, 0.203, -0.020), Vector3(x, 0.006, axle.z + 0.026),
-			Vector2(0.048, 0.064), Vector2(0.030, 0.042), _accent, 0.010, 3)
+		_beam(steer, Vector3(x, 0.203, -0.020), Vector3(x, 0.004, axle.z + 0.010),
+			Vector2(0.052, 0.070), Vector2(0.036, 0.050), _accent, 0.010, 3)
+		# Ступичная бобышка на конце рычага.
+		_cyl(steer, 0.034, 0.030, Vector3(x - side * 0.004, 0.004, axle.z + 0.010), _rim,
+			Vector3(0.0, 0.0, deg_to_rad(90.0)), 18)
 		_rbox(steer, Vector3(0.010, 0.044, 0.058), Vector3(x, 0.168, -0.048), _accent,
 			Vector3(deg_to_rad(-62.0), 0.0, 0.0), 0.005)
 		# Ухо крепления амортизатора.
@@ -212,7 +246,7 @@ func _front_fork(steer: Node3D, axle: Vector3) -> void:
 	# Шарнир и ось.
 	_cyl(steer, 0.016, ARM_X * 2.0 + 0.030, Vector3(0.0, 0.205, -0.020), _rim,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
-	_cyl(steer, 0.014, ARM_X * 2.0 + 0.034, Vector3(0.0, 0.006, axle.z + 0.026), _alu,
+	_cyl(steer, 0.014, ARM_X * 2.0 + 0.028, Vector3(0.0, 0.004, axle.z + 0.010), _alu,
 		Vector3(0.0, 0.0, deg_to_rad(90.0)), 14)
 	# Фара на кронштейне — как на фото F3.
 	var lamp_y := STEM_BASE_Y + 0.30

@@ -77,15 +77,15 @@ func _prepare(new_spec: ScooterSpec) -> void:
 
 func _make_materials() -> void:
 	# Краска: слабый металлик и низкая шероховатость — читается как автолак.
-	_paint = _mat(spec.frame_color, 0.18, 0.42)
+	_paint = _mat(spec.frame_color, 0.16, 0.52)
 	_paint.clearcoat_enabled = true
-	_paint.clearcoat = 0.55
-	_paint.clearcoat_roughness = 0.14
+	_paint.clearcoat = 0.22
+	_paint.clearcoat_roughness = 0.34
 	_paint_dark = _mat(spec.frame_color.darkened(0.45), 0.12, 0.55)
 	_accent = _mat(spec.accent_color, 0.12, 0.30)
 	_accent.clearcoat_enabled = true
-	_accent.clearcoat = 0.6
-	_accent.clearcoat_roughness = 0.10
+	_accent.clearcoat = 0.4
+	_accent.clearcoat_roughness = 0.18
 	_plastic = _mat(DARK_PLASTIC, 0.15, 0.55)
 	_rubber = _mat(RUBBER, 0.0, 0.92, Color.BLACK, 0.0, true)
 	_rubber.albedo_texture = _speckle(Color(0.098, 0.096, 0.101), 0.30, 48, 777)
