@@ -158,14 +158,14 @@ func _make_materials() -> void:
 	var nrm_fine := _noise_normal(64, 0.22, 1.6, 19)
 
 	# Порошковая покраска: слегка шероховатая, без металлика, без полос.
-	_m_frame = _mat(C_FRAME.darkened(0.44), 0.04, 0.54)
+	_m_frame = _mat(Color(0.086, 0.092, 0.088), 0.04, 0.54)
 	_m_frame.resource_name = "FramePowderCoat"
 	_m_frame.normal_enabled = true
 	_m_frame.normal_texture = nrm_soft
 	_m_frame.normal_scale = 0.05
 	_m_frame.uv1_scale = Vector3(2.0, 2.0, 2.0)
 
-	_m_frame_d = _mat(C_FRAME_D.darkened(0.46), 0.05, 0.52)
+	_m_frame_d = _mat(Color(0.052, 0.056, 0.054), 0.05, 0.52)
 	_m_frame_d.resource_name = "FramePowderCoatDark"
 	_m_frame_d.uv1_scale = Vector3(3.0, 3.0, 3.0)
 
@@ -1746,6 +1746,9 @@ func _build_dash(steer: Node3D) -> void:
 	_decal(visor, "Logo", "KUKIRIN", 0.0075, Color(0.82, 0.84, 0.86),
 		Transform3D(lb, Vector3(0.0, 0.6975, cz + 0.0375)), 6, true)
 
+	# плоская матовая крышка сверху: убирает фасетки торца лофта
+	_box(dash, "TopPlate", Vector3(0.086, 0.005, 0.048),
+		Transform3D(Basis(Vector3.RIGHT, -0.05), Vector3(0.0, 0.6905, cz - 0.013)), _m_black_d)
 	# ---- кнопки --------------------------------------------------------------
 	var buttons := _node(dash, "Buttons")
 	for i in 3:
