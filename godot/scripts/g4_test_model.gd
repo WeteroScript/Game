@@ -1249,18 +1249,25 @@ func _build_front_suspension(root: Node3D) -> void:
 			Transform3D(_basis_y(dir), top + dir * 0.168), _m_steel, -1.0, 12)
 		_cyl(susp, "SpringSeat", 0.0225, 0.006,
 			Transform3D(_basis_y(dir), top + dir * 0.014), _m_black_d, -1.0, 20)
+		# гайка преднатяга пружины с резьбовой частью корпуса
+		_cyl(susp, "PreloadThread", 0.0165, 0.020,
+			Transform3D(_basis_y(dir), top + dir * 0.030), _m_steel, -1.0, 14)
+		_cyl(susp, "PreloadRing", 0.0225, 0.008,
+			Transform3D(_basis_y(dir), top + dir * 0.040), _m_black_d, -1.0, 22)
+		_cyl(susp, "PreloadRingB", 0.0225, 0.008,
+			Transform3D(_basis_y(dir), top + dir * 0.056), _m_black_d, -1.0, 22)
 		_cyl(susp, "SpringSeatBot", 0.0225, 0.006,
 			Transform3D(_basis_y(dir), bot - dir * 0.010), _m_black_d, -1.0, 20)
 		_spring(susp, "DamperSpring", top + dir * 0.017, bot - dir * 0.013,
-			0.0192, 0.0044, 13, _m_black_d)
+			0.0192, 0.0036, 6, _m_black_d)
 		# вилка-проушина снизу и её болт
 		_cyl(susp, "DamperEyeBot", 0.0135, 0.026,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), bot), _m_black, -1.0, 14)
 		_bolt(susp, "DamperBoltBot", Vector3(bot.x + 0.017 * float(side), bot.y, bot.z), n,
 			0.0055, 0.012, _m_steel)
 		# отбойник на штоке
-		_cyl(susp, "BumpStop", 0.0125, 0.014,
-			Transform3D(_basis_y(dir), bot - dir * 0.030), _m_plastic, -1.0, 12)
+		_cyl(susp, "BumpStop", 0.0155, 0.016,
+			Transform3D(_basis_y(dir), bot - dir * 0.034), _m_amber, -1.0, 14)
 func _build_rear_suspension(root: Node3D) -> void:
 	var susp := _node(root, "RearSuspension")
 	# Поперечина маятника у шарнира.
@@ -1309,16 +1316,22 @@ func _build_rear_suspension(root: Node3D) -> void:
 			Transform3D(_basis_y(dir), top + dir * 0.108), _m_steel, -1.0, 12)
 		_cyl(susp, "SpringSeat", 0.0245, 0.006,
 			Transform3D(_basis_y(dir), top + dir * 0.012), _m_black_d, -1.0, 20)
+		_cyl(susp, "PreloadThread", 0.0180, 0.022,
+			Transform3D(_basis_y(dir), top + dir * 0.032), _m_steel, -1.0, 14)
+		_cyl(susp, "PreloadRing", 0.0245, 0.008,
+			Transform3D(_basis_y(dir), top + dir * 0.044), _m_black_d, -1.0, 22)
+		_cyl(susp, "PreloadRingB", 0.0245, 0.008,
+			Transform3D(_basis_y(dir), top + dir * 0.062), _m_black_d, -1.0, 22)
 		_cyl(susp, "SpringSeatBot", 0.0245, 0.006,
 			Transform3D(_basis_y(dir), bot - dir * 0.010), _m_black_d, -1.0, 20)
 		_spring(susp, "DamperSpring", top + dir * 0.015, bot - dir * 0.013,
-			0.0212, 0.0046, 13, _m_black_d)
+			0.0212, 0.0038, 6, _m_black_d)
 		_cyl(susp, "DamperEyeBot", 0.0140, 0.028,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), bot), _m_black, -1.0, 14)
 		_bolt(susp, "DamperBoltBot", Vector3(bot.x + 0.018 * float(side), bot.y, bot.z), n,
 			0.0055, 0.012, _m_steel)
-		_cyl(susp, "BumpStop", 0.0130, 0.014,
-			Transform3D(_basis_y(dir), bot - dir * 0.030), _m_plastic, -1.0, 12)
+		_cyl(susp, "BumpStop", 0.0165, 0.016,
+			Transform3D(_basis_y(dir), bot - dir * 0.034), _m_amber, -1.0, 14)
 func _cyl_between(parent: Node3D, node_name: String, from: Vector3, to: Vector3,
 		radius: float, mat: Material, segs := 12) -> MeshInstance3D:
 	var dir := to - from
@@ -1412,6 +1425,9 @@ func _build_stem(steer: Node3D) -> void:
 		_chevron(stem, "StemChevron", 0.024,
 			Transform3D(Basis(Vector3.UP, PI * 0.5 * float(side)),
 				Vector3(0.030 * float(side), 0.075, tan(RAKE) * 0.075 + 0.030)))
+	# белый катафот на передней грани стойки
+	_box(stem, "Reflector", Vector3(0.030, 0.042, 0.005),
+		Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(0.0, 0.248, tan(RAKE) * 0.248 - 0.034)), _m_alu)
 	# замок складывания у основания
 	var clamp := _node(stem, "FoldClamp")
 	for y0 in [0.008, 0.070]:
@@ -1597,6 +1613,8 @@ func _build_bar(steer: Node3D) -> void:
 		]
 		_sweep(bar, "LeverBlade", _m_black_d, lever, [0.011, 0.010, 0.008],
 			[0.014, 0.013, 0.011], [0.004, 0.004, 0.004], Vector3.UP)
+		_box(bar, "LeverTip", Vector3(0.010, 0.012, 0.016),
+			Transform3D(Basis(Vector3.RIGHT, -0.28), Vector3(px - 0.012 * sx, c.y - 0.024, c.z - 0.120)), _m_steel)
 		_bolt(bar, "LeverPivot", Vector3(px, c.y - 0.012, c.z + 0.002), Vector3.UP, 0.005, 0.012, _m_steel)
 		_cyl(bar, "LeverBarrel", 0.007, 0.020,
 			Transform3D(Basis(Vector3.RIGHT, -0.55), Vector3(px, c.y + 0.002, c.z - 0.048)), _m_steel, -1.0, 12)
