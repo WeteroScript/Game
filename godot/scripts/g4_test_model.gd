@@ -1677,11 +1677,11 @@ func _build_dash(steer: Node3D) -> void:
 	var cz := c.z + 0.006
 	var base := c.y - 0.020
 
-	var ys: Array = [0.598, 0.614, 0.640, 0.664, 0.680, 0.690, 0.6925]
-	var wid: Array = [0.148, 0.166, 0.167, 0.156, 0.128, 0.090, 0.079]
-	var dep: Array = [0.104, 0.114, 0.115, 0.106, 0.083, 0.052, 0.044]
-	var zoff: Array = [0.004, 0.004, 0.002, -0.002, -0.008, -0.014, -0.015]
-	var rad: Array = [0.007, 0.007, 0.006, 0.006, 0.005, 0.004, 0.003]
+	var ys: Array = [0.598, 0.614, 0.640, 0.664, 0.680, 0.690]
+	var wid: Array = [0.148, 0.166, 0.167, 0.156, 0.128, 0.090]
+	var dep: Array = [0.104, 0.114, 0.115, 0.106, 0.083, 0.052]
+	var zoff: Array = [0.004, 0.004, 0.002, -0.002, -0.008, -0.014]
+	var rad: Array = [0.007, 0.007, 0.006, 0.006, 0.005, 0.005]
 	var pts: Array = []
 	for i in ys.size():
 		pts.append(Vector3(0.0, ys[i], cz + zoff[i]))
@@ -1775,10 +1775,10 @@ func _build_headlight_assembly(parent: Node3D, pos: Vector3) -> void:
 	_box(lamp, "Recess", Vector3(0.126, 0.034, 0.014),
 		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.0, 0.004)), _m_black_d)
 	_box(lamp, "Reflector", Vector3(0.114, 0.024, 0.004),
-		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.0, -0.002)), _m_steel)
+		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.0, -0.002)), _m_black_d)
 	for i in 6:
 		var x := -0.045 + i * 0.018
-		_box(lamp, "Led", Vector3(0.013, 0.014, 0.004),
+		_box(lamp, "Led", Vector3(0.0125, 0.0125, 0.004),
 			Transform3D(Basis.IDENTITY, pos + Vector3(x, 0.0, -0.004)), _m_lamp)
 	var lens := QuadMesh.new()
 	lens.size = Vector2(0.118, 0.028)
