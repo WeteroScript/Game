@@ -197,7 +197,7 @@ func _start_run(spec_id: String, map_id: int, mode_id: int) -> void:
 	selected_map = map_id
 	selected_mode = mode_id
 
-	_build_world(map_id, spec_id)
+	await _build_world(map_id, spec_id)
 	tricks = TrickSystem.new()
 	tricks.trick_scored.connect(_on_trick)
 
@@ -227,7 +227,7 @@ func _start_run(spec_id: String, map_id: int, mode_id: int) -> void:
 
 
 func _back_to_menu() -> void:
-	_build_world(selected_map, selected_spec_id)
+	await _build_world(selected_map, selected_spec_id)
 	_enter_menu()
 
 
@@ -565,7 +565,7 @@ func _take_screenshots() -> void:
 	]
 
 	for spec_id in ["g4", "f3", "g4_test"]:
-		_build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
+		await _build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
 		camera_rig.target = null
 		await get_tree().create_timer(0.8).timeout
 		# Сначала чистые кадры самой модели (без райдера), потом — с ним.
