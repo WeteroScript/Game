@@ -158,22 +158,23 @@ func _make_materials() -> void:
 	var nrm_fine := _noise_normal(64, 0.22, 1.6, 19)
 
 	# Порошковая покраска: слегка шероховатая, без металлика, без полос.
-	_m_frame = _mat(C_FRAME, 0.04, 0.56)
+	_m_frame = _mat(C_FRAME.darkened(0.44), 0.04, 0.54)
 	_m_frame.resource_name = "FramePowderCoat"
 	_m_frame.normal_enabled = true
 	_m_frame.normal_texture = nrm_soft
 	_m_frame.normal_scale = 0.05
 	_m_frame.uv1_scale = Vector3(2.0, 2.0, 2.0)
 
-	_m_frame_d = _mat(C_FRAME_D, 0.05, 0.54)
+	_m_frame_d = _mat(C_FRAME_D.darkened(0.46), 0.05, 0.52)
 	_m_frame_d.resource_name = "FramePowderCoatDark"
 	_m_frame_d.uv1_scale = Vector3(3.0, 3.0, 3.0)
 
 	_m_black = _mat(C_BLACK, 0.06, 0.36)
 	_m_black.resource_name = "PaintedBlackGloss"
 	_m_black.clearcoat_enabled = true
-	_m_black.clearcoat = 0.70
-	_m_black.clearcoat_roughness = 0.12
+	_m_black.clearcoat = 0.34
+	_m_black.clearcoat_roughness = 0.30
+	_m_black.roughness = 0.42
 
 	# Анодированный чёрный алюминий — ободья, стойка, руль.
 	_m_anod = _mat(Color(0.050, 0.052, 0.058), 0.88, 0.28)
