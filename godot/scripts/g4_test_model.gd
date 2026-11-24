@@ -859,8 +859,9 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 			Vector3.RIGHT, 0.0035, 0.008, _m_steel)
 	# лицо обода: кольцо с фаской
 	_lathe(rim, "FaceRing", _m_black, [
-		Vector2(0.086, 0.0130), Vector2(0.0965, 0.0130),
-		Vector2(0.0965, 0.0175), Vector2(0.086, 0.0175),
+		Vector2(0.0860, 0.0124), Vector2(0.0940, 0.0124),
+		Vector2(0.0975, 0.0148), Vector2(0.0982, 0.0172),
+		Vector2(0.0950, 0.0190), Vector2(0.0860, 0.0190),
 	], 44)
 
 	# Ступица.
@@ -1174,6 +1175,9 @@ func _build_kickstand(root: Node3D) -> void:
 	]
 	_sweep(stand, "Leg", _m_black, pts, [0.018, 0.017, 0.016], [0.014, 0.013, 0.012],
 		[0.005, 0.005, 0.005], Vector3.UP)
+	for side in [-1.0, 1.0]:
+		_bolt(stand, "BracketBolt", Vector3(-0.040 + 0.0, DECK_BOT - 0.012, 0.150 + 0.014 * float(side)),
+			Vector3.RIGHT, 0.0035, 0.010, _m_steel)
 	_box(stand, "Foot", Vector3(0.026, 0.010, 0.032),
 		Transform3D(Basis.IDENTITY, Vector3(-0.058, 0.006, 0.322)), _m_plastic)
 
@@ -1238,6 +1242,8 @@ func _build_front_suspension(root: Node3D) -> void:
 		], [0.030, 0.026, 0.022], [0.048, 0.040, 0.032], [0.006, 0.006, 0.008], Vector3.RIGHT)
 		_cyl(susp, "DamperEyeTop", 0.0135, 0.026,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), top), _m_black, -1.0, 14)
+		_cyl(susp, "DamperBushTop", 0.0112, 0.031,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), top), _m_plastic, -1.0, 14)
 		_bolt(susp, "DamperBoltTop", Vector3(top.x + 0.017 * float(side), top.y, top.z), n,
 			0.0055, 0.012, _m_steel)
 		# амортизатор: корпус сверху, шток снизу, пружина на опорах
@@ -1245,6 +1251,8 @@ func _build_front_suspension(root: Node3D) -> void:
 		var dir := axis.normalized()
 		_cyl(susp, "DamperBody", 0.0150, 0.084,
 			Transform3D(_basis_y(dir), top + dir * 0.056), _m_black, -1.0, 16)
+		_box(susp, "DamperLabel", Vector3(0.002, 0.020, 0.014),
+			Transform3D(_basis_y(dir), top + dir * 0.056 + Vector3(0.0, 0.0, -0.0152)), _m_amber)
 		_cyl(susp, "DamperRod", 0.0078, 0.096,
 			Transform3D(_basis_y(dir), top + dir * 0.168), _m_steel, -1.0, 12)
 		_cyl(susp, "SpringSeat", 0.0225, 0.006,
@@ -1263,6 +1271,8 @@ func _build_front_suspension(root: Node3D) -> void:
 		# вилка-проушина снизу и её болт
 		_cyl(susp, "DamperEyeBot", 0.0135, 0.026,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), bot), _m_black, -1.0, 14)
+		_cyl(susp, "DamperBushBot", 0.0112, 0.031,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), bot), _m_plastic, -1.0, 14)
 		_bolt(susp, "DamperBoltBot", Vector3(bot.x + 0.017 * float(side), bot.y, bot.z), n,
 			0.0055, 0.012, _m_steel)
 		# отбойник на штоке
@@ -1308,6 +1318,8 @@ func _build_rear_suspension(root: Node3D) -> void:
 		], [0.028, 0.024, 0.020], [0.044, 0.036, 0.030], [0.006, 0.006, 0.008], Vector3.RIGHT)
 		_cyl(susp, "DamperEyeTop", 0.0140, 0.028,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), top), _m_black, -1.0, 14)
+		_cyl(susp, "DamperBushTop", 0.0116, 0.033,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), top), _m_plastic, -1.0, 14)
 		_bolt(susp, "DamperBoltTop", Vector3(top.x + 0.018 * float(side), top.y, top.z), n,
 			0.0055, 0.012, _m_steel)
 		_cyl(susp, "DamperBody", 0.0165, 0.064,
@@ -1328,6 +1340,8 @@ func _build_rear_suspension(root: Node3D) -> void:
 			0.0212, 0.0038, 6, _m_black_d)
 		_cyl(susp, "DamperEyeBot", 0.0140, 0.028,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), bot), _m_black, -1.0, 14)
+		_cyl(susp, "DamperBushBot", 0.0116, 0.033,
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), bot), _m_plastic, -1.0, 14)
 		_bolt(susp, "DamperBoltBot", Vector3(bot.x + 0.018 * float(side), bot.y, bot.z), n,
 			0.0055, 0.012, _m_steel)
 		_cyl(susp, "BumpStop", 0.0165, 0.016,
@@ -1663,11 +1677,11 @@ func _build_dash(steer: Node3D) -> void:
 	var cz := c.z + 0.006
 	var base := c.y - 0.020
 
-	var ys: Array = [0.598, 0.614, 0.640, 0.664, 0.680, 0.690]
-	var wid: Array = [0.148, 0.166, 0.167, 0.156, 0.128, 0.090]
-	var dep: Array = [0.104, 0.114, 0.115, 0.106, 0.083, 0.052]
-	var zoff: Array = [0.004, 0.004, 0.002, -0.002, -0.008, -0.014]
-	var rad: Array = [0.007, 0.007, 0.006, 0.006, 0.005, 0.004]
+	var ys: Array = [0.598, 0.614, 0.640, 0.664, 0.680, 0.690, 0.6925]
+	var wid: Array = [0.148, 0.166, 0.167, 0.156, 0.128, 0.090, 0.079]
+	var dep: Array = [0.104, 0.114, 0.115, 0.106, 0.083, 0.052, 0.044]
+	var zoff: Array = [0.004, 0.004, 0.002, -0.002, -0.008, -0.014, -0.015]
+	var rad: Array = [0.007, 0.007, 0.006, 0.006, 0.005, 0.004, 0.003]
 	var pts: Array = []
 	for i in ys.size():
 		pts.append(Vector3(0.0, ys[i], cz + zoff[i]))
@@ -1771,7 +1785,7 @@ func _build_headlight_assembly(parent: Node3D, pos: Vector3) -> void:
 	var lin := MeshInstance3D.new()
 	lin.name = "Lens"
 	lin.mesh = lens
-	lin.material_override = _m_lamp
+	lin.material_override = _m_glass
 	lin.transform = Transform3D(Basis(Vector3.RIGHT, PI), pos + Vector3(0.0, 0.0, -0.007))
 	lamp.add_child(lin)
 	_box(lamp, "BezelTop", Vector3(0.124, 0.006, 0.010),
