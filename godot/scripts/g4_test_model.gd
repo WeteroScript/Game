@@ -1586,19 +1586,16 @@ func _build_bar(steer: Node3D) -> void:
 			var ox := (GRIP_IN + 0.011 + i * 0.0125) * sx
 			_cyl(bar, "GripGroove", 0.0173, 0.003,
 				Transform3D(gb, Vector3(ox, c.y + 0.006, c.z + 0.006)), _m_black_d, -1.0, 18)
-		_decal(bar, "GripLogo", "G4", 0.011, C_ORANGE,
-			Transform3D(Basis(Vector3(0.0, 0.0, -1.0), Vector3(0.0, 1.0, 0.0), Vector3(float(side), 0.0, 0.0)),
-				Vector3((BAR_HALF + 0.0065) * sx, c.y + 0.006, c.z + 0.006)))
 		# перчатка тормоза: хомут, рычаг, ось, регулировка
 		var px := 0.188 * sx
 		_box(bar, "Perch", Vector3(0.030, 0.036, 0.044),
-			Transform3D(Basis.IDENTITY, Vector3(px, c.y - 0.004, c.z - 0.006)), _m_steel)
+			Transform3D(Basis.IDENTITY, Vector3(px, c.y - 0.004, c.z - 0.006)), _m_black)
 		var lever: Array = [
 			Vector3(px, c.y - 0.020, c.z - 0.030),
 			Vector3(px - 0.004 * sx, c.y - 0.026, c.z - 0.078),
 			Vector3(px - 0.012 * sx, c.y - 0.024, c.z - 0.116),
 		]
-		_sweep(bar, "LeverBlade", _m_alu, lever, [0.011, 0.010, 0.008],
+		_sweep(bar, "LeverBlade", _m_black_d, lever, [0.011, 0.010, 0.008],
 			[0.014, 0.013, 0.011], [0.004, 0.004, 0.004], Vector3.UP)
 		_bolt(bar, "LeverPivot", Vector3(px, c.y - 0.012, c.z + 0.002), Vector3.UP, 0.005, 0.012, _m_steel)
 		_cyl(bar, "LeverBarrel", 0.007, 0.020,
@@ -1612,7 +1609,7 @@ func _build_bar(steer: Node3D) -> void:
 	_cyl(bar, "ThrottlePin", 0.005, 0.014,
 		Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(tx, c.y + 0.010, c.z + 0.002)), _m_steel, -1.0, 10)
 	# звонок слева
-	_sphere(bar, "BellDome", 0.014, Transform3D(Basis.IDENTITY, Vector3(-0.150, c.y + 0.020, c.z - 0.004)), _m_steel, 16)
+	_sphere(bar, "BellDome", 0.014, Transform3D(Basis.IDENTITY, Vector3(-0.150, c.y + 0.020, c.z - 0.004)), _m_black_d, 16)
 	_box(bar, "BellLever", Vector3(0.006, 0.006, 0.026),
 		Transform3D(Basis(Vector3.RIGHT, 0.2), Vector3(-0.150, c.y + 0.020, c.z + 0.014)), _m_steel)
 	# кнопка и разъём на перекладине
