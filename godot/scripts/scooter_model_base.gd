@@ -41,6 +41,7 @@ var _lamp: StandardMaterial3D
 var _tail: StandardMaterial3D
 var _amber: StandardMaterial3D
 var _caliper: StandardMaterial3D
+var _rubber_dark: StandardMaterial3D
 
 
 # ---- сборка ------------------------------------------------------------------
@@ -76,9 +77,15 @@ func _prepare(new_spec: ScooterSpec) -> void:
 
 func _make_materials() -> void:
 	# Краска: слабый металлик и низкая шероховатость — читается как автолак.
-	_paint = _mat(spec.frame_color, 0.10, 0.55)
-	_paint_dark = _mat(spec.frame_color.darkened(0.45), 0.10, 0.60)
-	_accent = _mat(spec.accent_color, 0.10, 0.36)
+	_paint = _mat(spec.frame_color, 0.18, 0.42)
+	_paint.clearcoat_enabled = true
+	_paint.clearcoat = 0.55
+	_paint.clearcoat_roughness = 0.14
+	_paint_dark = _mat(spec.frame_color.darkened(0.45), 0.12, 0.55)
+	_accent = _mat(spec.accent_color, 0.12, 0.30)
+	_accent.clearcoat_enabled = true
+	_accent.clearcoat = 0.6
+	_accent.clearcoat_roughness = 0.10
 	_plastic = _mat(DARK_PLASTIC, 0.15, 0.55)
 	_rubber = _mat(RUBBER, 0.0, 0.92, Color.BLACK, 0.0, true)
 	_rubber.albedo_texture = _speckle(Color(0.098, 0.096, 0.101), 0.30, 48, 777)
@@ -94,6 +101,7 @@ func _make_materials() -> void:
 	_lamp = _mat(Color(0.95, 0.93, 0.86), 0.15, 0.20, LAMP, 1.6)
 	_tail = _mat(Color(0.30, 0.03, 0.03), 0.10, 0.30, TAIL, 2.2)
 	_amber = _mat(Color(0.35, 0.18, 0.02), 0.10, 0.30, AMBER, 1.4)
+	_rubber_dark = _mat(Color(0.055, 0.054, 0.058), 0.0, 0.80)
 	_caliper = _mat(spec.accent_color if spec.orange_accents else Color(0.55, 0.10, 0.09),
 		0.30, 0.35)
 
@@ -324,6 +332,157 @@ func _ring(parent: Node3D, outer: float, inner: float, half_width: float,
 	return instance
 
 
+
+
+# ---- гнутые оболочки ---------------------------------------------------------
+## Точки скруглённого прямоугольника (x — полширины, y — полувысоты) по кругу.
+## Из таких сечений собираются дека, стойка, короба — не коробки, а оболочки.
+func _round_ring(half_w: float, half_h: float, corner: float, steps := 5) -> Array:
+	var r: float = minf(corner, minf(half_w, half_h) * 0.99)
+	var pts := []
+	var centers := [
+		Vector2(half_w - r, half_h - r), Vector2(-(half_w - r), half_h - r),
+		Vector2(-(half_w - r), -(half_h - r)), Vector2(half_w - r, -(half_h - r)),
+	]
+	var first := [0.0, 90.0, 180.0, 270.0]
+	for ci in 4:
+		var c: Vector2 = centers[ci]
+		var a0: float = first[ci]
+		for st in steps + 1:
+			var a := deg_to_rad(a0 + 90.0 * float(st) / float(steps))
+			pts.append(c + Vector2(cos(a), sin(a)) * r)
+	return pts
+
+
+## Оболочка по кольцам: гладкие нормали, мягкие рёбра, любой изгиб.
+func _loft(parent: Node3D, rings: Array, mat: Material, caps := true) -> MeshInstance3D:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var count: int = (rings[0] as PackedVector3Array).size()
+	var centers := []
+	for ring in rings:
+		centers.append(_centroid(ring as PackedVector3Array))
+	for ri in rings.size() - 1:
+		var a: PackedVector3Array = rings[ri]
+		var b: PackedVector3Array = rings[ri + 1]
+		var c0: Vector3 = centers[ri]
+		var c1: Vector3 = centers[ri + 1]
+		for i in count:
+			var j := (i + 1) % count
+			var mid: Vector3 = (a[i] + a[j] + b[i] + b[j]) * 0.25
+			var inner: Vector3 = ((a[i] + a[j]) * 0.5 + (b[i] + b[j]) * 0.5) * 0.5
+			_quad_out(st, a[i], a[j], b[j], b[i], mid - (inner.lerp((c0 + c1) * 0.5, 0.5)))
+	if caps:
+		var axis: Vector3 = (centers[centers.size() - 1] - centers[0]).normalized()
+		_cap_ring(st, rings[0] as PackedVector3Array, -axis)
+		_cap_ring(st, rings[rings.size() - 1] as PackedVector3Array, axis)
+	st.generate_normals()
+	var instance := MeshInstance3D.new()
+	instance.mesh = st.commit()
+	instance.material_override = mat
+	parent.add_child(instance)
+	return instance
+
+
+func _centroid(ring: PackedVector3Array) -> Vector3:
+	var c := Vector3.ZERO
+	for p in ring:
+		c += p
+	return c / float(maxi(ring.size(), 1))
+
+
+## Заглушка оболочки: веер из центра кольца, нормаль вдоль оси оболочки.
+func _cap_ring(st: SurfaceTool, ring: PackedVector3Array, axis: Vector3) -> void:
+	var center := _centroid(ring)
+	for i in ring.size():
+		var j := (i + 1) % ring.size()
+		var n := (ring[i] - center).cross(ring[j] - center)
+		if n.dot(axis) < 0.0:
+			st.add_vertex(center)
+			st.add_vertex(ring[j])
+			st.add_vertex(ring[i])
+		else:
+			st.add_vertex(center)
+			st.add_vertex(ring[i])
+			st.add_vertex(ring[j])
+
+
+## Оболочка из сечений вида {pos, w, h, r, basis?}: строится вдоль локальной Z.
+func _loft_rect(parent: Node3D, sections: Array, mat: Material, caps := true) -> MeshInstance3D:
+	var rings := []
+	for section in sections:
+		var basis: Basis = section.get("basis", Basis.IDENTITY)
+		var origin: Vector3 = section["pos"]
+		var pts := _round_ring(float(section["w"]) * 0.5, float(section["h"]) * 0.5,
+			float(section.get("r", 0.012)), int(section.get("steps", 5)))
+		var dx: float = float(section.get("dx", 0.0))
+		var dy: float = float(section.get("dy", 0.0))
+		var ring := PackedVector3Array()
+		for pt in pts:
+			ring.append(origin + basis * Vector3(pt.x * (1.0 + dx), pt.y * (1.0 + dy), 0.0))
+		rings.append(ring)
+	return _loft(parent, rings, mat, caps)
+
+
+## Тело вращения вокруг оси X: шина, обод, ступица. Профиль — (радиус, осевое).
+func _revolve(parent: Node3D, profile: Array, segments: int, mat: Material,
+		center := Vector3.ZERO) -> MeshInstance3D:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var area := 0.0
+	for i in profile.size():
+		var p: Vector2 = profile[i]
+		var q: Vector2 = profile[(i + 1) % profile.size()]
+		area += p.x * q.y - q.x * p.y
+	var orientation := 1.0 if area >= 0.0 else -1.0
+	for s in segments:
+		var a0 := TAU * float(s) / float(segments)
+		var a1 := TAU * float(s + 1) / float(segments)
+		var am := (a0 + a1) * 0.5
+		for i in profile.size():
+			var p0: Vector2 = profile[i]
+			var p1: Vector2 = profile[(i + 1) % profile.size()]
+			var edge := p1 - p0
+			var n_radial: float = edge.y * orientation
+			var n_axial: float = -edge.x * orientation
+			var out3 := Vector3(n_axial, n_radial * cos(am), n_radial * sin(am)).normalized()
+			var v00 := center + Vector3(p0.y, p0.x * cos(a0), p0.x * sin(a0))
+			var v01 := center + Vector3(p0.y, p0.x * cos(a1), p0.x * sin(a1))
+			var v11 := center + Vector3(p1.y, p1.x * cos(a1), p1.x * sin(a1))
+			var v10 := center + Vector3(p1.y, p1.x * cos(a0), p1.x * sin(a0))
+			_quad_out(st, v00, v01, v11, v10, out3)
+	st.generate_normals()
+	var instance := MeshInstance3D.new()
+	instance.mesh = st.commit()
+	instance.material_override = mat
+	parent.add_child(instance)
+	return instance
+
+
+## Балка с переменным сечением между двумя точками: стойка, маятник, вилка.
+func _beam(parent: Node3D, from: Vector3, to: Vector3, size0: Vector2, size1: Vector2,
+		mat: Material, corner := 0.010, steps := 3,
+		up_hint := Vector3.UP) -> MeshInstance3D:
+	var dir := (to - from).normalized()
+	var side := dir.cross(up_hint)
+	if side.length() < 0.001:
+		side = dir.cross(Vector3.RIGHT)
+		if side.length() < 0.001:
+			side = dir.cross(Vector3.UP)
+	side = side.normalized()
+	var up_vec := side.cross(dir).normalized()
+	var basis := Basis(side, up_vec, dir)
+	var sections := []
+	for i in steps + 1:
+		var t := float(i) / float(steps)
+		var size := size0.lerp(size1, t)
+		sections.append({
+			"pos": from.lerp(to, t), "w": size.x, "h": size.y,
+			"r": corner, "basis": basis,
+		})
+	return _loft_rect(parent, sections, mat)
+
+
 ## Трос/шланг по ломаной линии.
 func _tube(parent: Node3D, points: Array, tube_radius: float, mat: Material,
 		segments := 7) -> MeshInstance3D:
@@ -426,82 +585,128 @@ func _marker(parent: Node3D, node_name: String, pos: Vector3) -> Marker3D:
 
 # ---- колесо ------------------------------------------------------------------
 func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
-		disc_side: float, rim_paint: Material) -> Node3D:
+		disc_side: float, rim_paint: Material, knobby := false,
+		rim_accent := false) -> Node3D:
 	var pivot := Node3D.new()
 	pivot.name = node_name
 	pivot.position = pos
 	parent.add_child(pivot)
 
-	var half_w := 0.052
-	# Шина: широкое кольцо + шашки протектора.
-	_ring(pivot, radius * 0.975, radius * 0.62, half_w, _rubber, 30)
-	_tread(pivot)
-	# Борт шины — валик у обода, чтобы колесо читалось объёмным.
-	for side in [-1.0, 1.0]:
-		_torus(pivot, radius * 0.622, radius * 0.655, _rubber, Vector3.ZERO,
-			Vector3(side * 0.049, 0.0, 0.0), 26)
-	# Обод: диски по бокам, спицы, ступица.
-	for side in [-1.0, 1.0]:
-		# Обод — кольцо, а не сплошной диск: сквозь него видны спицы.
-		_ring(pivot, radius * 0.625, radius * 0.455, 0.011, rim_paint, 28,
-			Vector3(side * 0.042, 0.0, 0.0))
-		_torus(pivot, radius * 0.600, radius * 0.622, _rim, Vector3.ZERO,
-			Vector3(side * 0.049, 0.0, 0.0), 28)
-		# Машинная кромка обода — тонкий светлый кант.
-		_torus(pivot, radius * 0.610, radius * 0.628, _steel, Vector3.ZERO,
-			Vector3(side * 0.0455, 0.0, 0.0), 30)
-	_spokes(pivot, radius * 0.47, 0.038, _rim)
-	_cyl(pivot, radius * 0.245, 0.088, Vector3.ZERO, _rim, Vector3(0.0, 0.0, deg_to_rad(90.0)), 20)
-	for side in [-1.0, 1.0]:
-		_cyl(pivot, radius * 0.095, 0.012, Vector3(side * 0.050, 0.0, 0.0), _steel,
-			Vector3(0.0, 0.0, deg_to_rad(90.0)), 6)
+	var r := radius
+	var half_w := 0.056
+	# Покрышка — тело вращения: округлые плечи и беговая дорожка, как у
+	# мотоциклетной шины. Никаких «шестерёнок» из коробок по кругу.
+	var tyre := [
+		Vector2(r * 0.630, half_w * 0.80), Vector2(r * 0.700, half_w * 1.00),
+		Vector2(r * 0.860, half_w * 1.00), Vector2(r * 0.940, half_w * 0.90),
+		Vector2(r * 0.992, half_w * 0.66), Vector2(r * 1.004, half_w * 0.30),
+		Vector2(r * 1.002, -half_w * 0.30), Vector2(r * 0.992, -half_w * 0.66),
+		Vector2(r * 0.940, -half_w * 0.90), Vector2(r * 0.860, -half_w * 1.00),
+		Vector2(r * 0.700, -half_w * 1.00), Vector2(r * 0.630, -half_w * 0.80),
+	]
+	_revolve(pivot, tyre, 52, _rubber)
+	# Плечевые буртики — тонкие рёбра по краю беговой дорожки.
+	for side_w in [-1.0, 1.0]:
+		_ring(pivot, r * 1.010, r * 0.980, 0.0035, _rubber_dark, 44,
+			Vector3(0.0, 0.0, side_w * half_w * 0.72))
+	_tread(pivot, knobby)
+
+	# Обод: профиль от борта к полке с плавным переходом.
+	var bead := [
+		Vector2(r * 0.628, half_w * 0.76), Vector2(r * 0.600, half_w * 0.52),
+		Vector2(r * 0.556, half_w * 0.44), Vector2(r * 0.548, half_w * 0.10),
+		Vector2(r * 0.548, -half_w * 0.10), Vector2(r * 0.556, -half_w * 0.44),
+		Vector2(r * 0.600, -half_w * 0.52), Vector2(r * 0.628, -half_w * 0.76),
+		Vector2(r * 0.610, -half_w * 0.80), Vector2(r * 0.586, -half_w * 0.60),
+		Vector2(r * 0.540, -half_w * 0.50), Vector2(r * 0.532, 0.0),
+		Vector2(r * 0.540, half_w * 0.50), Vector2(r * 0.586, half_w * 0.60),
+		Vector2(r * 0.610, half_w * 0.80),
+	]
+	_revolve(pivot, bead, 48, rim_paint)
+	if rim_accent:
+		for side_w in [-1.0, 1.0]:
+			_ring(pivot, r * 0.600, r * 0.545, 0.0035, _accent, 44,
+				Vector3(0.0, 0.0, side_w * half_w * 0.50))
+	_spokes(pivot, r, half_w, rim_paint)
+	# Ступица / мотор-колесо.
+	var hub_radius := r * 0.215 if motor else r * 0.165
+	_revolve(pivot, [
+		Vector2(hub_radius, half_w * 0.40), Vector2(hub_radius * 0.96, half_w * 0.46),
+		Vector2(hub_radius * 0.70, half_w * 0.46), Vector2(hub_radius * 0.62, half_w * 0.40),
+		Vector2(hub_radius * 0.62, -half_w * 0.40), Vector2(hub_radius * 0.70, -half_w * 0.46),
+		Vector2(hub_radius * 0.96, -half_w * 0.46), Vector2(hub_radius, -half_w * 0.40),
+	], 30, rim_paint)
+	# Оребрение мотора.
 	if motor:
-		_torus(pivot, radius * 0.245, radius * 0.285, _rim, Vector3.ZERO, Vector3.ZERO, 24)
+		for k in 10:
+			var a := TAU * float(k) / 10.0
+			_rbox(pivot, Vector3(half_w * 0.86, 0.008, 0.014),
+				Vector3(0.0, cos(a), sin(a)) * hub_radius * 1.02, _rim,
+				Vector3(a, 0.0, 0.0), 0.002)
+	# Гайки оси.
+	for side in [-1.0, 1.0]:
+		_cyl(pivot, r * 0.070, 0.014, Vector3(side * half_w * 0.48, 0.0, 0.0), _steel,
+			Vector3(0.0, 0.0, deg_to_rad(90.0)), 6)
+	# Тормозной диск с перфорацией и суппорт.
 	if absf(disc_side) > 0.01:
-		# Тормозной диск — тонкое кольцо внутри покрышки, не «белый блин».
-		_ring(pivot, radius * 0.375, radius * 0.235, 0.003, _steel, 26,
-			Vector3(disc_side * 0.040, 0.0, 0.0))
-		_rbox(pivot, Vector3(0.026, 0.050, 0.032),
-			Vector3(disc_side * 0.043, radius * 0.30, radius * 0.10), _caliper, Vector3.ZERO, 0.005)
+		var disc_x: float = disc_side * half_w * 0.44
+		_ring(pivot, r * 0.560, r * 0.330, 0.0025, _steel, 40, Vector3(disc_x, 0.0, 0.0))
+		_ring(pivot, r * 0.360, r * 0.318, 0.0035, _rim, 34, Vector3(disc_x, 0.0, 0.0))
+		for k in 14:
+			var a2 := TAU * float(k) / 14.0
+			_cyl(pivot, 0.0045, 0.008,
+				Vector3(disc_x, cos(a2) * r * 0.455, sin(a2) * r * 0.455), _rubber_dark,
+				Vector3(0.0, 0.0, deg_to_rad(90.0)), 8)
+		var caliper := _rbox(pivot, Vector3(0.032, 0.070, 0.044),
+			Vector3(disc_side * (half_w * 0.44 + 0.014), r * 0.44, r * 0.30),
+			_caliper, Vector3(deg_to_rad(-18.0), 0.0, 0.0), 0.006)
+		caliper.name = "Caliper"
 	# Ниппель.
-	_cyl(pivot, 0.005, 0.02, Vector3(0.0, radius * 0.52, 0.0), _steel, Vector3.ZERO, 8)
+	_cyl(pivot, 0.0045, 0.024, Vector3(0.0, r * 0.50, 0.0), _steel, Vector3.ZERO, 8)
 	return pivot
 
 
-## Протектор: три ряда шашек, средний смещён — получается «ёлочка».
-func _tread(pivot: Node3D) -> void:
+## Протектор: у F3 — злые шашки, у G4 — мелкие насечки по беговой дорожке.
+func _tread(pivot: Node3D, knobby := false) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var blocks := 36
-	for i in blocks:
-		var angle := TAU * float(i) / float(blocks)
-		for side in [-0.030, 0.030]:
-			var local := Transform3D(Basis(Vector3.RIGHT, angle),
-				Vector3(side, cos(angle), sin(angle)) * radius * 0.928)
-			var size := Vector3(0.034, 0.026, 0.026)
-			if side > 0.0:
-				size = Vector3(0.034, 0.024, 0.022)
-			_add_box(st, local, size)
-		var mid_angle := angle + PI / float(blocks)
-		var local_mid := Transform3D(Basis(Vector3.RIGHT, mid_angle),
-			Vector3(0.0, cos(mid_angle), sin(mid_angle)) * radius * 0.930)
-		_add_box(st, local_mid, Vector3(0.054, 0.028, 0.028))
+	var r := radius
+	var rows := 30 if knobby else 40
+	var lift := 0.996 if knobby else 0.9995
+	var thick := 0.014 if knobby else 0.008
+	var wide := 0.030 if knobby else 0.022
+	var length := 0.014 if knobby else 0.009
+	for i in rows:
+		var angle := TAU * float(i) / float(rows)
+		for side in [-1.0, 1.0]:
+			var pos := Vector3(side * 0.030, cos(angle) * r * lift, sin(angle) * r * lift)
+			_add_box(st, Transform3D(Basis(Vector3.RIGHT, angle), pos),
+				Vector3(wide, thick, length))
+		var mid := angle + PI / float(rows) * 0.5
+		var center_pos := Vector3(0.0, cos(mid) * r * (lift + 0.001),
+			sin(mid) * r * (lift + 0.001))
+		_add_box(st, Transform3D(Basis(Vector3.RIGHT, mid), center_pos),
+			Vector3(wide * 1.7, thick * 0.9, length * 1.3))
 	st.generate_normals()
 	var instance := MeshInstance3D.new()
 	instance.mesh = st.commit()
-	instance.material_override = _rubber
+	instance.material_override = _rubber_dark
 	pivot.add_child(instance)
 
 
-func _spokes(parent: Node3D, rim_radius: float, half_width: float, mat: Material) -> void:
+## Спицы: пять сужающихся лопастей от ступицы к ободу, с двух сторон.
+func _spokes(parent: Node3D, r: float, half_w: float, mat: Material) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for side in [-1.0, 1.0]:
 		for i in 5:
-			var angle := TAU * float(i) / 5.0 + 0.45
-			var local := Transform3D(Basis(Vector3.RIGHT, angle),
-				Vector3(side * half_width, cos(angle), sin(angle)) * rim_radius * 0.78)
-			_add_box(st, local, Vector3(0.020, rim_radius * 0.52, 0.036))
+			var angle := TAU * float(i) / 5.0 + 0.32
+			var dir := Vector3(0.0, cos(angle), sin(angle))
+			var inner: Vector3 = Vector3(side * half_w * 0.34, 0.0, 0.0) + dir * r * 0.17
+			var outer: Vector3 = Vector3(side * half_w * 0.46, 0.0, 0.0) + dir * r * 0.56
+			var blade := Transform3D(Basis(Vector3.RIGHT, angle),
+				(inner + outer) * 0.5)
+			_add_box(st, blade, Vector3(0.020, r * 0.40, 0.030))
 	st.generate_normals()
 	var instance := MeshInstance3D.new()
 	instance.mesh = st.commit()
@@ -582,6 +787,34 @@ func _bell(parent: Node3D, bar_y: float, bar_z: float) -> void:
 		Vector3.ZERO, 8)
 
 
+## Держатель телефона: хомут на руле, шарнир, площадка и сам телефон.
+func _phone_mount(steer: Node3D, bar_y: float, bar_z: float, side := 0.075) -> void:
+	var clamp_pos := Vector3(side, bar_y, bar_z)
+	_cyl(steer, 0.026, 0.028, clamp_pos, _plastic, Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
+	_cyl(steer, 0.030, 0.010, clamp_pos + Vector3(0.0, 0.0, 0.019), _rim,
+		Vector3(0.0, 0.0, deg_to_rad(90.0)), 16)
+	_sphere(steer, 0.011, clamp_pos + Vector3(0.0, 0.008, 0.030), _rim)
+	# Поворотная площадка под углом к райдеру.
+	var plate_center := clamp_pos + Vector3(0.0, 0.052, 0.062)
+	var plate_basis := Basis(Vector3.RIGHT, deg_to_rad(-58.0))
+	_beam(steer, clamp_pos + Vector3(0.0, 0.010, 0.030), plate_center, Vector2(0.020, 0.012),
+		Vector2(0.024, 0.010), _rim, 0.004, 1)
+	var plate := _rbox(steer, Vector3(0.086, 0.010, 0.150), plate_center,
+		_plastic, Vector3(deg_to_rad(-58.0), 0.0, 0.0), 0.006)
+	plate.name = "PhonePlate"
+	# Телефон: рамка, тёмное стекло, отблеск.
+	var body := plate_center + plate_basis * Vector3(0.0, 0.008, 0.0)
+	_rbox(steer, Vector3(0.074, 0.010, 0.138), body, _rim,
+		Vector3(deg_to_rad(-58.0), 0.0, 0.0), 0.005)
+	_rbox(steer, Vector3(0.064, 0.004, 0.122), body + plate_basis * Vector3(0.0, 0.007, 0.0),
+		_screen, Vector3(deg_to_rad(-58.0), 0.0, 0.0), 0.003)
+	# Прижимные лапки.
+	for sx in [-1.0, 1.0]:
+		_rbox(steer, Vector3(0.008, 0.018, 0.020),
+			body + plate_basis * Vector3(sx * 0.040, 0.006, 0.0), _plastic,
+			Vector3(deg_to_rad(-58.0), 0.0, 0.0), 0.003)
+
+
 ## Бортовой компьютер: кронштейн, корпус с козырьком, экран с цифрами, кнопки, ключ.
 func _dash(steer: Node3D, bar_y: float, bar_z: float, wide := 1.0) -> void:
 	var w := 0.135 * wide
@@ -632,53 +865,71 @@ func _shock(parent: Node3D, from: Vector3, to: Vector3, shock_radius: float,
 		spring: Material) -> void:
 	var direction := (to - from).normalized()
 	var length := from.distance_to(to)
-	_cyl_between(parent, from, from + direction * (length * 0.58), shock_radius, _rim)
-	_cyl_between(parent, from + direction * (length * 0.52), to, shock_radius * 0.55, _steel)
-	for i in 7:
-		var t := 0.44 + float(i) * 0.07
-		var ring_pos := from + direction * (length * t)
-		var ring := _torus(parent, shock_radius * 1.15, shock_radius * 1.55, spring,
-			Vector3.ZERO, ring_pos, 16)
-		if ring != null:
-			var axis := Vector3.UP.cross(direction)
-			if axis.length() > 0.001:
-				ring.rotation = Basis(axis.normalized(),
-					acos(clampf(Vector3.UP.dot(direction), -1.0, 1.0))).get_euler()
-	_cyl_between(parent, from - direction * 0.01, from + direction * 0.05,
-		shock_radius * 1.35, _alu)
+	var lower := from + direction * (length * 0.06)
+	var upper := to - direction * (length * 0.05)
+	# Корпус демпфера и шток.
+	_cyl_between(parent, from, from + direction * (length * 0.46), shock_radius, _rim)
+	_cyl_between(parent, from + direction * (length * 0.40), upper, shock_radius * 0.52, _steel)
+	# Проушины.
+	_cyl(parent, shock_radius * 1.30, shock_radius * 1.70, from, _rim,
+		Vector3(0.0, 0.0, deg_to_rad(90.0)), 14)
+	_cyl(parent, shock_radius * 1.15, shock_radius * 1.60, to, _rim,
+		Vector3(0.0, 0.0, deg_to_rad(90.0)), 14)
+	_cyl(parent, shock_radius * 0.62, shock_radius * 1.90, from, _steel,
+		Vector3(0.0, 0.0, deg_to_rad(90.0)), 10)
+	_cyl(parent, shock_radius * 0.55, shock_radius * 1.80, to, _steel,
+		Vector3(0.0, 0.0, deg_to_rad(90.0)), 10)
+	# Винтовая пружина: настоящая спираль, а не стопка колец.
+	var side := direction.cross(Vector3.UP)
+	if side.length() < 0.001:
+		side = direction.cross(Vector3.RIGHT)
+	side = side.normalized()
+	var up_vec := side.cross(direction).normalized()
+	var coil_radius := shock_radius * 1.45
+	var turns := 6.0
+	var samples := 84
+	var start_t := 0.30
+	var end_t := 0.94
+	var points := []
+	for k in samples + 1:
+		var t := start_t + (end_t - start_t) * float(k) / float(samples)
+		var ang := TAU * turns * float(k) / float(samples)
+		var radial := side * cos(ang) + up_vec * sin(ang)
+		points.append(from + direction * (length * t) + radial * coil_radius)
+	_tube(parent, points, shock_radius * 0.34, spring, 6)
+	# Тарелки пружины и регулировочная гайка.
+	_cyl_between(parent, from + direction * (length * 0.28),
+		from + direction * (length * 0.31), coil_radius * 1.15, _alu)
+	_cyl_between(parent, to - direction * (length * 0.085),
+		to - direction * (length * 0.055), coil_radius * 1.15, _alu)
+	_cyl_between(parent, to - direction * (length * 0.135),
+		to - direction * (length * 0.105), coil_radius * 1.30, _rim)
 
 
 func _fender(parent: Node3D, center: Vector3, rad: float, width: float,
-		from_deg: float, to_deg: float, mat: Material, segments := 14,
-		thickness := 0.012) -> MeshInstance3D:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var half := width * 0.5
-	for i in segments:
-		var a0 := deg_to_rad(lerpf(from_deg, to_deg, float(i) / float(segments)))
-		var a1 := deg_to_rad(lerpf(from_deg, to_deg, float(i + 1) / float(segments)))
-		var o0 := Vector3(0.0, cos(a0), -sin(a0)) * (rad + thickness)
-		var o1 := Vector3(0.0, cos(a1), -sin(a1)) * (rad + thickness)
-		var i0 := Vector3(0.0, cos(a0), -sin(a0)) * rad
-		var i1 := Vector3(0.0, cos(a1), -sin(a1)) * rad
-		_quad_out(st, center + o0 + Vector3(-half, 0, 0), center + o0 + Vector3(half, 0, 0),
-			center + o1 + Vector3(half, 0, 0), center + o1 + Vector3(-half, 0, 0),
-			o0 + o1)
-		_quad_out(st, center + i0 + Vector3(half, 0, 0), center + i0 + Vector3(-half, 0, 0),
-			center + i1 + Vector3(-half, 0, 0), center + i1 + Vector3(half, 0, 0),
-			-(i0 + i1))
-		_quad_out(st, center + o0 + Vector3(half, 0, 0), center + i0 + Vector3(half, 0, 0),
-			center + i1 + Vector3(half, 0, 0), center + o1 + Vector3(half, 0, 0),
-			Vector3(1.0, 0.0, 0.0))
-		_quad_out(st, center + i0 + Vector3(-half, 0, 0), center + o0 + Vector3(-half, 0, 0),
-			center + o1 + Vector3(-half, 0, 0), center + i1 + Vector3(-half, 0, 0),
-			Vector3(-1.0, 0.0, 0.0))
-	st.generate_normals()
-	var instance := MeshInstance3D.new()
-	instance.mesh = st.commit()
-	instance.material_override = mat
-	parent.add_child(instance)
-	return instance
+		from_deg: float, to_deg: float, mat: Material, segments := 18,
+		thickness := 0.012, taper := 0.62) -> MeshInstance3D:
+	var rings := []
+	var arch_steps := 6
+	for i in segments + 1:
+		var t := float(i) / float(segments)
+		var a := deg_to_rad(lerpf(from_deg, to_deg, t))
+		# Ширина сужается к концам, как у литого крыла.
+		var w := width * lerpf(taper, 1.0, sin(PI * t))
+		var half := w * 0.5
+		var arch := half * 0.30
+		var n := Vector3(0.0, cos(a), -sin(a))
+		var ring := PackedVector3Array()
+		for k in arch_steps:
+			var x := -half + w * float(k) / float(arch_steps - 1)
+			var bulge := arch * (1.0 - pow(x / maxf(half, 0.001), 2.0))
+			ring.append(center + n * (rad + thickness + bulge) + Vector3(x, 0.0, 0.0))
+		for k in arch_steps:
+			var x := half - w * float(k) / float(arch_steps - 1)
+			var bulge := arch * 0.22 * (1.0 - pow(x / maxf(half, 0.001), 2.0))
+			ring.append(center + n * (rad + bulge) + Vector3(x, 0.0, 0.0))
+		rings.append(ring)
+	return _loft(parent, rings, mat)
 
 
 ## Фара: корпус, хромированное кольцо, линза.
