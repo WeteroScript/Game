@@ -178,7 +178,7 @@ func _make_materials() -> void:
 
 	_m_alu = _mat(C_ALU, 0.70, 0.34)
 	_m_alu.resource_name = "Aluminium"
-	_m_rotor = _mat(Color(0.300, 0.310, 0.325), 0.80, 0.42)
+	_m_rotor = _mat(Color(0.230, 0.238, 0.250), 0.35, 0.55)
 	_m_rotor.resource_name = "BrakeRotor"
 
 	_m_rubber = _mat(C_RUBBER, 0.0, 0.93)
@@ -803,11 +803,11 @@ func _tread(parent: Node3D) -> void:
 			var tilt := 0.30 * float(s)
 			var b := Basis(Vector3.RIGHT, ang) * Basis(Vector3.UP, tilt)
 			# центральная шашка
-			var mid := b * Vector3(0.0, 0.1522, 0.0) + Vector3(0.013 * float(s), 0.0, 0.0)
-			_box(parent, "TreadCenter", Vector3(0.024, 0.004, 0.016), Transform3D(b, mid), _m_rubber)
+			var mid := b * Vector3(0.0, 0.1525, 0.0) + Vector3(0.013 * float(s), 0.0, 0.0)
+			_box(parent, "TreadCenter", Vector3(0.023, 0.0025, 0.017), Transform3D(b, mid), _m_rubber)
 			# плечевая шашка
-			var shoulder := b * Vector3(0.0, 0.1480, 0.0) + Vector3(0.031 * float(s), 0.0, 0.0)
-			_box(parent, "TreadShoulder", Vector3(0.012, 0.0045, 0.015), Transform3D(b, shoulder), _m_rubber)
+			var shoulder := b * Vector3(0.0, 0.1486, 0.0) + Vector3(0.030 * float(s), 0.0, 0.0)
+			_box(parent, "TreadShoulder", Vector3(0.013, 0.0025, 0.016), Transform3D(b, shoulder), _m_rubber)
 
 
 func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
@@ -828,7 +828,7 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 			var p1 := dir * 0.062 + tang * (0.024 * float(s))
 			var p2 := dir * 0.088 + tang * (0.030 * float(s))
 			_sweep(rim, "Spoke", _m_black, [p0, p1, p2],
-				[0.020, 0.030, 0.044], [0.018, 0.017, 0.014], [0.005, 0.005, 0.004],
+				[0.030, 0.048, 0.066], [0.020, 0.018, 0.015], [0.005, 0.005, 0.004],
 				Vector3.RIGHT)
 		# ступичная площадка спицы
 		_box(rim, "SpokePad", Vector3(0.026, 0.030, 0.024),
@@ -852,11 +852,11 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 		Vector3(0.026, 0.0, 0.070)), _m_steel, -1.0, 8)
 
 	var brake := _node(parent, "BrakeDisc")
-	var rotor_x := 0.032
+	var rotor_x := 0.020
 	# Кольцо ротора: внутри — окна, поэтому спицы обода остаются видны.
 	_lathe(brake, "Rotor", _m_rotor, [
-		Vector2(0.056, rotor_x - 0.0020), Vector2(0.080, rotor_x - 0.0020),
-		Vector2(0.080, rotor_x + 0.0020), Vector2(0.056, rotor_x + 0.0020),
+		Vector2(0.052, rotor_x - 0.0018), Vector2(0.076, rotor_x - 0.0018),
+		Vector2(0.076, rotor_x + 0.0018), Vector2(0.052, rotor_x + 0.0018),
 	], 56)
 	for i in 5:
 		var ang := TAU * float(i) / 5.0 + 0.2
@@ -869,7 +869,7 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 		_cyl(brake, "RotorHole", 0.0042, 0.006,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), p), _m_black_d, -1.0, 8)
 	# паук диска
-	_cyl(brake, "RotorSpider", 0.036, 0.005,
+	_cyl(brake, "RotorSpider", 0.032, 0.005,
 		Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(rotor_x, 0.0, 0.0)), _m_rotor, -1.0, 24)
 	for i in 5:
 		var ang := TAU * float(i) / 5.0
@@ -962,14 +962,14 @@ func _build_neck(root: Node3D) -> void:
 		Vector3(0.0, 0.260, -0.3630),
 		Vector3(0.0, 0.346, -0.3710),
 	], [0.070, 0.070, 0.066, 0.060],
-		[0.078, 0.080, 0.078, 0.072], [0.014, 0.014, 0.013, 0.012], Vector3.UP)
+		[0.066, 0.068, 0.064, 0.058], [0.014, 0.014, 0.013, 0.012], Vector3.UP)
 	# Косынка от носа деки к ноге вилки.
 	_sweep(neck, "Gusset", _m_frame, [
 		Vector3(0.0, 0.056, -0.2180),
 		Vector3(0.0, 0.130, -0.2820),
 		Vector3(0.0, 0.212, -0.3380),
 	], [0.070, 0.064, 0.060],
-		[0.080, 0.074, 0.068], [0.014, 0.013, 0.012], Vector3.UP)
+		[0.070, 0.064, 0.058], [0.014, 0.013, 0.012], Vector3.UP)
 	# усиливающее ребро по борту горловины
 	for side in [-1.0, 1.0]:
 		_box(neck, "NeckRib", Vector3(0.006, 0.016, 0.130),
@@ -1029,9 +1029,9 @@ func _build_rear_fender(root: Node3D) -> void:
 	var wid: Array = []
 	var hei: Array = []
 	var rad: Array = []
-	var a0 := -1.40
-	var a1 := 1.75
-	var steps := 12
+	var a0 := -1.15
+	var a1 := 1.45
+	var steps := 11
 	for i in steps + 1:
 		var t := float(i) / float(steps)
 		var ang := lerpf(a0, a1, t)
@@ -1200,7 +1200,7 @@ func _build_stem(steer: Node3D) -> void:
 	var stem := _node(steer, "Stem")
 	var ys: Array = [0.0, 0.10, 0.30, 0.50, BAR_Y - HINGE_Y]
 	var wid: Array = [0.056, 0.058, 0.056, 0.054, 0.050]
-	var hei: Array = [0.082, 0.086, 0.082, 0.077, 0.070]
+	var hei: Array = [0.064, 0.068, 0.065, 0.061, 0.056]
 	var rad: Array = [0.010, 0.010, 0.010, 0.009, 0.009]
 	_sweep(stem, "Blade", _m_black, _stem_points(), wid, hei, rad, Vector3.FORWARD)
 	# чёрные боковые накладки
@@ -1210,7 +1210,7 @@ func _build_stem(steer: Node3D) -> void:
 		for y in [0.045, 0.26, 0.60]:
 			pts.append(Vector3(sx, y, tan(RAKE) * y))
 		_sweep(stem, "SidePlate", _m_black_d, pts, [0.005, 0.005, 0.004],
-			[0.070, 0.066, 0.058], [0.006, 0.006, 0.006], Vector3.FORWARD)
+			[0.056, 0.052, 0.046], [0.006, 0.006, 0.006], Vector3.FORWARD)
 	# болты по борту
 	for side in [-1.0, 1.0]:
 		for i in 3:
@@ -1236,8 +1236,8 @@ func _build_stem(steer: Node3D) -> void:
 	var clamp := _node(stem, "FoldClamp")
 	for y0 in [0.008, 0.070]:
 		var pts: Array = []
-		var w: Array = [0.068, 0.068]
-		var h: Array = [0.096, 0.096]
+		var w: Array = [0.062, 0.062]
+		var h: Array = [0.078, 0.078]
 		var r: Array = [0.010, 0.010]
 		pts.append(Vector3(0.0, y0, tan(RAKE) * y0))
 		pts.append(Vector3(0.0, y0 + 0.036, tan(RAKE) * (y0 + 0.036)))
@@ -1372,8 +1372,8 @@ func _build_dash(steer: Node3D) -> void:
 	_sweep(dash, "Housing", _m_black, pts, wid, dep, rad, Vector3.FORWARD)
 
 	# козырёк над экраном
-	_box(dash, "Visor", Vector3(0.142, 0.009, 0.034),
-		Transform3D(Basis(Vector3.RIGHT, -0.30), Vector3(0.0, base + 0.098, cz + 0.050)), _m_black_d)
+	_box(dash, "Visor", Vector3(0.128, 0.008, 0.024),
+		Transform3D(Basis(Vector3.RIGHT, -0.30), Vector3(0.0, base + 0.096, cz + 0.046)), _m_black_d)
 	# рамка экрана и стекло
 	var screen_basis := Basis(Vector3.RIGHT, -0.42)
 	var screen_pos := Vector3(0.0, base + 0.060, cz + 0.056)
