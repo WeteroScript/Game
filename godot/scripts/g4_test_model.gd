@@ -63,6 +63,9 @@ var _m_frame: StandardMaterial3D
 var _m_frame_d: StandardMaterial3D
 var _m_black: StandardMaterial3D
 var _m_black_d: StandardMaterial3D
+var _m_anod: StandardMaterial3D
+var _m_chrome: StandardMaterial3D
+var _m_lens: StandardMaterial3D
 var _m_steel: StandardMaterial3D
 var _m_alu: StandardMaterial3D
 var _m_rotor: StandardMaterial3D
@@ -154,54 +157,54 @@ func _make_materials() -> void:
 	var nrm_soft := _noise_normal(64, 0.09, 2.2, 7)
 	var nrm_fine := _noise_normal(64, 0.22, 1.6, 19)
 
-	_m_frame = _mat(C_FRAME, 0.10, 0.52)
-	_m_frame.resource_name = "FrameGrey"
-	_m_frame.albedo_texture = grain
+	# Порошковая покраска: слегка шероховатая, без металлика, без полос.
+	_m_frame = _mat(C_FRAME, 0.04, 0.56)
+	_m_frame.resource_name = "FramePowderCoat"
 	_m_frame.normal_enabled = true
 	_m_frame.normal_texture = nrm_soft
-	_m_frame.normal_scale = 0.10
+	_m_frame.normal_scale = 0.05
 	_m_frame.uv1_scale = Vector3(2.0, 2.0, 2.0)
 
-	_m_frame_d = _mat(C_FRAME_D, 0.12, 0.50)
-	_m_frame_d.resource_name = "FrameGreyDark"
-	_m_frame_d.albedo_texture = grain
+	_m_frame_d = _mat(C_FRAME_D, 0.05, 0.54)
+	_m_frame_d.resource_name = "FramePowderCoatDark"
 	_m_frame_d.uv1_scale = Vector3(3.0, 3.0, 3.0)
 
-	_m_black = _mat(C_BLACK, 0.14, 0.46)
-	_m_black.resource_name = "PaintedBlack"
-	_m_black.albedo_texture = grain_dark
-	_m_black.normal_enabled = true
-	_m_black.normal_texture = nrm_soft
-	_m_black.normal_scale = 0.10
-	_m_black.uv1_scale = Vector3(3.0, 3.0, 3.0)
+	_m_black = _mat(C_BLACK, 0.06, 0.36)
+	_m_black.resource_name = "PaintedBlackGloss"
 	_m_black.clearcoat_enabled = true
-	_m_black.clearcoat = 0.06
-	_m_black.clearcoat_roughness = 0.40
+	_m_black.clearcoat = 0.70
+	_m_black.clearcoat_roughness = 0.12
 
-	_m_black_d = _mat(C_BLACK.darkened(0.20), 0.06, 0.62)
-	_m_black_d.resource_name = "PaintedBlackMatte"
+	# Анодированный чёрный алюминий — ободья, стойка, руль.
+	_m_anod = _mat(Color(0.050, 0.052, 0.058), 0.88, 0.28)
+	_m_anod.resource_name = "AnodizedBlack"
 
-	_m_steel = _mat(C_STEEL, 0.72, 0.30)
-	_m_steel.resource_name = "Steel"
+	_m_black_d = _mat(C_BLACK.darkened(0.16), 0.02, 0.72)
+	_m_black_d.resource_name = "MatteBlackPlastic"
+
+	_m_steel = _mat(C_STEEL, 0.95, 0.26)
+	_m_steel.resource_name = "SteelFastener"
 	_m_steel.normal_enabled = true
 	_m_steel.normal_texture = nrm_fine
 	_m_steel.normal_scale = 0.08
 
-	_m_alu = _mat(C_ALU, 0.70, 0.34)
-	_m_alu.resource_name = "Aluminium"
-	_m_rotor = _mat(Color(0.120, 0.126, 0.135), 0.55, 0.42)
-	_m_rotor.resource_name = "BrakeRotor"
+	_m_alu = _mat(C_ALU, 0.92, 0.33)
+	_m_alu.resource_name = "AluminiumBrushed"
+	_m_chrome = _mat(Color(0.760, 0.770, 0.790), 1.0, 0.10)
+	_m_chrome.resource_name = "ChromeReflector"
+	_m_rotor = _mat(Color(0.300, 0.312, 0.330), 0.92, 0.34)
+	_m_rotor.resource_name = "BrakeRotorStainless"
 
-	_m_rubber = _mat(C_RUBBER, 0.0, 0.93)
-	_m_rubber.resource_name = "Rubber"
+	_m_rubber = _mat(C_RUBBER, 0.0, 0.96)
+	_m_rubber.resource_name = "RubberTire"
 	_m_rubber.albedo_texture = _grain_texture(64, C_RUBBER, 0.06, 31)
 	_m_rubber.normal_enabled = true
 	_m_rubber.normal_texture = nrm_fine
 	_m_rubber.normal_scale = 0.30
 	_m_rubber.uv1_scale = Vector3(6.0, 6.0, 6.0)
 
-	_m_plastic = _mat(C_PLASTIC, 0.08, 0.55)
-	_m_plastic.resource_name = "Plastic"
+	_m_plastic = _mat(C_PLASTIC, 0.0, 0.62)
+	_m_plastic.resource_name = "PlasticMatte"
 	_m_plastic.normal_enabled = true
 	_m_plastic.normal_texture = nrm_soft
 	_m_plastic.normal_scale = 0.22
@@ -212,11 +215,17 @@ func _make_materials() -> void:
 	_m_glass.albedo_color.a = 0.14
 	_m_glass.cull_mode = BaseMaterial3D.CULL_DISABLED
 
-	_m_orange = _mat(C_ORANGE, 0.55, 0.34)
-	_m_orange.resource_name = "OrangeMetal"
+	_m_lens = _mat(Color(0.860, 0.890, 0.920), 0.0, 0.04)
+	_m_lens.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_m_lens.albedo_color.a = 0.22
+	_m_lens.resource_name = "ClearLens"
+	_m_lens.roughness = 0.03
+
+	_m_orange = _mat(C_ORANGE, 0.10, 0.36)
+	_m_orange.resource_name = "PaintedOrange"
 	_m_orange.clearcoat_enabled = true
-	_m_orange.clearcoat = 0.35
-	_m_orange.clearcoat_roughness = 0.25
+	_m_orange.clearcoat = 0.55
+	_m_orange.clearcoat_roughness = 0.16
 
 	_m_lamp = _mat(C_LAMP, 0.05, 0.20, C_LAMP, 0.55)
 	_m_lamp.resource_name = "LampLens"
@@ -224,7 +233,7 @@ func _make_materials() -> void:
 	_m_tail.resource_name = "TailLight"
 	_m_amber = _mat(Color(0.42, 0.18, 0.02), 0.10, 0.30, Color(1.0, 0.52, 0.05), 1.8)
 	_m_amber.resource_name = "Reflector"
-	_m_caliper = _mat(C_CALIPER, 0.45, 0.34)
+	_m_caliper = _mat(C_CALIPER, 0.20, 0.38)
 	_m_caliper.resource_name = "CaliperRed"
 
 	_m_tape = _mat(Color(0.048, 0.048, 0.052), 0.0, 0.94)
@@ -847,7 +856,7 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 			var p0 := dir * 0.030 + tang * (0.010 * float(s))
 			var p1 := dir * 0.064 + tang * (0.026 * float(s))
 			var p2 := dir * 0.090 + tang * (0.034 * float(s))
-			_sweep(rim, "Spoke", _m_black, [p0, p1, p2],
+			_sweep(rim, "Spoke", _m_anod, [p0, p1, p2],
 				[0.017, 0.024, 0.032], [0.019, 0.017, 0.014], [0.004, 0.004, 0.003],
 				Vector3.RIGHT)
 		# перемычка у обода и литой «палец» у ступицы
@@ -858,7 +867,7 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 		_bolt(rim, "SpokeBolt", Vector3(0.014, cos(ang) * 0.0825, sin(ang) * 0.0825),
 			Vector3.RIGHT, 0.0035, 0.008, _m_steel)
 	# лицо обода: кольцо с фаской
-	_lathe(rim, "FaceRing", _m_black, [
+	_lathe(rim, "FaceRing", _m_anod, [
 		Vector2(0.0860, 0.0124), Vector2(0.0940, 0.0124),
 		Vector2(0.0975, 0.0148), Vector2(0.0982, 0.0172),
 		Vector2(0.0950, 0.0190), Vector2(0.0860, 0.0190),
@@ -866,7 +875,7 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 
 	# Ступица.
 	var hub := _node(parent, "Hub")
-	_cyl(hub, "HubBody", 0.040, 0.080, Transform3D(axis, Vector3.ZERO), _m_black, -1.0, 28)
+	_cyl(hub, "HubBody", 0.040, 0.080, Transform3D(axis, Vector3.ZERO), _m_anod, -1.0, 28)
 	_cyl(hub, "HubFace", 0.0345, 0.010, Transform3D(axis, Vector3(0.045, 0.0, 0.0)), _m_black_d, -1.0, 28)
 	_cyl(hub, "HubFaceR", 0.0345, 0.010, Transform3D(axis, Vector3(-0.045, 0.0, 0.0)), _m_black_d, -1.0, 28)
 	if motor:
@@ -1785,7 +1794,7 @@ func _build_headlight_assembly(parent: Node3D, pos: Vector3) -> void:
 	var lin := MeshInstance3D.new()
 	lin.name = "Lens"
 	lin.mesh = lens
-	lin.material_override = _m_glass
+	lin.material_override = _m_lens
 	lin.transform = Transform3D(Basis(Vector3.RIGHT, PI), pos + Vector3(0.0, 0.0, -0.007))
 	lamp.add_child(lin)
 	_box(lamp, "BezelTop", Vector3(0.124, 0.006, 0.010),

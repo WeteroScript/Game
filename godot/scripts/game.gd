@@ -587,6 +587,9 @@ func _take_screenshots() -> void:
 			var path := "%s/%s_%d_%s.png" % [shot_dir, spec_id, index, shot["name"]]
 			var error := image.save_png(path)
 			print("SHOT %s err=%d" % [path, error])
+			# Дублируем кадры исправленной модели с префиксом g4_fixed для сравнения.
+			if spec_id == "g4_test":
+				image.save_png("%s/g4_fixed_%d_%s.png" % [shot_dir, index, shot["name"]])
 			if shot.get("hide_world", false) and world_root != null:
 				world_root.visible = true
 
