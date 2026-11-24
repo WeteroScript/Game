@@ -80,7 +80,7 @@ func _ready() -> void:
 	pause_screen.resume_pressed.connect(_resume)
 	pause_screen.menu_pressed.connect(_back_to_menu)
 
-	_build_world(selected_map, selected_spec_id)
+	await _build_world(selected_map, selected_spec_id)
 	_enter_menu()
 
 	if OS.get_cmdline_user_args().has("--smoke"):
@@ -140,6 +140,15 @@ func _build_world(map_id: int, spec_id: String) -> void:
 	add_child(world_root)
 
 	var info := world_builder.build(map_id, world_root)
+	# Сцена строится не одним куском: лес и дома достраиваются порциями по кадрам,
+	# поэтому нет длинного фриза на старте. В автотестах и на съёмке — сразу целиком.
+	var args := OS.get_cmdline_user_args()
+	if args.has("--shot") or args.has("--smoke"):
+		world_builder.pump(600000.0)
+	else:
+		while world_builder.pending_jobs() > 0:
+			world_builder.pump(5.0)
+			await get_tree().process_frame
 	var spawn: Vector3 = info["spawn"]
 
 	scooter = Scooter.create(ScooterSpec.get_by_id(spec_id), input_state)
@@ -524,9 +533,6 @@ func _take_detail_shots(shot_dir: String, spec_id: String) -> void:
 
 
 func _take_screenshots() -> void:
-	# Перед съёмкой достраиваем всё, что осталось в очереди прогрузки.
-	if world_builder != null:
-		world_builder.pump(600.0)
 	var shot_dir := OS.get_environment("SHOT_DIR")
 	if shot_dir.is_empty():
 		shot_dir = "/tmp/kugoo-shots"
@@ -691,9 +697,6 @@ func _save_shot(shot_dir: String, shot_name: String) -> void:
 
 # ---- кадр -------------------------------------------------------------------
 func _process(delta: float) -> void:
-	# Плавная прогрузка: по куску сцены за кадр, без длинного фриза.
-	if world_builder != null:
-		world_builder.pump()
 	if _smoke:
 		_tick_smoke(delta)
 
