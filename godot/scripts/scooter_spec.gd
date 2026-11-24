@@ -227,10 +227,10 @@ static func create_g4_test() -> ScooterSpec:
 	s.features_text = "LCD 155×55 · фара-планка · стоп-сигнал · подножка"
 
 	# 11" у G4 — наружный диаметр покрышки, поэтому радиус 139.7 мм.
-	s.wheel_radius = 0.5 * 11.0 * 0.0254
-	s.wheel_base = 0.94
-	s.deck_length = 0.46
-	s.deck_height = 0.100
+	s.wheel_radius = 0.153
+	s.wheel_base = 0.905
+	s.deck_length = 0.48
+	s.deck_height = 0.093
 	s.deck_width = 0.215
 	s.battery_wh = s.battery_voltage * s.battery_amp_hours
 	s.gear_top_speeds_kmh = [20.0, 40.0, 70.0]
