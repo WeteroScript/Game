@@ -929,11 +929,14 @@ func _fender(parent: Node3D, center: Vector3, rad: float, width: float,
 
 ## Фара: корпус, хромированное кольцо, линза.
 func _headlight(parent: Node3D, pos: Vector3, body_radius: float) -> void:
-	_cyl(parent, body_radius, 0.030, pos, _plastic, Vector3(deg_to_rad(90.0), 0.0, 0.0), 18)
-	_torus(parent, body_radius * 0.78, body_radius * 0.98, _alu, Vector3.ZERO,
-		pos + Vector3(0.0, 0.0, -0.016), 18)
-	_cyl(parent, body_radius * 0.76, 0.008, pos + Vector3(0.0, 0.0, -0.014), _lamp,
-		Vector3(deg_to_rad(90.0), 0.0, 0.0), 18)
+	# Тёмный корпус, узкое хром-кольцо и матовая линза — без «дверной ручки».
+	_cyl(parent, body_radius, 0.026, pos, _plastic, Vector3(deg_to_rad(90.0), 0.0, 0.0), 20)
+	_cyl(parent, body_radius * 0.92, 0.006, pos + Vector3(0.0, 0.0, -0.013), _rim,
+		Vector3(deg_to_rad(90.0), 0.0, 0.0), 20)
+	_torus(parent, body_radius * 0.80, body_radius * 0.90, _alu, Vector3.ZERO,
+		pos + Vector3(0.0, 0.0, -0.014), 20)
+	_cyl(parent, body_radius * 0.78, 0.004, pos + Vector3(0.0, 0.0, -0.015), _lamp,
+		Vector3(deg_to_rad(90.0), 0.0, 0.0), 20)
 
 
 ## Стоп-сигнал/поворотник: блок со светящейся вставкой.
