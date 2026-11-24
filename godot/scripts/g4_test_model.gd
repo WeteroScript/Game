@@ -113,6 +113,7 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 	wheel.position = Vector3(0.0, -HINGE_Y, AXLE_F - HEAD_Z)
 	_build_wheel(wheel, false, false)
 
+	_name_materials(root)
 	var bar := _bar_local()
 	_marker(steer, "BarLeft", Vector3(-GRIP_IN - 0.02, bar.y - 0.004, bar.z + 0.010))
 	_marker(steer, "BarRight", Vector3(GRIP_IN + 0.02, bar.y - 0.004, bar.z + 0.010))
@@ -129,6 +130,16 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 		"foot_left": root.get_node("FootLeft"),
 		"foot_right": root.get_node("FootRight"),
 	}
+
+
+## Имена материалов: в GLB не должно оставаться безымянных материалов.
+func _name_materials(node: Node) -> void:
+	for child in node.get_children():
+		if child is MeshInstance3D:
+			var mat: Material = child.material_override
+			if mat is StandardMaterial3D and String(mat.resource_name).is_empty():
+				mat.resource_name = "%sMat" % str(child.name)
+		_name_materials(child)
 
 
 ## Центр руля в системе координат узла Steer (его начало — шарнир стойки).
