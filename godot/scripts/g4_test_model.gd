@@ -819,14 +819,14 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 	var axis := Basis(Vector3.BACK, PI * 0.5)
 	_cyl(rim, "FlangeL", 0.1015, 0.0075, Transform3D(axis, Vector3(0.0285, 0.0, 0.0)), _m_black, -1.0, 44)
 	_cyl(rim, "FlangeR", 0.1015, 0.0075, Transform3D(axis, Vector3(-0.0285, 0.0, 0.0)), _m_black, -1.0, 44)
-	_lathe(rim, "RimLip", [
+	_lathe(rim, "RimLip", _m_black, [
 		Vector2(0.0985, 0.0300), Vector2(0.1035, 0.0300),
 		Vector2(0.1035, 0.0240), Vector2(0.0985, 0.0240),
-	], 44, Transform3D(Basis.IDENTITY, Vector3.ZERO))
-	_lathe(rim, "RimLipR", [
+	], 44)
+	_lathe(rim, "RimLipR", _m_black, [
 		Vector2(0.0985, -0.0240), Vector2(0.1035, -0.0240),
 		Vector2(0.1035, -0.0300), Vector2(0.0985, -0.0300),
-	], 44, Transform3D(Basis.IDENTITY, Vector3.ZERO))
+	], 44)
 	for i in 5:
 		var ang := TAU * float(i) / 5.0
 		var dir := Vector3(0.0, cos(ang), sin(ang))
@@ -847,7 +847,7 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 		_bolt(rim, "SpokeBolt", Vector3(0.014, cos(ang) * 0.0825, sin(ang) * 0.0825),
 			Vector3.RIGHT, 0.0035, 0.008, _m_steel)
 	# лицо обода: кольцо с фаской
-	_lathe(rim, "FaceRing", [
+	_lathe(rim, "FaceRing", _m_black, [
 		Vector2(0.086, 0.0130), Vector2(0.0965, 0.0130),
 		Vector2(0.0965, 0.0175), Vector2(0.086, 0.0175),
 	], 44)
@@ -887,11 +887,11 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 	# Тормозной диск: несущее кольцо, волновой венец, паук, болты.
 	var brake := _node(parent, "BrakeDisc")
 	var rotor_x := 0.020
-	_lathe(brake, "RotorCarrier", [
+	_lathe(brake, "RotorCarrier", _m_rotor, [
 		Vector2(0.048, rotor_x - 0.0016), Vector2(0.057, rotor_x - 0.0016),
 		Vector2(0.057, rotor_x + 0.0016), Vector2(0.048, rotor_x + 0.0016),
 	], 56)
-	_lathe(brake, "Rotor", [
+	_lathe(brake, "Rotor", _m_rotor, [
 		Vector2(0.056, rotor_x - 0.0014), Vector2(0.0755, rotor_x - 0.0014),
 		Vector2(0.0755, rotor_x + 0.0014), Vector2(0.056, rotor_x + 0.0014),
 	], 72)
@@ -1450,15 +1450,22 @@ func _build_stem_top(stem: Node3D) -> void:
 		Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(0.0, c.y - 0.038, c.z - 0.020)), _m_black)
 
 
+## Передняя кромка стойки в системе координат Steer для высоты y.
+func _stem_front_z(y: float) -> float:
+	var half := 0.029
+	if y > 0.18:
+		half = 0.031
+	if y > 0.45:
+		half = 0.032
+	return tan(RAKE) * y - half
+
+
 ## Прокладка кабелей: два тормозных шланга и жгут по задней кромке стойки,
 ## с обходом стяжного хомута, клипсами и резиновым вводом в раму.
 func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
 	var cables := _node(steer, "Cables")
 	var c := _bar_local()
 	# Передняя кромка стойки: z = tan(RAKE)*y - полуглубина профиля.
-	var front := func(y: float) -> float:
-		var half := 0.032 if y > 0.45 else (0.031 if y > 0.18 else 0.029)
-		return tan(RAKE) * y - half
 	var runs: Array = [
 		{"x": -0.021, "r": 0.0105, "off": 0.008, "name": "Harness"},
 		{"x": -0.040, "r": 0.0050, "off": 0.006, "name": "BrakeHoseL"},
@@ -1468,12 +1475,12 @@ func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
 		var x := float(run["x"])
 		var off := float(run["off"])
 		var path: Array = [
-			Vector3(x, c.y - 0.014, front.call(c.y - 0.014) + off + 0.004),
-			Vector3(x, c.y - 0.060, front.call(c.y - 0.060) + off),
-			Vector3(x, 0.470, front.call(0.470) + off),
-			Vector3(x, 0.330, front.call(0.330) + off),
-			Vector3(x, 0.210, front.call(0.210) + off),
-			Vector3(x, 0.150, front.call(0.150) + off + 0.004),
+			Vector3(x, c.y - 0.014, _stem_front_z(c.y - 0.014) + off + 0.004),
+			Vector3(x, c.y - 0.060, _stem_front_z(c.y - 0.060) + off),
+			Vector3(x, 0.470, _stem_front_z(0.470) + off),
+			Vector3(x, 0.330, _stem_front_z(0.330) + off),
+			Vector3(x, 0.210, _stem_front_z(0.210) + off),
+			Vector3(x, 0.150, _stem_front_z(0.150) + off + 0.004),
 			Vector3(x, 0.118, tan(RAKE) * 0.118 - 0.042),
 		]
 		_tube(cables, str(run["name"]), _m_black_d, path, float(run["r"]), 8)
@@ -1482,7 +1489,7 @@ func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
 			_m_plastic, -1.0, 12)
 	# стяжки жгута
 	for y0 in [0.520, 0.400, 0.290, 0.190]:
-		var z0: float = front.call(y0)
+		var z0: float = _stem_front_z(y0)
 		_box(cables, "CableTie", Vector3(0.030, 0.006, 0.006),
 			Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(-0.021, y0, z0 + 0.004)), _m_black_d)
 	# шланг переднего тормоза по рычагу вилки
@@ -1497,6 +1504,11 @@ func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
 	_tube(cables, "FrontBrakeHose", _m_black_d, hose, 0.0046, 8)
 	_box(cables, "HoseGuide", Vector3(0.010, 0.008, 0.042),
 		Transform3D(Basis(Vector3.RIGHT, -0.85), Vector3(0.062, 0.058, -0.316)), _m_black_d)
+# ---- руль ---------------------------------------------------------------------
+## Переднее крыло в оригинале есть, но пользователь просил его не показывать.
+const HAS_FRONT_FENDER := false
+
+
 func _build_bar(steer: Node3D) -> void:
 	var bar := _node(steer, "Bar")
 	var c := _bar_local()
