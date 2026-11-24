@@ -801,16 +801,18 @@ func _tire_profile() -> Array:
 
 
 func _tread(parent: Node3D) -> void:
-	var count := 30
+	var count := 26
 	for i in count:
 		var ang := TAU * float(i) / float(count)
 		for s in [-1.0, 1.0]:
-			var tilt := 0.34 * float(s)
+			var tilt := 0.30 * float(s)
 			var b := Basis(Vector3.RIGHT, ang) * Basis(Vector3.UP, tilt)
-			var pos := Vector3(0.0, 0.0, 0.0)
-			pos = b * Vector3(0.0, 0.1516, 0.0) + Vector3(0.017 * float(s), 0.0, 0.0)
-			var size := Vector3(0.017, 0.006, 0.015)
-			_box(parent, "Block", size, Transform3D(b, pos), _m_rubber)
+			# центральная шашка
+			var mid := b * Vector3(0.0, 0.1522, 0.0) + Vector3(0.013 * float(s), 0.0, 0.0)
+			_box(parent, "TreadCenter", Vector3(0.024, 0.005, 0.016), Transform3D(b, mid), _m_rubber)
+			# плечевая шашка
+			var shoulder := b * Vector3(0.0, 0.1480, 0.0) + Vector3(0.031 * float(s), 0.0, 0.0)
+			_box(parent, "TreadShoulder", Vector3(0.012, 0.006, 0.015), Transform3D(b, shoulder), _m_rubber)
 
 
 func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
@@ -831,11 +833,11 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 			var p1 := dir * 0.062 + tang * (0.024 * float(s))
 			var p2 := dir * 0.088 + tang * (0.030 * float(s))
 			_sweep(rim, "Spoke", _m_black, [p0, p1, p2],
-				[0.013, 0.019, 0.027], [0.014, 0.013, 0.011], [0.004, 0.004, 0.003],
+				[0.020, 0.030, 0.044], [0.018, 0.017, 0.014], [0.005, 0.005, 0.004],
 				Vector3.RIGHT)
 		# ступичная площадка спицы
-		_box(rim, "SpokePad", Vector3(0.020, 0.026, 0.020),
-			Transform3D(Basis(Vector3.RIGHT, ang), dir * 0.084), _m_black)
+		_box(rim, "SpokePad", Vector3(0.026, 0.030, 0.024),
+			Transform3D(Basis(Vector3.RIGHT, ang), dir * 0.082), _m_black)
 
 	var hub := _node(parent, "Hub")
 	_cyl(hub, "HubBody", 0.041, 0.082, Transform3D(axis, Vector3.ZERO), _m_black, -1.0, 28)
@@ -856,13 +858,19 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 
 	var brake := _node(parent, "BrakeDisc")
 	var rotor_x := 0.032
+	# Кольцо ротора: внутри — окна, поэтому спицы обода остаются видны.
 	_lathe(brake, "Rotor", _m_rotor, [
-		Vector2(0.034, rotor_x - 0.0020), Vector2(0.080, rotor_x - 0.0020),
-		Vector2(0.080, rotor_x + 0.0020), Vector2(0.034, rotor_x + 0.0020),
-	], 48)
+		Vector2(0.056, rotor_x - 0.0020), Vector2(0.080, rotor_x - 0.0020),
+		Vector2(0.080, rotor_x + 0.0020), Vector2(0.056, rotor_x + 0.0020),
+	], 56)
+	for i in 5:
+		var ang := TAU * float(i) / 5.0 + 0.2
+		var inner := Vector3(rotor_x, cos(ang) * 0.032, sin(ang) * 0.032)
+		var outer := Vector3(rotor_x, cos(ang) * 0.060, sin(ang) * 0.060)
+		_cyl_between(brake, "RotorSpoke", inner, outer, 0.0055, _m_rotor, 6)
 	for i in 10:
 		var ang := TAU * float(i) / 10.0 + 0.14
-		var p := Vector3(rotor_x, cos(ang) * 0.060, sin(ang) * 0.060)
+		var p := Vector3(rotor_x, cos(ang) * 0.068, sin(ang) * 0.068)
 		_cyl(brake, "RotorHole", 0.0042, 0.006,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), p), _m_black_d, -1.0, 8)
 	# паук диска
@@ -969,8 +977,8 @@ func _build_neck(root: Node3D) -> void:
 		[0.086, 0.078, 0.070], [0.014, 0.013, 0.012], Vector3.UP)
 	# усиливающее ребро по борту горловины
 	for side in [-1.0, 1.0]:
-		_box(neck, "NeckRib", Vector3(0.008, 0.020, 0.240),
-			Transform3D(Basis(Vector3.RIGHT, -1.35), Vector3(0.040 * float(side), 0.180, -0.330)),
+		_box(neck, "NeckRib", Vector3(0.006, 0.016, 0.130),
+			Transform3D(Basis(Vector3.RIGHT, -1.35), Vector3(0.034 * float(side), 0.176, -0.336)),
 			_m_frame_d)
 	# кронштейн передней подвески
 	_box(neck, "FrontPivot", Vector3(0.106, 0.048, 0.062),
