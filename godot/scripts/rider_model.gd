@@ -175,6 +175,24 @@ func _limb(side: float, length: float, limb_radius: float, mat: Material) -> Nod
 
 
 # ---- поза --------------------------------------------------------------------
+## Жёсткая рамка: ни одно звено тела не выходит за габарит руля.
+## Раньше на большом угле корпус и голова уезжали за грипсы.
+func _clamp_inside_scooter() -> void:
+	var z_min := -0.28
+	var z_max := 0.30
+	var y_min: float = deck_top - 0.04
+	var y_max: float = deck_top + 1.10
+	var parts: Array = [_hips, _chest, _head, _backpack]
+	for part in parts:
+		if part == null:
+			continue
+		var p: Vector3 = part.transform.origin
+		p.x = clampf(p.x, -0.32, 0.32)
+		p.y = clampf(p.y, y_min, y_max)
+		p.z = clampf(p.z, z_min, z_max)
+		part.position = p
+
+
 func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
 		grounded: bool, crashed: bool, pitch_deg := 0.0, wheelie := 0.0,
 		throttle := 0.0, pitch_rate := 0.0) -> void:
@@ -227,6 +245,8 @@ func update_pose(delta: float, steer: float, brake: float, speed_kmh: float,
 	var back_dir := Vector3(0.0, sin(lean), cos(lean))
 	var pack_back := 0.185 * 0.5 + 0.12 * 0.5 + 0.015
 	_backpack.transform = Transform3D(Basis(Vector3.RIGHT, -lean), torso_mid + back_dir * pack_back)
+
+	_clamp_inside_scooter()
 
 	# Кисти держатся за руль, пока райдер не упал.
 	var left_hand := _bar_point(_bar_left, Vector3(-0.01, -0.02, 0.0))

@@ -20,6 +20,7 @@ var _mode_label: Label
 var _drive_label: Label
 var _battery_bar: ProgressBar
 var _battery_label: Label
+var _fps_label: Label
 var _distance_label: Label
 var _time_label: Label
 var _score_label: Label
@@ -113,6 +114,9 @@ func _build_top_right(root: Control) -> void:
 	UiFactory.place(_distance_label, 980.0, 78.0, 260.0, 28.0)
 	root.add_child(_distance_label)
 
+	_fps_label = UiFactory.label("— FPS", 20, Color(0.72, 0.80, 0.72), HORIZONTAL_ALIGNMENT_RIGHT)
+	UiFactory.place(_fps_label, 1140.0, 142.0, 116.0, 26.0)
+	root.add_child(_fps_label)
 	_time_label = UiFactory.label("0:00", 22, Color(1.0, 1.0, 1.0))
 	UiFactory.place(_time_label, 980.0, 110.0, 260.0, 28.0)
 	root.add_child(_time_label)
@@ -297,6 +301,8 @@ func update_stats(scooter: Scooter, tricks: TrickSystem, time_left: float, show_
 	_battery_label.text = "%d%%" % int(round(percent))
 	_distance_label.text = "%.2f км" % (scooter.distance_meters / 1000.0)
 	_time_label.text = _format_time(scooter.run_time if not show_timer else time_left)
+	if _fps_label != null:
+		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
 
 	_wheelie_active = scooter.wheelie != null and scooter.wheelie.active
 	_score_label.text = "%d" % tricks.score

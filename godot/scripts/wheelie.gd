@@ -18,7 +18,7 @@ extends RefCounted
 const MIN_SPEED_KMH := 5.0
 const BALANCE_MIN_ANGLE := 25.0
 const BALANCE_MAX_ANGLE := 62.0
-const DANGER_ANGLE := 60.0
+const DANGER_ANGLE := 70.0
 
 ## Без газа нос не поднимается: кнопка только разрешает подъём.
 const LIFT_GAS := 0.18
@@ -26,15 +26,22 @@ const LIFT_GAS := 0.18
 const HOLD_GAS := 0.09
 
 ## Сколько градусов добавляет полный газ к углу баланса.
-const THROTTLE_ANGLE_RANGE := 20.0
+const THROTTLE_ANGLE_RANGE := 26.0
 ## «Перегазовка»: держишь газ в упоре на высоком носу — цель медленно уползает
 ## вверх и самокат валится через заднее колесо. Отпустил газ — заряд стекает.
 const OVERDRIVE_THROTTLE := 0.82
-const OVERDRIVE_PITCH := 54.0
+const OVERDRIVE_PITCH := 62.0
 const OVERDRIVE_ANGLE := 28.0
-const OVERDRIVE_CHARGE_RATE := 0.55
+const OVERDRIVE_CHARGE_RATE := 0.42
 const OVERDRIVE_DECAY_RATE := 1.6
-const MAX_TARGET_ANGLE := 90.0
+const MAX_TARGET_ANGLE := 86.0
+## На большом угле управление становится легче: усиление растёт, демпфирование
+## падает, а запас момента расширяется — иначе перегазовка неизбежно валила нос.
+const ASSIST_START := 38.0
+const ASSIST_FULL := 74.0
+const ASSIST_GAIN := 1.15
+const ASSIST_DAMPING_CUT := 0.45
+const ASSIST_TORQUE_BOOST := 0.65
 
 var lift_progress := 0.0
 var active := false
@@ -93,6 +100,8 @@ func tick(delta: float, armed_input: bool, throttle: float, body_pitch_input: fl
 
 	var lift_time: float = lerpf(spec.wheelie_lift_time * 1.7, spec.wheelie_lift_time * 0.75,
 		inverse_lerp(MIN_SPEED_KMH, 46.0, speed_kmh))
+	# Чем больше газа, тем охотнее нос идёт вверх.
+	lift_time /= 1.0 + 0.55 * clampf(gas, 0.0, 1.0)
 	if is_awd:
 		lift_time *= 1.55
 
@@ -138,8 +147,13 @@ func tick(delta: float, armed_input: bool, throttle: float, body_pitch_input: fl
 	var error := deg_to_rad(target_pitch - pitch)
 	var rate: float = _scooter.pitch_rate
 
-	var torque: float = gravity_torque + error * spec.wheelie_balance_gain - rate * spec.wheelie_balance_damping
-	torque = clampf(torque, -spec.wheelie_max_torque, spec.wheelie_max_torque)
+	# Помощь на большом угле: ближе к точке падения угол берётся легче.
+	var assist := smoothstep(ASSIST_START, ASSIST_FULL, pitch)
+	var gain: float = spec.wheelie_balance_gain * (1.0 + ASSIST_GAIN * assist)
+	var damping: float = spec.wheelie_balance_damping * (1.0 - ASSIST_DAMPING_CUT * assist)
+	var torque: float = gravity_torque + error * gain - rate * damping
+	var max_torque: float = spec.wheelie_max_torque * (1.0 + ASSIST_TORQUE_BOOST * assist)
+	torque = clampf(torque, -max_torque, max_torque)
 	_scooter.apply_nose_up_torque(torque)
 
 	in_balance_zone = pitch >= BALANCE_MIN_ANGLE and pitch <= BALANCE_MAX_ANGLE

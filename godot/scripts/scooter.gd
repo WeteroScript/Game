@@ -455,6 +455,28 @@ func _anti_sink() -> void:
 			fixed.origin.y = minimum
 			global_transform = fixed
 			linear_velocity.y = maxf(linear_velocity.y, 1.5)
+	_apply_wheel_limit()
+
+
+## Колёса по отдельности: при вилли/стоппи рама наклонена, и общая проверка по
+## центру тела пропускала заднее колесо сквозь дорогу.
+func _apply_wheel_limit() -> void:
+	for side in [-1.0, 1.0]:
+		var local := Vector3(0.0, 0.0, side * spec.wheel_base * 0.5)
+		var probe := global_transform * local
+		var reach := spec.wheel_radius + 0.60
+		var q := PhysicsRayQueryParameters3D.create(probe + Vector3.UP * 0.30,
+			probe + Vector3.DOWN * reach, 0xFFFFFFFF, [get_rid()])
+		var hit := get_world_3d().direct_space_state.intersect_ray(q)
+		if hit.is_empty():
+			continue
+		var need: float = hit["position"].y + spec.wheel_radius * 0.94
+		if probe.y >= need:
+			continue
+		# Мягко, чтобы не подбрасывало: сила ограничена глубиной 0.10 м.
+		var push := minf(need - probe.y, 0.10)
+		apply_central_force(Vector3.UP * push * spec.mass_kg * 200.0)
+		linear_velocity.y = maxf(linear_velocity.y, 0.0)
 
 
 func _apply_balance() -> void:

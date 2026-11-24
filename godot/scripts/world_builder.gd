@@ -21,6 +21,10 @@ var _roof: StandardMaterial3D
 var _bark: StandardMaterial3D
 var _pine: StandardMaterial3D
 
+## Очередь «добора» сцены: тяжёлые куски (лес, дома) строятся по одному за кадр,
+## а не всей картой сразу — прогрузка идёт плавно, без длинного фриза.
+var _queue: Array = []
+
 
 func _init() -> void:
 	_asphalt = _mat(Color(0.16, 0.17, 0.19), 0.0, 0.92)
@@ -167,26 +171,54 @@ func _build_straight_track(parent: Node3D) -> Dictionary:
 
 
 ## Лес по обе стороны: три линии деревьев в MultiMesh.
-func _add_forest(parent: Node3D, length: float) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 20261124
+## Сколько кусков сцены ещё не построено.
+func pending_jobs() -> int:
+	return _queue.size()
 
-	var trunks := []
-	var crowns := []
+
+func _defer(job: Callable) -> void:
+	if job.is_valid():
+		_queue.append(job)
+
+
+## Строит очередь порциями: не дольше budget_ms за кадр.
+func pump(budget_ms := 4.0) -> void:
+	var start := Time.get_ticks_usec()
+	while not _queue.is_empty():
+		var job: Callable = _queue.pop_front()
+		if job.is_valid():
+			job.call()
+		if float(Time.get_ticks_usec() - start) / 1000.0 > budget_ms:
+			break
+
+
+func _add_forest(parent: Node3D, length: float) -> void:
+	var index := 0
 	for side in [-1.0, 1.0]:
 		for row in 3:
 			var lane: float = side * (ROAD_WIDTH * 0.5 + 7.4 + row * 4.6)
-			var z := FLAT_START_Z - 4.0 - row * 6.0
-			while z > FLAT_START_Z - length:
-				var height := rng.randf_range(4.2, 8.6)
-				var radius := rng.randf_range(1.05, 1.85)
-				var px := lane + rng.randf_range(-1.5, 1.5)
-				var pz := z + rng.randf_range(-2.4, 2.4)
-				trunks.append(_inst(Vector3(px, ROAD_TOP + height * 0.22, pz),
-					Vector3(0.30, height * 0.44, 0.30)))
-				crowns.append(_inst(Vector3(px, ROAD_TOP + height * 0.40 + height * 0.37, pz),
-					Vector3(radius, height * 0.74, radius), rng.randf_range(0.0, TAU)))
-				z -= rng.randf_range(7.0, 12.0)
+			_defer(Callable(self, "_forest_row").bind(parent, lane, length, 20261124 + index))
+			index += 1
+
+
+## Один ряд леса: стволы и кроны одним MultiMesh.
+func _forest_row(parent: Node3D, lane: float, length: float, seed_value: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+
+	var trunks := []
+	var crowns := []
+	var z := FLAT_START_Z - 4.0
+	while z > FLAT_START_Z - length:
+		var height := rng.randf_range(4.2, 8.6)
+		var radius := rng.randf_range(1.05, 1.85)
+		var px := lane + rng.randf_range(-1.5, 1.5)
+		var pz := z + rng.randf_range(-2.4, 2.4)
+		trunks.append(_inst(Vector3(px, ROAD_TOP + height * 0.22, pz),
+			Vector3(0.30, height * 0.44, 0.30)))
+		crowns.append(_inst(Vector3(px, ROAD_TOP + height * 0.40 + height * 0.37, pz),
+			Vector3(radius, height * 0.74, radius), rng.randf_range(0.0, TAU)))
+		z -= rng.randf_range(7.0, 12.0)
 
 	var trunk_mesh := CylinderMesh.new()
 	trunk_mesh.top_radius = 0.5
@@ -255,8 +287,8 @@ func _build_city(parent: Node3D) -> Dictionary:
 		var hz := house_z
 		var count := 0
 		while count < 6 and hz > -160.0:
-			_add_house(holder, Vector3(x_side * 30.0, 0.0, hz), 10.0 + count % 2 * 2.0,
-				7.0 + (count % 3) * 1.5, count % 2 == 0)
+			_defer(Callable(self, "_add_house").bind(holder, Vector3(x_side * 30.0, 0.0, hz),
+				10.0 + count % 2 * 2.0, 7.0 + (count % 3) * 1.5, count % 2 == 0))
 			hz -= 34.0
 			count += 1
 		row += 1

@@ -524,6 +524,9 @@ func _take_detail_shots(shot_dir: String, spec_id: String) -> void:
 
 
 func _take_screenshots() -> void:
+	# Перед съёмкой достраиваем всё, что осталось в очереди прогрузки.
+	if world_builder != null:
+		world_builder.pump(600.0)
 	var shot_dir := OS.get_environment("SHOT_DIR")
 	if shot_dir.is_empty():
 		shot_dir = "/tmp/kugoo-shots"
@@ -688,6 +691,9 @@ func _save_shot(shot_dir: String, shot_name: String) -> void:
 
 # ---- кадр -------------------------------------------------------------------
 func _process(delta: float) -> void:
+	# Плавная прогрузка: по куску сцены за кадр, без длинного фриза.
+	if world_builder != null:
+		world_builder.pump()
 	if _smoke:
 		_tick_smoke(delta)
 
