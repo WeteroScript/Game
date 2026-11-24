@@ -399,6 +399,21 @@ func _take_screenshots() -> void:
 		{"name": "wheel", "offset": Vector3(0.70, 0.26, -0.95), "look": Vector3(0.0, 0.13, -0.50), "fov": 34.0},
 		{"name": "dash", "offset": Vector3(0.10, 1.34, 0.78), "look": Vector3(0.0, 1.10, -0.20), "fov": 34.0},
 		{"name": "deck", "offset": Vector3(0.78, 0.46, 0.16), "look": Vector3(0.0, 0.22, 0.02), "fov": 34.0},
+		# Строгие ортогональные проекции для сверки с фото.
+		{"name": "o_front", "offset": Vector3(0.0, 0.60, -4.6), "look": Vector3(0.0, 0.60, 0.0),
+			"fov": 12.0, "ortho": true, "size": 1.38},
+		{"name": "o_rear", "offset": Vector3(0.0, 0.60, 4.6), "look": Vector3(0.0, 0.60, 0.0),
+			"fov": 12.0, "ortho": true, "size": 1.38},
+		{"name": "o_left", "offset": Vector3(-4.6, 0.60, 0.0), "look": Vector3(0.0, 0.60, 0.0),
+			"fov": 12.0, "ortho": true, "size": 1.38},
+		{"name": "o_right", "offset": Vector3(4.6, 0.60, 0.0), "look": Vector3(0.0, 0.60, 0.0),
+			"fov": 12.0, "ortho": true, "size": 1.38},
+		{"name": "o_top", "offset": Vector3(0.0, 3.40, 0.0), "look": Vector3(0.0, 0.40, 0.0),
+			"fov": 12.0, "ortho": true, "size": 1.48, "up": Vector3(0.0, 0.0, -1.0), "hide_world": true},
+		{"name": "o_bottom", "offset": Vector3(0.0, -2.20, 0.0), "look": Vector3(0.0, 0.40, 0.0),
+			"fov": 12.0, "ortho": true, "size": 1.48, "up": Vector3(0.0, 0.0, 1.0), "hide_world": true},
+		{"name": "o_quarter", "offset": Vector3(1.90, 1.05, -2.35), "look": Vector3(0.0, 0.62, 0.0),
+			"fov": 30.0},
 	]
 
 	for spec_id in ["g4", "f3", "g4_test"]:
@@ -414,8 +429,11 @@ func _take_screenshots() -> void:
 			var shot: Dictionary = shots[index]
 			var origin: Vector3 = scooter.global_position
 			var look_point: Vector3 = origin + shot["look"]
+			var up: Vector3 = shot.get("up", Vector3.UP)
+			if shot.get("hide_world", false) and world_root != null:
+				world_root.visible = false
 			camera_rig.global_position = origin + shot["offset"]
-			camera_rig.look_at(look_point, Vector3.UP)
+			camera_rig.look_at(look_point, up)
 			camera_rig.fov = shot["fov"]
 			# Ортокамера для кадров, по которым сверяем силуэт с фото.
 			if shot.get("ortho", false):
@@ -430,6 +448,8 @@ func _take_screenshots() -> void:
 			var path := "%s/%s_%d_%s.png" % [shot_dir, spec_id, index, shot["name"]]
 			var error := image.save_png(path)
 			print("SHOT %s err=%d" % [path, error])
+			if shot.get("hide_world", false) and world_root != null:
+				world_root.visible = true
 
 		# Кадр с райдером.
 		if rider_node != null:

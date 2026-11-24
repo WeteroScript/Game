@@ -395,7 +395,7 @@ func _decal(parent: Node3D, node_name: String, text: String, height_m: float,
 	var quad := QuadMesh.new()
 	quad.size = Vector2(w, height_m)
 	var inst := MeshInstance3D.new()
-	inst.name = node_name
+	inst.name = _unique_name(parent, node_name)
 	inst.mesh = quad
 	inst.material_override = mat
 	inst.transform = xform
@@ -429,7 +429,7 @@ func _chevron(parent: Node3D, node_name: String, size_m: float, xform: Transform
 	var quad := QuadMesh.new()
 	quad.size = Vector2(size_m, size_m)
 	var inst := MeshInstance3D.new()
-	inst.name = node_name
+	inst.name = _unique_name(parent, node_name)
 	inst.mesh = quad
 	inst.material_override = mat
 	inst.transform = xform
@@ -515,14 +515,14 @@ func _draw_seven_seg(img: Image, x: int, y: int, dw: int, dh: int, digit: String
 # ---- узлы и меши --------------------------------------------------------------
 func _node(parent: Node3D, node_name: String) -> Node3D:
 	var n := Node3D.new()
-	n.name = node_name
+	n.name = _unique_name(parent, node_name)
 	parent.add_child(n)
 	return n
 
 
 func _marker(parent: Node3D, node_name: String, pos: Vector3) -> Node3D:
 	var n := Node3D.new()
-	n.name = node_name
+	n.name = _unique_name(parent, node_name)
 	n.position = pos
 	parent.add_child(n)
 	return n
@@ -938,53 +938,83 @@ func _build_deck(root: Node3D) -> void:
 		rad.append(row[3])
 	_sweep(deck, "Shell", _m_frame, pts, wid, hei, rad, Vector3.UP)
 
-	# настил: гриптейп с буртиком
+	# Настил: гриптейп с буртиком по борту.
 	_sweep(deck, "TopPad", _m_tape,
-		[Vector3(0.0, DECK_TOP, -0.200), Vector3(0.0, DECK_TOP, 0.0), Vector3(0.0, DECK_TOP, 0.220)],
-		[0.150, 0.170, 0.156], [0.005, 0.006, 0.005], [0.010, 0.010, 0.010], Vector3.UP)
-	# нижняя панель батарейного отсека
-	_sweep(deck, "BottomPanel", _m_frame_d,
-		[Vector3(0.0, DECK_BOT + 0.002, -0.214), Vector3(0.0, DECK_BOT + 0.002, 0.216)],
-		[0.170, 0.164], [0.006, 0.006], [0.010, 0.010], Vector3.UP)
+		[Vector3(0.0, DECK_TOP + 0.001, -0.198), Vector3(0.0, DECK_TOP + 0.001, 0.0),
+			Vector3(0.0, DECK_TOP + 0.001, 0.218)],
+		[0.152, 0.172, 0.158], [0.005, 0.006, 0.005], [0.010, 0.010, 0.010], Vector3.UP)
+	# кант настила по периметру
+	for side in [-1.0, 1.0]:
+		_sweep(deck, "TapeEdge", _m_black_d,
+			[Vector3(0.074 * float(side), DECK_TOP + 0.002, -0.196),
+				Vector3(0.085 * float(side), DECK_TOP + 0.002, 0.0),
+				Vector3(0.078 * float(side), DECK_TOP + 0.002, 0.216)],
+			[0.006, 0.006, 0.006], [0.004, 0.004, 0.004], [0.002, 0.002, 0.002], Vector3.UP)
 
-	# боковые швы и болты
+	# Нижняя панель батарейного отсека с рёбрами и крепежом.
+	_sweep(deck, "BottomPanel", _m_frame_d,
+		[Vector3(0.0, DECK_BOT - 0.001, -0.206), Vector3(0.0, DECK_BOT - 0.001, 0.208)],
+		[0.168, 0.162], [0.007, 0.007], [0.008, 0.008], Vector3.UP)
+	for i in 4:
+		var z := -0.150 + i * 0.100
+		_box(deck, "BottomRib", Vector3(0.150, 0.006, 0.012),
+			Transform3D(Basis.IDENTITY, Vector3(0.0, DECK_BOT - 0.005, z)), _m_frame_d)
+	for side in [-1.0, 1.0]:
+		for i in 4:
+			var z := -0.180 + i * 0.120
+			_bolt(deck, "BottomScrew", Vector3(0.070 * float(side), DECK_BOT - 0.006, z),
+				Vector3.DOWN, 0.0038, 0.006, _m_steel)
+
+	# Резиновый кант по нижней кромке корпуса.
+	var trim_pts: Array = []
+	var trim_wid: Array = []
+	for row in _deck_profile():
+		trim_pts.append(Vector3(0.0, DECK_BOT + 0.011, row[0] * 0.995))
+		trim_wid.append(row[1] * 2.0 + 0.006)
+	_sweep(deck, "EdgeTrim", _m_plastic, trim_pts, trim_wid,
+		[0.016, 0.016, 0.016, 0.016, 0.016, 0.016, 0.016, 0.016],
+		[0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007], Vector3.UP)
+
+	# Боковые панели: шов, болты, шильдик, наклейки.
 	for side in [-1.0, 1.0]:
 		var sx: float = 0.1075 * float(side)
 		var basis := Basis(Vector3.UP, -PI * 0.5 * float(side))
-		# продольный шов
-		_box(deck, "Seam", Vector3(0.004, 0.056, 0.420),
-			Transform3D(Basis.IDENTITY, Vector3(sx * 1.005, 0.038, 0.0)), _m_frame_d)
+		_box(deck, "Seam", Vector3(0.004, 0.050, 0.418),
+			Transform3D(Basis.IDENTITY, Vector3(sx * 1.005, 0.040, 0.0)), _m_frame_d)
 		for i in 5:
 			var z := -0.160 + i * 0.088
-			_bolt(deck, "DeckBolt", Vector3(sx * 1.01, DECK_TOP - 0.016, z),
+			_bolt(deck, "DeckBolt", Vector3(sx * 1.012, DECK_TOP - 0.014, z),
 				Vector3(float(side), 0.0, 0.0), 0.0045, 0.008, _m_steel)
+		# шильдик с заклёпками
+		_box(deck, "NamePlate", Vector3(0.003, 0.019, 0.052),
+			Transform3D(basis, Vector3(sx * 1.014, 0.054, 0.170)), _m_black_d)
+		for i in 2:
+			for j in 2:
+				_cyl(deck, "Rivet", 0.0022, 0.0025,
+					Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx * 1.018,
+						0.054 - 0.006 + i * 0.012, 0.150 + j * 0.040)), _m_alu, -1.0, 8)
 		# наклейки на борту
-		var dpos := Vector3(sx * 1.02, 0.042, -0.080)
 		_decal(deck, "DeckBrand", "KUKIRIN", 0.020, Color(0.86, 0.87, 0.88),
-			Transform3D(basis, dpos))
+			Transform3D(basis, Vector3(sx * 1.02, 0.042, -0.080)))
 		_decal(deck, "DeckG4", "G4", 0.040, C_ORANGE,
 			Transform3D(basis, Vector3(sx * 1.02, 0.050, 0.108)))
-		_decal(deck, "DeckCode", "B-05-1", 0.013, Color(0.80, 0.81, 0.82),
+		_decal(deck, "DeckCode", "B-05-1", 0.013, C_ORANGE,
 			Transform3D(basis, Vector3(sx * 1.02, 0.014, -0.160)))
 		_chevron(deck, "DeckChevron", 0.032,
 			Transform3D(basis, Vector3(sx * 1.02, 0.010, 0.176)))
-		# предупредительная наклейка
 		_decal(deck, "DeckWarn", "MAX 120KG", 0.008, Color(0.92, 0.92, 0.90),
-			Transform3D(Basis(Vector3.UP, -PI * 0.5 * float(side)),
-				Vector3(sx * 1.02, 0.066, 0.020)))
+			Transform3D(basis, Vector3(sx * 1.02, 0.066, 
+				0.020)))
 	# табличка с характеристиками сзади
 	_decal(deck, "DeckSpec", "60V 20AH", 0.009, Color(0.90, 0.90, 0.88),
 		Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0.1, 0.048, 0.202)))
 	# разъём зарядки слева
 	_cyl(deck, "ChargePort", 0.019, 0.008,
-		Transform3D(Basis(Vector3.FORWARD, 0.0) * Basis(Vector3.UP, -PI * 0.5),
-			Vector3(-0.108, 0.044, -0.130)), _m_black_d, -1.0, 20)
+		Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(-0.108, 0.044, -0.130)),
+		_m_black_d, -1.0, 20)
 	_cyl(deck, "ChargeCap", 0.015, 0.010,
 		Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(-0.112, 0.044, -0.130)),
 		_m_rubber, -1.0, 20)
-
-
-# ---- горловина и стакан --------------------------------------------------------
 func _build_neck(root: Node3D) -> void:
 	var neck := _node(root, "Neck")
 	# Вертикальная нога рулевой колонки: от шарнира вниз к рычагу подвески.
@@ -1038,22 +1068,37 @@ func _build_rear_platform(root: Node3D) -> void:
 		Vector3(0.0, mid_y - 0.006, STEP_REAR),
 	], [0.192, 0.198, 0.176], [0.058, 0.054, 0.042],
 		[0.010, 0.010, 0.012], Vector3.UP)
+	# накладка площадки с ромбическим рисунком и бортиком
+	var pad_tilt := Basis(Vector3.RIGHT, -0.045)
 	_sweep(step, "Pad", _m_tape,
-		[Vector3(0.0, STEP_TOP, 0.256), Vector3(0.0, STEP_TOP, 0.338)],
-		[0.150, 0.136], [0.005, 0.005], [0.008, 0.010], Vector3.UP)
+		[Vector3(0.0, STEP_TOP + 0.002, 0.252), Vector3(0.0, STEP_TOP + 0.001, 0.300),
+			Vector3(0.0, STEP_TOP - 0.002, 0.342)],
+		[0.152, 0.150, 0.134], [0.005, 0.005, 0.005], [0.008, 0.008, 0.010], Vector3.UP)
+	for side in [-1.0, 1.0]:
+		_box(step, "PadRib", Vector3(0.098, 0.003, 0.006),
+			Transform3D(Basis(Vector3.RIGHT, -0.045) * Basis(Vector3.UP, 0.62 * float(side)),
+				Vector3(0.0, STEP_TOP + 0.006, 0.298)), _m_plastic)
+		for i in 2:
+			_bolt(step, "PadBolt", Vector3(0.062 * float(side), STEP_TOP + 0.004,
+				0.264 + i * 0.062), Vector3.UP, 0.0035, 0.006, _m_steel)
 	# стойки-кронштейны от деки к площадке
 	for side in [-1.0, 1.0]:
 		_box(step, "Post", Vector3(0.016, 0.086, 0.030),
 			Transform3D(Basis(Vector3.RIGHT, 0.10), Vector3(0.092 * float(side), 0.092, 0.262)), _m_frame_d)
 		_bolt(step, "PostBolt", Vector3(0.092 * float(side), 0.126, 0.262),
 			Vector3(float(side), 0.0, 0.0), 0.006, 0.010, _m_steel)
-	# хвостовик с отражателем
+	# подкос от деки к носу площадки
+	_box(step, "Brace", Vector3(0.014, 0.030, 0.062),
+		Transform3D(Basis(Vector3.RIGHT, 0.42), Vector3(0.070, 0.108, 0.238)), _m_frame_d)
+	# хвостовик с фонарём и отражателем
 	_box(step, "Tail", Vector3(0.120, 0.026, 0.026),
 		Transform3D(Basis(Vector3.RIGHT, 0.30), Vector3(0.0, STEP_TOP - 0.024, STEP_REAR + 0.010)), _m_black)
+	_box(step, "TailBezel", Vector3(0.100, 0.020, 0.008),
+		Transform3D(Basis(Vector3.RIGHT, 0.30), Vector3(0.0, STEP_TOP - 0.026, STEP_REAR + 0.024)), _m_black_d)
+	_box(step, "TailLamp", Vector3(0.086, 0.012, 0.006),
+		Transform3D(Basis(Vector3.RIGHT, 0.30), Vector3(0.0, STEP_TOP - 0.026, STEP_REAR + 0.029)), _m_tail)
 	_box(step, "Reflector", Vector3(0.026, 0.010, 0.004),
-		Transform3D(Basis.IDENTITY, Vector3(0.0, STEP_TOP - 0.030, STEP_REAR + 0.026)), _m_amber)
-
-
+		Transform3D(Basis(Vector3.RIGHT, 0.30), Vector3(0.056, STEP_TOP - 0.030, STEP_REAR + 0.026)), _m_amber)
 func _build_rear_fender(root: Node3D) -> void:
 	var fender := _node(root, "RearFender")
 	var center := Vector3(0.0, 0.0, AXLE_R)
@@ -1061,38 +1106,52 @@ func _build_rear_fender(root: Node3D) -> void:
 	var wid: Array = []
 	var hei: Array = []
 	var rad: Array = []
-	var a0 := -1.15
-	var a1 := 1.45
-	var steps := 11
+	var a0 := -1.12
+	var a1 := 1.08
+	var steps := 12
 	for i in steps + 1:
 		var t := float(i) / float(steps)
 		var ang := lerpf(a0, a1, t)
-		var r := R + 0.012
+		var r := R + 0.013
 		pts.append(center + Vector3(0.0, cos(ang) * r, sin(ang) * r))
-		var taper := 1.0 - 0.22 * absf(t - 0.5) * 2.0
-		wid.append(0.012)
-		hei.append(0.100 * taper)
+		var taper := 1.0 - 0.16 * absf(t - 0.45) * 2.0
+		wid.append(0.011)
+		hei.append(0.102 * taper)
 		rad.append(0.005)
 	_sweep(fender, "Hugger", _m_black, pts, wid, hei, rad, Vector3.RIGHT)
-	# рёбра жёсткости сверху
+	# отбортовка по торцам и рёбра внутри
+	for a in [a0, a1]:
+		var p := center + Vector3(0.0, cos(a) * (R + 0.013), sin(a) * (R + 0.013))
+		_box(fender, "Lip", Vector3(0.014, 0.006, 0.100),
+			Transform3D(Basis(Vector3.RIGHT, -a), p), _m_black_d)
 	for i in 3:
-		var off := -0.028 + i * 0.028
-		_box(fender, "Fin", Vector3(0.006, 0.008, 0.052),
-			Transform3D(Basis(Vector3.RIGHT, -0.55),
-				Vector3(off, R + 0.030, AXLE_R - 0.045)), _m_black_d)
+		var ang := lerpf(a0 + 0.35, a1 - 0.35, float(i) * 0.5)
+		var p := center + Vector3(0.0, cos(ang) * (R + 0.006), sin(ang) * (R + 0.006))
+		_box(fender, "Fin", Vector3(0.006, 0.008, 0.086),
+			Transform3D(Basis(Vector3.RIGHT, -ang), p), _m_black_d)
+	# шевроны на бортах крыла
+	for side in [-1.0, 1.0]:
+		var ang := 0.35
+		var tang := Vector3(0.0, -sin(ang), cos(ang))
+		var radial := Vector3(0.0, cos(ang), sin(ang))
+		var x_axis := -tang if float(side) > 0.0 else tang
+		var b := Basis(x_axis, radial, Vector3(float(side), 0.0, 0.0))
+		var p := center + Vector3(0.052 * float(side), cos(ang) * (R + 0.013), sin(ang) * (R + 0.013))
+		_chevron(fender, "FenderChevron", 0.024, Transform3D(b, p))
 	# стоп-сигнал на хвосте крыла
-	var tail_pos := center + Vector3(0.0, cos(a1) * (R + 0.030), sin(a1) * (R + 0.030))
-	_box(fender, "TailLight", Vector3(0.086, 0.014, 0.016),
-		Transform3D(Basis(Vector3.RIGHT, -a1), tail_pos), _m_tail)
-	_box(fender, "TailBezel", Vector3(0.094, 0.020, 0.010),
-		Transform3D(Basis(Vector3.RIGHT, -a1), tail_pos + Vector3(0.0, 0.004, 0.0)), _m_black)
+	var tail_pos := center + Vector3(0.0, cos(a1) * (R + 0.028), sin(a1) * (R + 0.028))
+	_box(fender, "TailBezel", Vector3(0.098, 0.026, 0.012),
+		Transform3D(Basis(Vector3.RIGHT, -a1), tail_pos), _m_black)
+	_box(fender, "TailLight", Vector3(0.084, 0.014, 0.006),
+		Transform3D(Basis(Vector3.RIGHT, -a1), tail_pos + Vector3(0.0, -0.002, 0.008)), _m_tail)
+	for side in [-1.0, 1.0]:
+		_bolt(fender, "TailBolt", tail_pos + Vector3(0.040 * float(side), 0.010, 0.002),
+			Vector3(0.0, cos(a1), sin(a1)), 0.0035, 0.008, _m_steel)
 	# кронштейн крепления к маятнику
 	for side in [-1.0, 1.0]:
 		_box(fender, "FenderStay", Vector3(0.008, 0.048, 0.016),
 			Transform3D(Basis(Vector3.RIGHT, 0.70),
 				Vector3(0.058 * float(side), 0.075, AXLE_R - 0.070)), _m_black_d)
-
-
 func _build_kickstand(root: Node3D) -> void:
 	var stand := _node(root, "Kickstand")
 	_box(stand, "Bracket", Vector3(0.030, 0.020, 0.040),
@@ -1256,30 +1315,33 @@ func _cyl_between(parent: Node3D, node_name: String, from: Vector3, to: Vector3,
 func _caliper(parent: Node3D, node_name: String, center: Vector3, angle: float,
 		side: float) -> void:
 	var basis := Basis(Vector3.RIGHT, angle) * Basis(Vector3.UP, PI * 0.5 * float(side))
-	var body := _box(parent, node_name, Vector3(0.030, 0.062, 0.030),
+	# корпус суппорта сидит на тормозном диске (x = 0.020), колодки — по обе стороны
+	_box(parent, node_name, Vector3(0.026, 0.064, 0.034),
 		Transform3D(basis, center), _m_caliper)
-	body.name = node_name
-	_box(parent, node_name + "_Plate", Vector3(0.008, 0.048, 0.022),
-		Transform3D(basis, center + Vector3(0.020 * float(side), 0.0, 0.0)), _m_black_d)
-	_bolt(parent, node_name + "_Bolt", center + Vector3(0.018 * float(side), 0.020, 0.0),
-		Vector3(float(side), 0.0, 0.0), 0.0045, 0.010, _m_steel)
-	_bolt(parent, node_name + "_Bolt2", center + Vector3(0.018 * float(side), -0.020, 0.0),
-		Vector3(float(side), 0.0, 0.0), 0.0045, 0.010, _m_steel)
-
-
+	for s in [-1.0, 1.0]:
+		_box(parent, node_name + "_Pad", Vector3(0.008, 0.030, 0.022),
+			Transform3D(basis, center + basis.z * (0.0115 * float(s))), _m_black_d)
+	_box(parent, node_name + "_Bridge", Vector3(0.030, 0.014, 0.020),
+		Transform3D(basis, center + Vector3(0.0, 0.038, 0.0)), _m_caliper)
+	# скоба-держатель к рычагу
+	_box(parent, node_name + "_Bracket", Vector3(0.030, 0.030, 0.012),
+		Transform3D(basis, center + Vector3(0.026 * float(side), 0.026, 0.0)), _m_steel)
+	for b in [-1.0, 1.0]:
+		_bolt(parent, node_name + "_Bolt", center + Vector3(0.020 * float(side),
+			0.020 * float(b), 0.014), Vector3(float(side), 0.0, 0.0), 0.0046, 0.012, _m_steel)
+	_cyl(parent, node_name + "_Bleed", 0.0048, 0.012,
+		Transform3D(Basis(Vector3.BACK, PI * 0.5), center + Vector3(0.0, 0.030, -0.020)),
+		_m_steel, -1.0, 8)
 func _build_front_brake(root: Node3D) -> void:
 	var holder := _node(root, "FrontBrake")
 	holder.position = Vector3(0.0, -HINGE_Y, -HEAD_Z)
-	var c := Vector3(0.048, -0.044, AXLE_F + 0.074)
-	_caliper(holder, "FrontCaliper", c, 0.0, 1.0)
-
-
+	# суппорт на диске, над осью и позади неё, за рычагом вилки
+	var c := Vector3(0.020, 0.052, AXLE_F + 0.068)
+	_caliper(holder, "FrontCaliper", c, -0.45, 1.0)
 func _build_rear_brake(root: Node3D) -> void:
-	var c := Vector3(0.044, -0.036, AXLE_R + 0.076)
-	_caliper(root, "RearCaliper", c, 0.0, 1.0)
-
-
-# ---- стойка -------------------------------------------------------------------
+	# суппорт заднего диска: над осью, со стороны маятника
+	var c := Vector3(0.020, 0.050, AXLE_R + 0.070)
+	_caliper(root, "RearCaliper", c, 0.45, -1.0)
 func _stem_points() -> Array:
 	var out: Array = []
 	for y in [0.0, 0.10, 0.30, 0.50, BAR_Y - HINGE_Y]:
@@ -1393,60 +1455,48 @@ func _build_stem_top(stem: Node3D) -> void:
 func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
 	var cables := _node(steer, "Cables")
 	var c := _bar_local()
+	# Передняя кромка стойки: z = tan(RAKE)*y - полуглубина профиля.
+	var front := func(y: float) -> float:
+		var half := 0.032 if y > 0.45 else (0.031 if y > 0.18 else 0.029)
+		return tan(RAKE) * y - half
 	var runs: Array = [
-		{"x": -0.0175, "r": 0.0050, "off": 0.038, "name": "BrakeHoseL"},
-		{"x": 0.0175, "r": 0.0050, "off": 0.038, "name": "BrakeHoseR"},
-		{"x": 0.0, "r": 0.0072, "off": 0.043, "name": "Harness"},
+		{"x": -0.021, "r": 0.0105, "off": 0.008, "name": "Harness"},
+		{"x": -0.040, "r": 0.0050, "off": 0.006, "name": "BrakeHoseL"},
+		{"x": 0.021, "r": 0.0050, "off": 0.007, "name": "BrakeHoseR"},
 	]
 	for run in runs:
 		var x := float(run["x"])
 		var off := float(run["off"])
 		var path: Array = [
-			Vector3(x, c.y - 0.030, c.z + 0.026),
-			Vector3(x, c.y - 0.090, c.z + 0.014),
-			Vector3(x, 0.470, tan(RAKE) * 0.470 + off + 0.002),
-			Vector3(x, 0.330, tan(RAKE) * 0.330 + off),
-			Vector3(x, 0.190, tan(RAKE) * 0.190 + off),
-			Vector3(x, 0.128, tan(RAKE) * 0.128 + off + 0.008),
-			Vector3(x, 0.074, tan(RAKE) * 0.074 + off + 0.011),
-			Vector3(x, 0.020, tan(RAKE) * 0.020 + off + 0.006),
-			Vector3(x, -0.032, tan(RAKE) * -0.032 + off - 0.008),
-			Vector3(x, -0.062, 0.030),
+			Vector3(x, c.y - 0.014, front.call(c.y - 0.014) + off + 0.004),
+			Vector3(x, c.y - 0.060, front.call(c.y - 0.060) + off),
+			Vector3(x, 0.470, front.call(0.470) + off),
+			Vector3(x, 0.330, front.call(0.330) + off),
+			Vector3(x, 0.210, front.call(0.210) + off),
+			Vector3(x, 0.150, front.call(0.150) + off + 0.004),
+			Vector3(x, 0.118, tan(RAKE) * 0.118 - 0.042),
 		]
 		_tube(cables, str(run["name"]), _m_black_d, path, float(run["r"]), 8)
-		# резиновый ввод в основание стойки
-		_cyl(cables, "CableBoot", float(run["r"]) + 0.006, 0.014,
-			Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(x, -0.052, 0.040)), _m_plastic, -1.0, 12)
-		# ввод у приборки
-		_cyl(cables, "CableGrommet", float(run["r"]) + 0.004, 0.010,
-			Transform3D(Basis(Vector3.RIGHT, RAKE + 0.5), Vector3(x, c.y - 0.034, c.z + 0.020)),
-			_m_plastic, -1.0, 10)
-	# спиральная обмотка жгута
-	for i in 9:
-		var y := 0.480 - float(i) * 0.036
-		_cyl(cables, "Wrap", 0.0092, 0.0055,
-			Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(0.0, y, tan(RAKE) * y + 0.045)),
-			_m_black_d, -1.0, 12)
-	# клипсы крепления к стойке
-	for y0 in [0.250, 0.410]:
-		_box(cables, "CableClip", Vector3(0.062, 0.008, 0.012),
-			Transform3D(Basis(Vector3.RIGHT, RAKE),
-				Vector3(0.0, y0, tan(RAKE) * y0 + 0.040)), _m_black_d)
-	# шланг переднего тормоза к калиперу вдоль вилки
-	var drop: Array = [
-		Vector3(0.052, 0.230, tan(RAKE) * 0.230 + 0.030),
-		Vector3(0.070, 0.120, tan(RAKE) * 0.120 + 0.020),
-		Vector3(0.078, 0.000, tan(RAKE) * 0.0 + 0.008),
-		Vector3(0.074, -0.140, -0.010),
-		Vector3(0.062, -0.250, -0.030),
+		_cyl(cables, "CableBoot", float(run["r"]) + 0.005, 0.012,
+			Transform3D(Basis(Vector3.RIGHT, RAKE + 0.35), Vector3(x, 0.114, tan(RAKE) * 0.114 - 0.036)),
+			_m_plastic, -1.0, 12)
+	# стяжки жгута
+	for y0 in [0.520, 0.400, 0.290, 0.190]:
+		var z0: float = front.call(y0)
+		_box(cables, "CableTie", Vector3(0.030, 0.006, 0.006),
+			Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(-0.021, y0, z0 + 0.004)), _m_black_d)
+	# шланг переднего тормоза по рычагу вилки
+	var dropl := Vector3(0.050, 0.060, -0.300)
+	var hose: Array = [
+		dropl,
+		Vector3(0.058, 0.028, -0.344),
+		Vector3(0.066, 0.004, -0.390),
+		Vector3(0.062, 0.034, -0.408),
+		Vector3(0.040, 0.048, -0.386),
 	]
-	_tube(cables, "FrontBrakeHose", _m_black_d, drop, 0.0048, 8)
-
-
-# ---- руль ---------------------------------------------------------------------
-const HAS_FRONT_FENDER := false
-
-
+	_tube(cables, "FrontBrakeHose", _m_black_d, hose, 0.0046, 8)
+	_box(cables, "HoseGuide", Vector3(0.010, 0.008, 0.042),
+		Transform3D(Basis(Vector3.RIGHT, -0.85), Vector3(0.062, 0.058, -0.316)), _m_black_d)
 func _build_bar(steer: Node3D) -> void:
 	var bar := _node(steer, "Bar")
 	var c := _bar_local()
