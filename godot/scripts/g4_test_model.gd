@@ -32,8 +32,8 @@ const DECK_BOT := -0.020
 const DECK_W := 0.215
 const DECK_FRONT := -0.237
 const DECK_REAR := 0.2395
-const STEP_TOP := 0.154
-const STEP_REAR := 0.356
+const STEP_TOP := 0.147
+const STEP_REAR := 0.344
 ## Шарнир стойки стоит на 0.08 м позади передней оси — как на ортопрофиле.
 const HEAD_Z := -0.373
 const HEAD_BASE_Y := 0.28
@@ -804,10 +804,10 @@ func _tread(parent: Node3D) -> void:
 			var b := Basis(Vector3.RIGHT, ang) * Basis(Vector3.UP, tilt)
 			# центральная шашка
 			var mid := b * Vector3(0.0, 0.1522, 0.0) + Vector3(0.013 * float(s), 0.0, 0.0)
-			_box(parent, "TreadCenter", Vector3(0.024, 0.005, 0.016), Transform3D(b, mid), _m_rubber)
+			_box(parent, "TreadCenter", Vector3(0.024, 0.004, 0.016), Transform3D(b, mid), _m_rubber)
 			# плечевая шашка
 			var shoulder := b * Vector3(0.0, 0.1480, 0.0) + Vector3(0.031 * float(s), 0.0, 0.0)
-			_box(parent, "TreadShoulder", Vector3(0.012, 0.006, 0.015), Transform3D(b, shoulder), _m_rubber)
+			_box(parent, "TreadShoulder", Vector3(0.012, 0.0045, 0.015), Transform3D(b, shoulder), _m_rubber)
 
 
 func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
@@ -968,8 +968,8 @@ func _build_neck(root: Node3D) -> void:
 		Vector3(0.0, 0.056, -0.2180),
 		Vector3(0.0, 0.130, -0.2820),
 		Vector3(0.0, 0.212, -0.3380),
-	], [0.080, 0.072, 0.066],
-		[0.086, 0.078, 0.070], [0.014, 0.013, 0.012], Vector3.UP)
+	], [0.070, 0.064, 0.060],
+		[0.080, 0.074, 0.068], [0.014, 0.013, 0.012], Vector3.UP)
 	# усиливающее ребро по борту горловины
 	for side in [-1.0, 1.0]:
 		_box(neck, "NeckRib", Vector3(0.006, 0.016, 0.130),
@@ -1002,22 +1002,22 @@ func _build_rear_platform(root: Node3D) -> void:
 	var mid_y := STEP_TOP - 0.028
 	_sweep(step, "Plate", _m_frame, [
 		Vector3(0.0, mid_y, DECK_REAR - 0.004),
-		Vector3(0.0, mid_y, 0.300),
+		Vector3(0.0, mid_y, 0.296),
 		Vector3(0.0, mid_y - 0.006, STEP_REAR),
 	], [0.192, 0.198, 0.176], [0.058, 0.054, 0.042],
 		[0.010, 0.010, 0.012], Vector3.UP)
 	_sweep(step, "Pad", _m_tape,
-		[Vector3(0.0, STEP_TOP, 0.252), Vector3(0.0, STEP_TOP, 0.348)],
+		[Vector3(0.0, STEP_TOP, 0.256), Vector3(0.0, STEP_TOP, 0.338)],
 		[0.150, 0.136], [0.005, 0.005], [0.008, 0.010], Vector3.UP)
 	# стойки-кронштейны от деки к площадке
 	for side in [-1.0, 1.0]:
 		_box(step, "Post", Vector3(0.016, 0.086, 0.030),
-			Transform3D(Basis(Vector3.RIGHT, 0.10), Vector3(0.092 * float(side), 0.095, 0.258)), _m_frame_d)
-		_bolt(step, "PostBolt", Vector3(0.092 * float(side), 0.132, 0.258),
+			Transform3D(Basis(Vector3.RIGHT, 0.10), Vector3(0.092 * float(side), 0.092, 0.262)), _m_frame_d)
+		_bolt(step, "PostBolt", Vector3(0.092 * float(side), 0.126, 0.262),
 			Vector3(float(side), 0.0, 0.0), 0.006, 0.010, _m_steel)
 	# хвостовик с отражателем
 	_box(step, "Tail", Vector3(0.120, 0.026, 0.026),
-		Transform3D(Basis(Vector3.RIGHT, 0.30), Vector3(0.0, STEP_TOP - 0.026, STEP_REAR + 0.012)), _m_black)
+		Transform3D(Basis(Vector3.RIGHT, 0.30), Vector3(0.0, STEP_TOP - 0.024, STEP_REAR + 0.010)), _m_black)
 	_box(step, "Reflector", Vector3(0.026, 0.010, 0.004),
 		Transform3D(Basis.IDENTITY, Vector3(0.0, STEP_TOP - 0.030, STEP_REAR + 0.026)), _m_amber)
 
@@ -1199,13 +1199,13 @@ func _stem_points() -> Array:
 func _build_stem(steer: Node3D) -> void:
 	var stem := _node(steer, "Stem")
 	var ys: Array = [0.0, 0.10, 0.30, 0.50, BAR_Y - HINGE_Y]
-	var wid: Array = [0.064, 0.066, 0.064, 0.061, 0.057]
-	var hei: Array = [0.090, 0.094, 0.090, 0.084, 0.076]
+	var wid: Array = [0.056, 0.058, 0.056, 0.054, 0.050]
+	var hei: Array = [0.082, 0.086, 0.082, 0.077, 0.070]
 	var rad: Array = [0.010, 0.010, 0.010, 0.009, 0.009]
 	_sweep(stem, "Blade", _m_black, _stem_points(), wid, hei, rad, Vector3.FORWARD)
 	# чёрные боковые накладки
 	for side in [-1.0, 1.0]:
-		var sx := 0.0315 * float(side)
+		var sx := 0.0280 * float(side)
 		var pts: Array = []
 		for y in [0.045, 0.26, 0.60]:
 			pts.append(Vector3(sx, y, tan(RAKE) * y))
@@ -1215,7 +1215,7 @@ func _build_stem(steer: Node3D) -> void:
 	for side in [-1.0, 1.0]:
 		for i in 3:
 			var y := 0.16 + i * 0.16
-			_bolt(stem, "StemBolt", Vector3(0.033 * float(side), y, tan(RAKE) * y),
+			_bolt(stem, "StemBolt", Vector3(0.029 * float(side), y, tan(RAKE) * y),
 				Vector3(float(side), 0.0, 0.0), 0.0042, 0.008, _m_steel)
 	# маркировка вдоль стойки
 	var axis_dir := Vector3(0.0, cos(RAKE), sin(RAKE))
@@ -1224,28 +1224,28 @@ func _build_stem(steer: Node3D) -> void:
 		var x_axis := axis_dir
 		var y_axis := n.cross(x_axis).normalized()
 		var basis := Basis(x_axis, y_axis, n)
-		var center := Vector3(0.034 * float(side), 0.36, tan(RAKE) * 0.36)
+		var center := Vector3(0.030 * float(side), 0.36, tan(RAKE) * 0.36)
 		_decal(stem, "StemBrand", "KUKIRIN G4", 0.026, C_ORANGE,
 			Transform3D(basis, center + n * 0.002))
 		_decal(stem, "StemCode", "B-09-1", 0.012, Color(0.80, 0.81, 0.82),
-			Transform3D(basis, Vector3(0.034 * float(side), 0.13, tan(RAKE) * 0.13) + n * 0.002))
+			Transform3D(basis, Vector3(0.030 * float(side), 0.13, tan(RAKE) * 0.13) + n * 0.002))
 		_chevron(stem, "StemChevron", 0.024,
 			Transform3D(Basis(Vector3.UP, PI * 0.5 * float(side)),
-				Vector3(0.034 * float(side), 0.075, tan(RAKE) * 0.075 + 0.030)))
+				Vector3(0.030 * float(side), 0.075, tan(RAKE) * 0.075 + 0.030)))
 	# замок складывания у основания
 	var clamp := _node(stem, "FoldClamp")
 	for y0 in [0.008, 0.070]:
 		var pts: Array = []
-		var w: Array = [0.076, 0.076]
-		var h: Array = [0.104, 0.104]
+		var w: Array = [0.068, 0.068]
+		var h: Array = [0.096, 0.096]
 		var r: Array = [0.010, 0.010]
 		pts.append(Vector3(0.0, y0, tan(RAKE) * y0))
 		pts.append(Vector3(0.0, y0 + 0.036, tan(RAKE) * (y0 + 0.036)))
 		_sweep(clamp, "Collar", _m_black, pts, w, h, r, Vector3.FORWARD)
 	for side in [-1.0, 1.0]:
-		_bolt(clamp, "ClampBolt", Vector3(0.039 * float(side), 0.042, tan(RAKE) * 0.042),
+		_bolt(clamp, "ClampBolt", Vector3(0.035 * float(side), 0.042, tan(RAKE) * 0.042),
 			Vector3(float(side), 0.0, 0.0), 0.0052, 0.010, _m_steel)
-		_bolt(clamp, "ClampBoltB", Vector3(0.039 * float(side), 0.100, tan(RAKE) * 0.100),
+		_bolt(clamp, "ClampBoltB", Vector3(0.035 * float(side), 0.100, tan(RAKE) * 0.100),
 			Vector3(float(side), 0.0, 0.0), 0.0052, 0.010, _m_steel)
 	# быстросъёмный рычаг
 	_box(clamp, "Lever", Vector3(0.014, 0.030, 0.070),
@@ -1364,8 +1364,8 @@ func _build_dash(steer: Node3D) -> void:
 	var cz := c.z + 0.024
 	var base := c.y - 0.016
 	var pts: Array = []
-	var wid: Array = [0.146, 0.156, 0.152, 0.126, 0.092]
-	var dep: Array = [0.100, 0.112, 0.106, 0.086, 0.062]
+	var wid: Array = [0.138, 0.150, 0.146, 0.120, 0.088]
+	var dep: Array = [0.094, 0.106, 0.100, 0.082, 0.060]
 	var rad: Array = [0.018, 0.020, 0.020, 0.018, 0.016]
 	for row in 5:
 		pts.append(Vector3(0.0, base + row * 0.025, cz))
@@ -1379,7 +1379,7 @@ func _build_dash(steer: Node3D) -> void:
 	var screen_pos := Vector3(0.0, base + 0.060, cz + 0.056)
 	# слой экрана: текстура приборки
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.132, 0.053)
+	quad.size = Vector2(0.126, 0.051)
 	var inst := MeshInstance3D.new()
 	inst.name = "ScreenPanel"
 	inst.mesh = quad
@@ -1387,7 +1387,7 @@ func _build_dash(steer: Node3D) -> void:
 	inst.transform = Transform3D(screen_basis, screen_pos)
 	dash.add_child(inst)
 	var glass := QuadMesh.new()
-	glass.size = Vector2(0.140, 0.061)
+	glass.size = Vector2(0.134, 0.058)
 	var ginst := MeshInstance3D.new()
 	ginst.name = "ScreenGlass"
 	ginst.mesh = glass

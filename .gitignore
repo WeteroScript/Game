@@ -60,4 +60,5 @@ export_presets.cfg.bak
 
 # референсные фото для сверки моделей — не коммитим
 image-search/
-.shots/
+.shots*/
+.glb/
