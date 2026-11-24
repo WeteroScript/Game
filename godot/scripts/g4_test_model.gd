@@ -218,7 +218,7 @@ func _make_materials() -> void:
 	_m_orange.clearcoat = 0.35
 	_m_orange.clearcoat_roughness = 0.25
 
-	_m_lamp = _mat(C_LAMP, 0.05, 0.16, C_LAMP, 1.05)
+	_m_lamp = _mat(C_LAMP, 0.05, 0.20, C_LAMP, 0.55)
 	_m_lamp.resource_name = "LampLens"
 	_m_tail = _mat(C_TAIL.darkened(0.55), 0.10, 0.28, C_TAIL, 3.4)
 	_m_tail.resource_name = "TailLight"
@@ -1744,10 +1744,10 @@ func _build_headlight_assembly(parent: Node3D, pos: Vector3) -> void:
 	lin.material_override = _m_lamp
 	lin.transform = Transform3D(Basis(Vector3.RIGHT, PI), pos + Vector3(0.0, 0.0, -0.007))
 	lamp.add_child(lin)
-	_box(lamp, "BezelTop", Vector3(0.124, 0.005, 0.010),
-		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.016, -0.008)), _m_steel)
-	_box(lamp, "BezelBottom", Vector3(0.124, 0.005, 0.010),
-		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, -0.016, -0.008)), _m_steel)
+	_box(lamp, "BezelTop", Vector3(0.124, 0.006, 0.010),
+		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.016, -0.008)), _m_black_d)
+	_box(lamp, "BezelBottom", Vector3(0.124, 0.006, 0.010),
+		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, -0.016, -0.008)), _m_black_d)
 	for side in [-1.0, 1.0]:
-		_box(lamp, "BezelSide", Vector3(0.005, 0.037, 0.010),
-			Transform3D(Basis.IDENTITY, pos + Vector3(0.061 * float(side), 0.0, -0.008)), _m_steel)
+		_box(lamp, "BezelSide", Vector3(0.006, 0.037, 0.010),
+			Transform3D(Basis.IDENTITY, pos + Vector3(0.061 * float(side), 0.0, -0.008)), _m_black_d)

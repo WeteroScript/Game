@@ -436,14 +436,14 @@ func _take_part_shots(shot_dir: String, spec_id: String) -> void:
 			continue
 		var center := box.get_center()
 		var radius := maxf(box.size.length() * 0.5, 0.015)
-		var dist := radius * 2.6 + 0.06
-		var dir := Vector3(0.66, 0.44, -0.61)
+		var dist := radius * 3.6 + 0.14
+		var dir := Vector3(0.62, 0.52, -0.58)
 		if center.x < -0.015:
-			dir = Vector3(-0.66, 0.44, -0.61)
+			dir = Vector3(-0.62, 0.52, -0.58)
 		dir = dir.normalized()
 		camera_rig.target = null
 		camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
-		camera_rig.fov = 30.0
+		camera_rig.fov = 36.0
 		camera_rig.global_position = center + dir * dist
 		camera_rig.look_at(center, Vector3.UP)
 		for frame in 3:
