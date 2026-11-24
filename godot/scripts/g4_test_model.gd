@@ -175,7 +175,7 @@ func _make_materials() -> void:
 	_m_black.normal_scale = 0.10
 	_m_black.uv1_scale = Vector3(3.0, 3.0, 3.0)
 	_m_black.clearcoat_enabled = true
-	_m_black.clearcoat = 0.18
+	_m_black.clearcoat = 0.06
 	_m_black.clearcoat_roughness = 0.40
 
 	_m_black_d = _mat(C_BLACK.darkened(0.20), 0.12, 0.52)
@@ -814,12 +814,12 @@ func _tread(parent: Node3D) -> void:
 		var ang := TAU * float(i) / float(count)
 		for s in [-1.0, 1.0]:
 			var b := Basis(Vector3.RIGHT, ang) * Basis(Vector3.UP, 0.30 * float(s))
-			var mid := b * Vector3(0.0, 0.1522, 0.0) + Vector3(0.0125 * float(s), 0.0, 0.0)
-			_box(parent, "TreadCenter", Vector3(0.0220, 0.0025, 0.0165), Transform3D(b, mid), _m_rubber)
-			var shoulder := b * Vector3(0.0, 0.1452, 0.0) + Vector3(0.0300 * float(s), 0.0, 0.0)
-			_box(parent, "TreadShoulder", Vector3(0.0135, 0.0030, 0.0150), Transform3D(b, shoulder), _m_rubber)
-			var bevel := b * Vector3(0.0, 0.1378, 0.0) + Vector3(0.0355 * float(s), 0.0, 0.0)
-			_box(parent, "TreadBevel", Vector3(0.0075, 0.0022, 0.0090), Transform3D(b, bevel), _m_rubber)
+			var mid := b * Vector3(0.0, 0.1520, 0.0) + Vector3(0.0125 * float(s), 0.0, 0.0)
+			_box(parent, "TreadCenter", Vector3(0.0220, 0.0018, 0.0165), Transform3D(b, mid), _m_rubber)
+			var shoulder := b * Vector3(0.0, 0.1444, 0.0) + Vector3(0.0300 * float(s), 0.0, 0.0)
+			_box(parent, "TreadShoulder", Vector3(0.0135, 0.0022, 0.0150), Transform3D(b, shoulder), _m_rubber)
+			var bevel := b * Vector3(0.0, 0.1370, 0.0) + Vector3(0.0355 * float(s), 0.0, 0.0)
+			_box(parent, "TreadBevel", Vector3(0.0075, 0.0016, 0.0090), Transform3D(b, bevel), _m_rubber)
 func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 	var tire := _node(parent, "Tire")
 	_lathe(tire, "Carcass", _m_rubber, _tire_profile(), 56)
@@ -924,14 +924,14 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 func _deck_profile() -> Array:
 	# (z, полуширина, полувысота, радиус скругления)
 	return [
-		[-0.2370, 0.070, 0.038, 0.018],
-		[-0.2260, 0.092, 0.047, 0.017],
-		[-0.1950, 0.104, 0.053, 0.014],
-		[-0.1200, 0.1075, 0.0545, 0.012],
-		[0.0000, 0.1075, 0.0545, 0.012],
-		[0.1300, 0.1070, 0.0540, 0.012],
-		[0.2000, 0.1050, 0.0520, 0.013],
-		[0.2395, 0.0975, 0.0470, 0.016],
+		[-0.2370, 0.070, 0.0324, 0.015],
+		[-0.2260, 0.092, 0.0401, 0.014],
+		[-0.1950, 0.104, 0.0452, 0.012],
+		[-0.1200, 0.1075, 0.0465, 0.011],
+		[0.0000, 0.1075, 0.0465, 0.011],
+		[0.1300, 0.1070, 0.0461, 0.011],
+		[0.2000, 0.1050, 0.0444, 0.011],
+		[0.2395, 0.0975, 0.0401, 0.013],
 	]
 
 
@@ -1682,7 +1682,7 @@ func _build_dash(steer: Node3D) -> void:
 
 	# ---- козырёк над экраном ------------------------------------------------
 	var visor := _node(dash, "Visor")
-	_box(visor, "Hood", Vector3(0.146, 0.007, 0.030),
+	_box(visor, "Hood", Vector3(0.128, 0.006, 0.022),
 		Transform3D(Basis(Vector3.RIGHT, -0.42), Vector3(0.0, 0.694, cz + 0.036)), _m_black)
 	for side in [-1.0, 1.0]:
 		_box(visor, "Cheek", Vector3(0.006, 0.020, 0.026),

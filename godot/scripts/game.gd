@@ -429,6 +429,8 @@ func _take_part_shots(shot_dir: String, spec_id: String) -> void:
 	var made := 0
 	for entry in groups:
 		var node: Node3D = entry["node"]
+		if str(node.get_path()).contains("Rider"):
+			continue
 		var box := _group_aabb(node)
 		if box.size.length() < 0.004:
 			continue
@@ -448,7 +450,11 @@ func _take_part_shots(shot_dir: String, spec_id: String) -> void:
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
 		var image := get_viewport().get_texture().get_image()
-		var rel := str(node.get_path()).replace("Model/", "").replace("/", "-")
+		var rel := str(node.get_path())
+		var cut := rel.find("Model/")
+		if cut >= 0:
+			rel = rel.substr(cut + 6)
+		rel = rel.replace("/", "-")
 		var path := "%s/%s_part_%s.png" % [shot_dir, spec_id, rel]
 		image.save_png(path)
 		made += 1
