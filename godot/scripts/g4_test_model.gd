@@ -803,11 +803,11 @@ func _tread(parent: Node3D) -> void:
 		var ang := TAU * float(i) / float(count)
 		for s in [-1.0, 1.0]:
 			var b := Basis(Vector3.RIGHT, ang) * Basis(Vector3.UP, 0.30 * float(s))
-			var mid := b * Vector3(0.0, 0.1528, 0.0) + Vector3(0.0125 * float(s), 0.0, 0.0)
+			var mid := b * Vector3(0.0, 0.1522, 0.0) + Vector3(0.0125 * float(s), 0.0, 0.0)
 			_box(parent, "TreadCenter", Vector3(0.0220, 0.0025, 0.0165), Transform3D(b, mid), _m_rubber)
-			var shoulder := b * Vector3(0.0, 0.1492, 0.0) + Vector3(0.0305 * float(s), 0.0, 0.0)
+			var shoulder := b * Vector3(0.0, 0.1452, 0.0) + Vector3(0.0300 * float(s), 0.0, 0.0)
 			_box(parent, "TreadShoulder", Vector3(0.0135, 0.0030, 0.0150), Transform3D(b, shoulder), _m_rubber)
-			var bevel := b * Vector3(0.0, 0.1435, 0.0) + Vector3(0.0368 * float(s), 0.0, 0.0)
+			var bevel := b * Vector3(0.0, 0.1378, 0.0) + Vector3(0.0355 * float(s), 0.0, 0.0)
 			_box(parent, "TreadBevel", Vector3(0.0075, 0.0022, 0.0090), Transform3D(b, bevel), _m_rubber)
 func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 	var tire := _node(parent, "Tire")
@@ -866,7 +866,7 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 				Transform3D(Basis(Vector3.RIGHT, a), Vector3(0.0, cos(a) * 0.0555, sin(a) * 0.0555)),
 				_m_black_d)
 		_cyl(hub, "MotorCover", 0.0485, 0.006, Transform3D(axis, Vector3(0.051, 0.0, 0.0)), _m_black_d, -1.0, 32)
-		_cyl(hub, "MotorRing", 0.0500, 0.003, Transform3D(axis, Vector3(0.055, 0.0, 0.0)), _m_alu, -1.0, 32)
+		_cyl(hub, "MotorRing", 0.0455, 0.004, Transform3D(axis, Vector3(0.054, 0.0, 0.0)), _m_black_d, -1.0, 32)
 		_decal(hub, "MotorLabel", "1000W", 0.008, Color(0.70, 0.72, 0.76),
 			Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0.0575, 0.0, 0.022)))
 		# вывод кабеля с громметом
@@ -1122,12 +1122,12 @@ func _build_rear_fender(root: Node3D) -> void:
 	# отбортовка по торцам и рёбра внутри
 	for a in [a0, a1]:
 		var p := center + Vector3(0.0, cos(a) * (R + 0.021), sin(a) * (R + 0.021))
-		_box(fender, "Lip", Vector3(0.014, 0.006, 0.100),
+		_box(fender, "Lip", Vector3(0.100, 0.008, 0.014),
 			Transform3D(Basis(Vector3.RIGHT, -a), p), _m_black_d)
 	for i in 3:
 		var ang := lerpf(a0 + 0.35, a1 - 0.35, float(i) * 0.5)
 		var p := center + Vector3(0.0, cos(ang) * (R + 0.014), sin(ang) * (R + 0.014))
-		_box(fender, "Fin", Vector3(0.006, 0.008, 0.086),
+		_box(fender, "Fin", Vector3(0.090, 0.010, 0.006),
 			Transform3D(Basis(Vector3.RIGHT, -ang), p), _m_black_d)
 	# шевроны на бортах крыла
 	for side in [-1.0, 1.0]:
