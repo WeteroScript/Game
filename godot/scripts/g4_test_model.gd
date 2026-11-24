@@ -1193,8 +1193,8 @@ func _build_front_suspension(root: Node3D) -> void:
 		# Рычаг вилки: литая стойка от проушины качания к оси колеса.
 		_sweep(susp, "ForkLeg", _m_frame_d, [
 			Vector3(sx, 0.130, -0.300),
-			Vector3(sx * 1.03, 0.068, -0.380),
-			Vector3(sx * 1.05, 0.008, -0.446),
+			Vector3(sx * 1.01, 0.068, -0.380),
+			Vector3(sx * 1.02, 0.006, -0.450),
 		], [0.078, 0.070, 0.058], [0.026, 0.025, 0.023], [0.010, 0.010, 0.014], Vector3.RIGHT)
 		# проушина качания: бобышка, ось, гайка, шайба
 		_cyl(susp, "PivotEye", 0.0215, 0.034,
@@ -1209,9 +1209,15 @@ func _build_front_suspension(root: Node3D) -> void:
 			Vector3(sx * 1.09, 0.060, -0.372),
 			Vector3(sx * 1.10, 0.012, -0.424),
 		], [0.030, 0.026, 0.020], [0.009, 0.008, 0.007], [0.004, 0.004, 0.004], Vector3.RIGHT)
+		# кронштейн суппорта на рычаге (виден на фото)
+		if float(side) > 0.0:
+			_box(susp, "CaliperLug", Vector3(0.020, 0.030, 0.026),
+				Transform3D(Basis(Vector3.RIGHT, -0.45), Vector3(0.048, 0.056, AXLE_F + 0.062)), _m_frame_d)
+			_bolt(susp, "CaliperLugBolt", Vector3(0.020, 0.060, AXLE_F + 0.070), Vector3.RIGHT,
+				0.0055, 0.016, _m_steel)
 		# проушина у оси колеса и тормозной кронштейн
 		_cyl(susp, "AxleEye", 0.0205, 0.026,
-			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx * 1.05, 0.0, AXLE_F)),
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx * 1.02, 0.0, AXLE_F)),
 			_m_frame_d, -1.0, 18)
 		_bolt(susp, "ArmBoltA", Vector3(sx * 1.06 + 0.012 * float(side), 0.072, -0.336), n,
 			0.006, 0.012, _m_steel)
@@ -1408,8 +1414,8 @@ func _build_stem(steer: Node3D) -> void:
 	var clamp := _node(stem, "FoldClamp")
 	for y0 in [0.008, 0.070]:
 		var pts: Array = []
-		var w: Array = [0.062, 0.062]
-		var h: Array = [0.078, 0.078]
+		var w: Array = [0.058, 0.058]
+		var h: Array = [0.070, 0.070]
 		var r: Array = [0.010, 0.010]
 		pts.append(Vector3(0.0, y0, tan(RAKE) * y0))
 		pts.append(Vector3(0.0, y0 + 0.036, tan(RAKE) * (y0 + 0.036)))
@@ -1435,7 +1441,7 @@ func _build_stem(steer: Node3D) -> void:
 			Transform3D(Basis(Vector3.BACK, PI * 0.5),
 				Vector3(0.040 * float(side), 0.072, tan(RAKE) * 0.072 - 0.014)), _m_steel, -1.0, 10)
 	# быстросъёмный рычаг
-	_box(clamp, "Lever", Vector3(0.014, 0.030, 0.070),
+	_box(clamp, "Lever", Vector3(0.012, 0.026, 0.058),
 		Transform3D(Basis(Vector3.RIGHT, -0.55), Vector3(0.040, 0.050, tan(RAKE) * 0.050 + 0.056)),
 		_m_black_d)
 	_cyl(clamp, "LeverPin", 0.008, 0.020,
@@ -1628,8 +1634,8 @@ func _build_dash(steer: Node3D) -> void:
 	var base := c.y - 0.020
 
 	var ys: Array = [0.598, 0.614, 0.640, 0.664, 0.680, 0.690]
-	var wid: Array = [0.140, 0.156, 0.157, 0.147, 0.121, 0.086]
-	var dep: Array = [0.100, 0.108, 0.109, 0.101, 0.079, 0.050]
+	var wid: Array = [0.148, 0.166, 0.167, 0.156, 0.128, 0.090]
+	var dep: Array = [0.104, 0.114, 0.115, 0.106, 0.083, 0.052]
 	var zoff: Array = [0.004, 0.004, 0.002, -0.002, -0.008, -0.014]
 	var rad: Array = [0.007, 0.007, 0.006, 0.006, 0.005, 0.004]
 	var pts: Array = []
@@ -1648,7 +1654,7 @@ func _build_dash(steer: Node3D) -> void:
 	var tilt := -0.62
 	var sb := Basis(Vector3.RIGHT, tilt)
 	var center := Vector3(0.0, 0.652, cz + 0.058)
-	_box(screen, "Gasket", Vector3(0.136, 0.062, 0.004), Transform3D(sb, center + sb.z * 0.001), _m_plastic)
+	_box(screen, "Gasket", Vector3(0.142, 0.064, 0.004), Transform3D(sb, center + sb.z * 0.001), _m_plastic)
 	var quad := QuadMesh.new()
 	quad.size = Vector2(0.124, 0.050)
 	var panel := MeshInstance3D.new()
@@ -1690,10 +1696,10 @@ func _build_dash(steer: Node3D) -> void:
 	var buttons := _node(dash, "Buttons")
 	for i in 3:
 		var bx := -0.026 + i * 0.026
-		_cyl(buttons, "ButtonRing", 0.0082, 0.0035,
-			Transform3D(Basis(Vector3.RIGHT, -0.42), Vector3(bx, 0.6845, cz + 0.020)), _m_black_d, -1.0, 12)
-		_cyl(buttons, "Button", 0.0060, 0.0045,
-			Transform3D(Basis(Vector3.RIGHT, -0.42), Vector3(bx, 0.6855, cz + 0.020)), _m_plastic, -1.0, 12)
+		_cyl(buttons, "ButtonRing", 0.0082, 0.0028,
+			Transform3D(Basis(Vector3.RIGHT, -0.42), Vector3(bx, 0.6838, cz + 0.020)), _m_black_d, -1.0, 12)
+		_cyl(buttons, "Button", 0.0058, 0.0022,
+			Transform3D(Basis(Vector3.RIGHT, -0.42), Vector3(bx, 0.6848, cz + 0.020)), _m_plastic, -1.0, 12)
 	_cyl(buttons, "PowerButton", 0.0068, 0.0040,
 		Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.0785, 0.622, cz + 0.030)), _m_plastic, -1.0, 12)
 

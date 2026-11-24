@@ -384,6 +384,77 @@ func _start_screenshots() -> void:
 	_take_screenshots()
 
 
+## Обойти дерево модели и собрать группы деталей: узел с прямыми мешами = деталь.
+func _collect_part_groups(node: Node3D, out: Array) -> void:
+	for child in node.get_children():
+		if not (child is Node3D):
+			continue
+		var meshes := 0
+		for sub in child.get_children():
+			if sub is MeshInstance3D:
+				meshes += 1
+		if meshes > 0:
+			out.append({"node": child, "count": meshes})
+		if child.get_child_count() > 0:
+			_collect_part_groups(child, out)
+
+
+## Совмещённый AABB прямых мешей узла.
+func _group_aabb(node: Node3D) -> AABB:
+	var box := AABB()
+	var first := true
+	for child in node.get_children():
+		if child is MeshInstance3D and child.mesh != null:
+			var local: AABB = child.mesh.get_aabb()
+			var world: AABB = child.global_transform * local
+			if first:
+				box = world
+				first = false
+			else:
+				box = box.merge(world)
+	return box
+
+
+## По одному кадру на каждую группу деталей (имя файла = путь узла в модели).
+func _take_part_shots(shot_dir: String, spec_id: String) -> void:
+	var model_root: Node3D = null
+	if scooter != null:
+		model_root = scooter.get_node_or_null("Model")
+	if model_root == null:
+		print("PART SHOTS: нет узла Model")
+		return
+	var groups: Array = []
+	_collect_part_groups(model_root, groups)
+	print("PART SHOTS: групп %d" % groups.size())
+	var made := 0
+	for entry in groups:
+		var node: Node3D = entry["node"]
+		var box := _group_aabb(node)
+		if box.size.length() < 0.004:
+			continue
+		var center := box.get_center()
+		var radius := maxf(box.size.length() * 0.5, 0.015)
+		var dist := radius * 2.6 + 0.06
+		var dir := Vector3(0.66, 0.44, -0.61)
+		if center.x < -0.015:
+			dir = Vector3(-0.66, 0.44, -0.61)
+		dir = dir.normalized()
+		camera_rig.target = null
+		camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
+		camera_rig.fov = 30.0
+		camera_rig.global_position = center + dir * dist
+		camera_rig.look_at(center, Vector3.UP)
+		for frame in 3:
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var image := get_viewport().get_texture().get_image()
+		var rel := str(node.get_path()).replace("Model/", "").replace("/", "-")
+		var path := "%s/%s_part_%s.png" % [shot_dir, spec_id, rel]
+		image.save_png(path)
+		made += 1
+	print("PART SHOTS: снято %d" % made)
+
+
 func _take_screenshots() -> void:
 	var shot_dir := OS.get_environment("SHOT_DIR")
 	if shot_dir.is_empty():
@@ -450,6 +521,10 @@ func _take_screenshots() -> void:
 			print("SHOT %s err=%d" % [path, error])
 			if shot.get("hide_world", false) and world_root != null:
 				world_root.visible = true
+
+		# Кадры каждой группы деталей модели — чтобы можно было дорабатывать по отдельности.
+		if spec_id == "g4_test":
+			await _take_part_shots(shot_dir, spec_id)
 
 		# Кадр с райдером.
 		if rider_node != null:
