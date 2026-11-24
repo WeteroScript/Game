@@ -229,8 +229,8 @@ static func create_g4_test() -> ScooterSpec:
 	# 11" у G4 — наружный диаметр покрышки, поэтому радиус 139.7 мм.
 	s.wheel_radius = 0.153
 	s.wheel_base = 0.905
-	s.deck_length = 0.48
-	s.deck_height = 0.093
+	s.deck_length = 0.477
+	s.deck_height = 0.089
 	s.deck_width = 0.215
 	s.battery_wh = s.battery_voltage * s.battery_amp_hours
 	s.gear_top_speeds_kmh = [20.0, 40.0, 70.0]

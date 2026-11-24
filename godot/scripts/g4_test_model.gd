@@ -3,12 +3,13 @@
 ## труба по кривой), свой шрифт для наклеек, свой экран приборки.
 ## Старая G4Model не тронута и продолжает работать как раньше.
 ##
-## Геометрия снята с ортопрофиля kugookirin-g4-electric-scooter-side-view-2:
-##   шина 11" наружным диаметром → R = 0.1397 м,
-##   база 0.94 м, общая длина 1.22 м,
-##   верх деки 0.100 м над осями (низ — на уровне осей),
-##   толщина деки 0.098 м, длина 0.46 м,
-##   верх руля 1.00 м над осями, наклон стойки 15°.
+## Масштаб снят с ортопрофиля kugookirin-g4-electric-scooter-side-view-2
+## по известной длине 1210 мм и проверен по осям колёс:
+##   шина Ø 0.306 м → R = 0.153 м, база 0.905 м, общая длина 1.211 м,
+##   верх деки 0.089 м над осями (низ — на 0.02 м ниже осей),
+##   толщина деки 0.109 м, длина 0.477 м,
+##   шарнир стойки: 0.08 м позади передней оси, 0.346 м над осями,
+##   верх руля 0.962 м над осями, наклон стойки 11.5°.
 ##
 ## Иерархия (важно для экспорта в GLB и для анимации):
 ##   Model
@@ -26,18 +27,19 @@ const R := 0.153
 const BASE := 0.905
 const AXLE_F := -0.4525
 const AXLE_R := 0.4525
-const DECK_TOP := 0.093
-const DECK_BOT := -0.016
+const DECK_TOP := 0.089
+const DECK_BOT := -0.020
 const DECK_W := 0.215
-const DECK_FRONT := -0.2525
-const DECK_REAR := 0.2275
-const STEP_TOP := 0.159
-const STEP_REAR := 0.353
-const HEAD_Z := -0.518
-const HEAD_BASE_Y := 0.300
-const HINGE_Y := 0.347
-const RAKE := 0.2094  # 12°
-const BAR_Y := 1.000
+const DECK_FRONT := -0.237
+const DECK_REAR := 0.2395
+const STEP_TOP := 0.154
+const STEP_REAR := 0.356
+## Шарнир стойки стоит на 0.08 м позади передней оси — как на ортопрофиле.
+const HEAD_Z := -0.373
+const HEAD_BASE_Y := 0.28
+const HINGE_Y := 0.346
+const RAKE := 0.2007  # 11.5°
+const BAR_Y := 0.962
 const BAR_HALF := 0.290
 const GRIP_IN := 0.196
 const TIRE_HW := 0.040
@@ -141,6 +143,7 @@ func _make_materials() -> void:
 	var nrm_fine := _noise_normal(64, 0.22, 1.6, 19)
 
 	_m_frame = _mat(C_FRAME, 0.10, 0.52)
+	_m_frame.resource_name = "FrameGrey"
 	_m_frame.albedo_texture = grain
 	_m_frame.normal_enabled = true
 	_m_frame.normal_texture = nrm_soft
@@ -148,10 +151,12 @@ func _make_materials() -> void:
 	_m_frame.uv1_scale = Vector3(2.0, 2.0, 2.0)
 
 	_m_frame_d = _mat(C_FRAME_D, 0.12, 0.50)
+	_m_frame_d.resource_name = "FrameGreyDark"
 	_m_frame_d.albedo_texture = grain
 	_m_frame_d.uv1_scale = Vector3(3.0, 3.0, 3.0)
 
 	_m_black = _mat(C_BLACK, 0.14, 0.46)
+	_m_black.resource_name = "PaintedBlack"
 	_m_black.albedo_texture = grain_dark
 	_m_black.normal_enabled = true
 	_m_black.normal_texture = nrm_soft
@@ -162,15 +167,19 @@ func _make_materials() -> void:
 	_m_black.clearcoat_roughness = 0.40
 
 	_m_black_d = _mat(C_BLACK.darkened(0.20), 0.12, 0.52)
+	_m_black_d.resource_name = "PaintedBlackMatte"
 
 	_m_steel = _mat(C_STEEL, 0.72, 0.30)
+	_m_steel.resource_name = "Steel"
 	_m_steel.normal_enabled = true
 	_m_steel.normal_texture = nrm_fine
 	_m_steel.normal_scale = 0.08
 
 	_m_alu = _mat(C_ALU, 0.70, 0.34)
+	_m_alu.resource_name = "Aluminium"
 
 	_m_rubber = _mat(C_RUBBER, 0.0, 0.93)
+	_m_rubber.resource_name = "Rubber"
 	_m_rubber.albedo_texture = _grain_texture(64, C_RUBBER, 0.06, 31)
 	_m_rubber.normal_enabled = true
 	_m_rubber.normal_texture = nrm_fine
@@ -178,26 +187,34 @@ func _make_materials() -> void:
 	_m_rubber.uv1_scale = Vector3(6.0, 6.0, 6.0)
 
 	_m_plastic = _mat(C_PLASTIC, 0.08, 0.55)
+	_m_plastic.resource_name = "Plastic"
 	_m_plastic.normal_enabled = true
 	_m_plastic.normal_texture = nrm_soft
 	_m_plastic.normal_scale = 0.22
 
 	_m_glass = _mat(Color(0.012, 0.020, 0.030), 0.30, 0.06)
 	_m_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_m_glass.resource_name = "ScreenGlass"
 	_m_glass.albedo_color.a = 0.42
 	_m_glass.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	_m_orange = _mat(C_ORANGE, 0.55, 0.34)
+	_m_orange.resource_name = "OrangeMetal"
 	_m_orange.clearcoat_enabled = true
 	_m_orange.clearcoat = 0.35
 	_m_orange.clearcoat_roughness = 0.25
 
 	_m_lamp = _mat(C_LAMP, 0.05, 0.10, C_LAMP, 3.0)
+	_m_lamp.resource_name = "LampLens"
 	_m_tail = _mat(C_TAIL.darkened(0.55), 0.10, 0.28, C_TAIL, 3.4)
+	_m_tail.resource_name = "TailLight"
 	_m_amber = _mat(Color(0.42, 0.18, 0.02), 0.10, 0.30, Color(1.0, 0.52, 0.05), 1.8)
+	_m_amber.resource_name = "Reflector"
 	_m_caliper = _mat(C_CALIPER, 0.45, 0.34)
+	_m_caliper.resource_name = "CaliperRed"
 
 	_m_tape = _mat(Color(0.048, 0.048, 0.052), 0.0, 0.94)
+	_m_tape.resource_name = "GripTape"
 	_m_tape.albedo_texture = _tape_texture()
 	_m_tape.normal_enabled = true
 	_m_tape.normal_texture = nrm_fine
@@ -206,6 +223,7 @@ func _make_materials() -> void:
 
 	var screen_tex := _screen_texture()
 	_m_screen = _mat(Color(0.02, 0.02, 0.03), 0.05, 0.20)
+	_m_screen.resource_name = "DashScreen"
 	_m_screen.albedo_texture = screen_tex
 	_m_screen.emission_enabled = true
 	_m_screen.emission_texture = screen_tex
@@ -512,10 +530,21 @@ func _marker(parent: Node3D, node_name: String, pos: Vector3) -> Node3D:
 	return n
 
 
+func _unique_name(parent: Node3D, node_name: String) -> String:
+	# Имена должны быть уникальны внутри родителя: иначе в GLB они станут
+	# безликими _MeshInstance3D_N и по ним нельзя будет анимировать.
+	if not parent.has_node(NodePath(node_name)):
+		return node_name
+	var index := 1
+	while parent.has_node(NodePath("%s_%d" % [node_name, index])):
+		index += 1
+	return "%s_%d" % [node_name, index]
+
+
 func _mesh(parent: Node3D, node_name: String, mesh: Mesh, mat: Material,
 		xform := Transform3D.IDENTITY) -> MeshInstance3D:
 	var inst := MeshInstance3D.new()
-	inst.name = node_name
+	inst.name = _unique_name(parent, node_name)
 	inst.mesh = mesh
 	if mat != null:
 		inst.material_override = mat
@@ -846,14 +875,14 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 func _deck_profile() -> Array:
 	# (z, полуширина, полувысота, радиус скругления)
 	return [
-		[-0.2525, 0.070, 0.037, 0.018],
-		[-0.2400, 0.092, 0.046, 0.017],
-		[-0.2050, 0.104, 0.052, 0.014],
-		[-0.1250, 0.1075, 0.0545, 0.012],
+		[-0.2370, 0.070, 0.038, 0.018],
+		[-0.2260, 0.092, 0.047, 0.017],
+		[-0.1950, 0.104, 0.053, 0.014],
+		[-0.1200, 0.1075, 0.0545, 0.012],
 		[0.0000, 0.1075, 0.0545, 0.012],
-		[0.1250, 0.1070, 0.0540, 0.012],
-		[0.1900, 0.1050, 0.0520, 0.013],
-		[0.2275, 0.0980, 0.0470, 0.016],
+		[0.1300, 0.1070, 0.0540, 0.012],
+		[0.2000, 0.1050, 0.0520, 0.013],
+		[0.2395, 0.0975, 0.0470, 0.016],
 	]
 
 
@@ -873,11 +902,11 @@ func _build_deck(root: Node3D) -> void:
 
 	# настил: гриптейп с буртиком
 	_sweep(deck, "TopPad", _m_tape,
-		[Vector3(0.0, DECK_TOP, -0.214), Vector3(0.0, DECK_TOP, 0.0), Vector3(0.0, DECK_TOP, 0.208)],
+		[Vector3(0.0, DECK_TOP, -0.200), Vector3(0.0, DECK_TOP, 0.0), Vector3(0.0, DECK_TOP, 0.220)],
 		[0.150, 0.170, 0.156], [0.005, 0.006, 0.005], [0.010, 0.010, 0.010], Vector3.UP)
 	# нижняя панель батарейного отсека
 	_sweep(deck, "BottomPanel", _m_frame_d,
-		[Vector3(0.0, DECK_BOT + 0.002, -0.228), Vector3(0.0, DECK_BOT + 0.002, 0.204)],
+		[Vector3(0.0, DECK_BOT + 0.002, -0.214), Vector3(0.0, DECK_BOT + 0.002, 0.216)],
 		[0.170, 0.164], [0.006, 0.006], [0.010, 0.010], Vector3.UP)
 
 	# боковые швы и болты
@@ -920,25 +949,31 @@ func _build_deck(root: Node3D) -> void:
 # ---- горловина и стакан --------------------------------------------------------
 func _build_neck(root: Node3D) -> void:
 	var neck := _node(root, "Neck")
-	_sweep(neck, "NeckShell", _m_frame, [
-		Vector3(0.0, 0.060, -0.2500),
-		Vector3(0.0, 0.150, -0.3400),
-		Vector3(0.0, 0.240, -0.4300),
-		Vector3(0.0, 0.318, -0.5080),
-		Vector3(0.0, 0.350, -0.5280),
-	], [0.078, 0.074, 0.068, 0.062, 0.058],
-		[0.100, 0.096, 0.090, 0.082, 0.072], [0.016, 0.015, 0.014, 0.013, 0.012],
-		Vector3.UP)
+	# Вертикальная нога рулевой колонки: от шарнира вниз к рычагу подвески.
+	_sweep(neck, "ForkLeg", _m_frame, [
+		Vector3(0.0, 0.040, -0.3490),
+		Vector3(0.0, 0.150, -0.3560),
+		Vector3(0.0, 0.260, -0.3630),
+		Vector3(0.0, 0.346, -0.3710),
+	], [0.070, 0.070, 0.066, 0.060],
+		[0.078, 0.080, 0.078, 0.072], [0.014, 0.014, 0.013, 0.012], Vector3.UP)
+	# Косынка от носа деки к ноге вилки.
+	_sweep(neck, "Gusset", _m_frame, [
+		Vector3(0.0, 0.056, -0.2180),
+		Vector3(0.0, 0.130, -0.2820),
+		Vector3(0.0, 0.212, -0.3380),
+	], [0.086, 0.078, 0.070],
+		[0.092, 0.084, 0.076], [0.014, 0.013, 0.012], Vector3.UP)
 	# усиливающее ребро по борту горловины
 	for side in [-1.0, 1.0]:
-		_box(neck, "NeckRib", Vector3(0.008, 0.022, 0.320),
-			Transform3D(Basis(Vector3.RIGHT, -0.75), Vector3(0.038 * float(side), 0.205, -0.392)),
+		_box(neck, "NeckRib", Vector3(0.008, 0.020, 0.240),
+			Transform3D(Basis(Vector3.RIGHT, -1.35), Vector3(0.040 * float(side), 0.180, -0.330)),
 			_m_frame_d)
 	# кронштейн передней подвески
-	_box(neck, "FrontPivot", Vector3(0.100, 0.044, 0.056),
-		Transform3D(Basis(Vector3.RIGHT, -0.35), Vector3(0.0, 0.095, -0.308)), _m_black)
-	_bolt(neck, "FrontPivotBolt", Vector3(0.056, 0.095, -0.308), Vector3.RIGHT, 0.012, 0.022, _m_steel)
-	_bolt(neck, "FrontPivotBoltR", Vector3(-0.056, 0.095, -0.308), Vector3.LEFT, 0.012, 0.022, _m_steel)
+	_box(neck, "FrontPivot", Vector3(0.106, 0.048, 0.062),
+		Transform3D(Basis(Vector3.RIGHT, -0.20), Vector3(0.0, 0.060, -0.306)), _m_black)
+	_bolt(neck, "FrontPivotBolt", Vector3(0.058, 0.060, -0.306), Vector3.RIGHT, 0.013, 0.024, _m_steel)
+	_bolt(neck, "FrontPivotBoltR", Vector3(-0.058, 0.060, -0.306), Vector3.LEFT, 0.013, 0.024, _m_steel)
 
 
 func _build_head_tube(root: Node3D) -> void:
@@ -961,18 +996,18 @@ func _build_rear_platform(root: Node3D) -> void:
 	var mid_y := STEP_TOP - 0.028
 	_sweep(step, "Plate", _m_frame, [
 		Vector3(0.0, mid_y, DECK_REAR - 0.004),
-		Vector3(0.0, mid_y, 0.290),
+		Vector3(0.0, mid_y, 0.300),
 		Vector3(0.0, mid_y - 0.006, STEP_REAR),
 	], [0.192, 0.198, 0.176], [0.058, 0.054, 0.042],
 		[0.010, 0.010, 0.012], Vector3.UP)
 	_sweep(step, "Pad", _m_tape,
-		[Vector3(0.0, STEP_TOP, 0.244), Vector3(0.0, STEP_TOP, 0.344)],
+		[Vector3(0.0, STEP_TOP, 0.252), Vector3(0.0, STEP_TOP, 0.348)],
 		[0.150, 0.136], [0.005, 0.005], [0.008, 0.010], Vector3.UP)
 	# стойки-кронштейны от деки к площадке
 	for side in [-1.0, 1.0]:
 		_box(step, "Post", Vector3(0.016, 0.086, 0.030),
-			Transform3D(Basis(Vector3.RIGHT, 0.10), Vector3(0.092 * float(side), 0.100, 0.246)), _m_frame_d)
-		_bolt(step, "PostBolt", Vector3(0.092 * float(side), 0.138, 0.246),
+			Transform3D(Basis(Vector3.RIGHT, 0.10), Vector3(0.092 * float(side), 0.095, 0.258)), _m_frame_d)
+		_bolt(step, "PostBolt", Vector3(0.092 * float(side), 0.132, 0.258),
 			Vector3(float(side), 0.0, 0.0), 0.006, 0.010, _m_steel)
 	# хвостовик с отражателем
 	_box(step, "Tail", Vector3(0.120, 0.026, 0.026),
@@ -1044,28 +1079,28 @@ func _build_front_suspension(root: Node3D) -> void:
 	for side in [-1.0, 1.0]:
 		var sx := 0.060 * float(side)
 		_sweep(susp, "Arm", _m_frame_d, [
-			Vector3(sx, 0.100, -0.310),
-			Vector3(sx * 1.03, 0.052, -0.382),
-			Vector3(sx * 1.05, 0.008, -0.448),
-		], [0.026, 0.024, 0.022], [0.070, 0.062, 0.054],
+			Vector3(sx, 0.062, -0.300),
+			Vector3(sx * 1.03, 0.036, -0.380),
+			Vector3(sx * 1.05, 0.008, -0.446),
+		], [0.026, 0.024, 0.022], [0.076, 0.066, 0.056],
 			[0.008, 0.008, 0.012], Vector3.RIGHT)
 		# проушина у оси
 		_cyl(susp, "AxleEye", 0.020, 0.024,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx * 1.05, 0.0, AXLE_F)),
 			_m_frame_d, -1.0, 18)
-		_bolt(susp, "ArmBoltA", Vector3(sx * 1.06, 0.062, -0.360), Vector3(float(side), 0.0, 0.0),
+		_bolt(susp, "ArmBoltA", Vector3(sx * 1.06, 0.050, -0.336), Vector3(float(side), 0.0, 0.0),
 			0.006, 0.012, _m_steel)
-		_bolt(susp, "ArmBoltB", Vector3(sx * 1.06, 0.026, -0.420), Vector3(float(side), 0.0, 0.0),
+		_bolt(susp, "ArmBoltB", Vector3(sx * 1.06, 0.022, -0.408), Vector3(float(side), 0.0, 0.0),
 			0.006, 0.012, _m_steel)
 		_chevron(susp, "ArmChevron", 0.026,
 			Transform3D(Basis(Vector3.UP, PI * 0.5 * float(side)),
-				Vector3(sx * 1.42, 0.075, -0.338)))
+				Vector3(sx * 1.42, 0.042, -0.330)))
 		_decal(susp, "ArmCode", "B-01", 0.011, C_ORANGE,
 			Transform3D(Basis(Vector3.UP, PI * 0.5 * float(side)),
-				Vector3(sx * 1.42, 0.040, -0.390)))
+				Vector3(sx * 1.42, 0.020, -0.372)))
 		# пружина с амортизатором
-		var spr_from := Vector3(sx * 1.02, 0.162, -0.352)
-		var spr_to := Vector3(sx * 1.06, 0.048, -0.400)
+		var spr_from := Vector3(sx * 1.02, 0.196, -0.360)
+		var spr_to := Vector3(sx * 1.06, 0.044, -0.372)
 		_cyl_between(susp, "DamperRod", spr_from, spr_to, 0.0075, _m_steel, 12)
 		_spring(susp, "DamperSpring", spr_from.lerp(spr_to, 0.08), spr_from.lerp(spr_to, 0.92),
 			0.021, 0.0042, 7, _m_orange)
