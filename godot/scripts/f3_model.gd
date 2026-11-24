@@ -222,8 +222,8 @@ func _build_steer(root: Node3D) -> Node3D:
 func _neck(steer: Node3D) -> void:
 	# Компактный угловатый стакан.
 	_beam(steer, Vector3(0.0, 0.106, 0.038), Vector3(0.0, 0.302, 0.060),
-		Vector2(0.152, 0.140), Vector2(0.084, 0.098), _paint, 0.014, 3, Vector3.BACK)
-	_rbox(steer, Vector3(0.128, 0.034, 0.108), Vector3(0.0, 0.100, 0.038), _paint_dark,
+		Vector2(0.194, 0.148), Vector2(0.080, 0.094), _paint, 0.014, 3, Vector3.BACK)
+	_rbox(steer, Vector3(0.170, 0.038, 0.120), Vector3(0.0, 0.096, 0.038), _paint_dark,
 		Vector3(deg_to_rad(-10.0), 0.0, 0.0), 0.010)
 	# Чёрный кожух перед колесом и оранжевая накладка на стакане.
 	_rbox(steer, Vector3(0.066, 0.058, 0.062), Vector3(0.0, 0.126, -0.014), _plastic,

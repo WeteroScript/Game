@@ -218,9 +218,9 @@ func _build_steer(root: Node3D) -> Node3D:
 func _neck(steer: Node3D) -> void:
 	# Горловина: литой клин от деки к стакану, с наклонной передней гранью.
 	_beam(steer, Vector3(0.0, 0.112, 0.046), Vector3(0.0, 0.336, 0.056),
-		Vector2(0.152, 0.150), Vector2(0.092, 0.110), _paint, 0.016, 4, Vector3.BACK)
+		Vector2(0.198, 0.158), Vector2(0.086, 0.100), _paint, 0.016, 4, Vector3.BACK)
 	# Тень под клином и резиновый грязевик.
-	_rbox(steer, Vector3(0.132, 0.036, 0.118), Vector3(0.0, 0.104, 0.046), _paint_dark,
+	_rbox(steer, Vector3(0.176, 0.040, 0.130), Vector3(0.0, 0.100, 0.046), _paint_dark,
 		Vector3(deg_to_rad(-8.0), 0.0, 0.0), 0.010)
 	# Оранжевая бровь и вентиляционные прорези на передней грани.
 	var front_z := -0.020
