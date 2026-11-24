@@ -158,14 +158,14 @@ func _make_materials() -> void:
 	var nrm_fine := _noise_normal(64, 0.22, 1.6, 19)
 
 	# Порошковая покраска: слегка шероховатая, без металлика, без полос.
-	_m_frame = _mat(Color(0.150, 0.158, 0.150), 0.04, 0.54)
+	_m_frame = _mat(Color(0.300, 0.312, 0.300), 0.10, 0.52)
 	_m_frame.resource_name = "FramePowderCoat"
 	_m_frame.normal_enabled = true
 	_m_frame.normal_texture = nrm_soft
 	_m_frame.normal_scale = 0.05
 	_m_frame.uv1_scale = Vector3(2.0, 2.0, 2.0)
 
-	_m_frame_d = _mat(Color(0.098, 0.104, 0.100), 0.05, 0.52)
+	_m_frame_d = _mat(Color(0.190, 0.198, 0.192), 0.08, 0.52)
 	_m_frame_d.resource_name = "FramePowderCoatDark"
 	_m_frame_d.uv1_scale = Vector3(3.0, 3.0, 3.0)
 
