@@ -178,7 +178,7 @@ func _make_materials() -> void:
 
 	_m_alu = _mat(C_ALU, 0.70, 0.34)
 	_m_alu.resource_name = "Aluminium"
-	_m_rotor = _mat(Color(0.190, 0.198, 0.210), 0.25, 0.60)
+	_m_rotor = _mat(Color(0.120, 0.126, 0.135), 0.55, 0.42)
 	_m_rotor.resource_name = "BrakeRotor"
 
 	_m_rubber = _mat(C_RUBBER, 0.0, 0.93)
@@ -198,7 +198,7 @@ func _make_materials() -> void:
 	_m_glass = _mat(Color(0.012, 0.020, 0.030), 0.30, 0.06)
 	_m_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_m_glass.resource_name = "ScreenGlass"
-	_m_glass.albedo_color.a = 0.42
+	_m_glass.albedo_color.a = 0.14
 	_m_glass.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	_m_orange = _mat(C_ORANGE, 0.55, 0.34)
@@ -207,7 +207,7 @@ func _make_materials() -> void:
 	_m_orange.clearcoat = 0.35
 	_m_orange.clearcoat_roughness = 0.25
 
-	_m_lamp = _mat(C_LAMP, 0.05, 0.10, C_LAMP, 3.0)
+	_m_lamp = _mat(C_LAMP, 0.05, 0.16, C_LAMP, 1.05)
 	_m_lamp.resource_name = "LampLens"
 	_m_tail = _mat(C_TAIL.darkened(0.55), 0.10, 0.28, C_TAIL, 3.4)
 	_m_tail.resource_name = "TailLight"
@@ -228,7 +228,7 @@ func _make_materials() -> void:
 	_m_screen.emission_enabled = true
 	_m_screen.emission_texture = screen_tex
 	_m_screen.emission = Color(1.0, 1.0, 1.0)
-	_m_screen.emission_energy_multiplier = 1.25
+	_m_screen.emission_energy_multiplier = 1.85
 
 
 func _mat(color: Color, metallic: float, rough: float,
@@ -878,9 +878,9 @@ func _build_wheel(parent: Node3D, motor: bool, drive: bool) -> void:
 		var a := TAU * float(i) / 5.0
 		_bolt(hub, "HubBolt", Vector3(0.049, cos(a) * 0.026, sin(a) * 0.026), Vector3.RIGHT,
 			0.0035, 0.008, _m_steel)
-	_cyl(hub, "Axle", 0.0095, 0.186, Transform3D(axis, Vector3.ZERO), _m_steel, -1.0, 14)
-	_bolt(hub, "AxleNutL", Vector3(0.088, 0.0, 0.0), Vector3.RIGHT, 0.0145, 0.016, _m_steel)
-	_bolt(hub, "AxleNutR", Vector3(-0.088, 0.0, 0.0), Vector3.LEFT, 0.0145, 0.016, _m_steel)
+	_cyl(hub, "Axle", 0.0095, 0.156, Transform3D(axis, Vector3.ZERO), _m_steel, -1.0, 14)
+	_bolt(hub, "AxleNutL", Vector3(0.076, 0.0, 0.0), Vector3.RIGHT, 0.0145, 0.014, _m_steel)
+	_bolt(hub, "AxleNutR", Vector3(-0.076, 0.0, 0.0), Vector3.LEFT, 0.0145, 0.014, _m_steel)
 	_cyl(hub, "Valve", 0.0038, 0.022, Transform3D(Basis(Vector3.BACK, PI * 0.35),
 		Vector3(0.026, 0.0, 0.074)), _m_steel, -1.0, 8)
 
@@ -1112,21 +1112,21 @@ func _build_rear_fender(root: Node3D) -> void:
 	for i in steps + 1:
 		var t := float(i) / float(steps)
 		var ang := lerpf(a0, a1, t)
-		var r := R + 0.013
+		var r := R + 0.021
 		pts.append(center + Vector3(0.0, cos(ang) * r, sin(ang) * r))
 		var taper := 1.0 - 0.16 * absf(t - 0.45) * 2.0
 		wid.append(0.011)
-		hei.append(0.102 * taper)
+		hei.append(0.106 * taper)
 		rad.append(0.005)
 	_sweep(fender, "Hugger", _m_black, pts, wid, hei, rad, Vector3.RIGHT)
 	# отбортовка по торцам и рёбра внутри
 	for a in [a0, a1]:
-		var p := center + Vector3(0.0, cos(a) * (R + 0.013), sin(a) * (R + 0.013))
+		var p := center + Vector3(0.0, cos(a) * (R + 0.021), sin(a) * (R + 0.021))
 		_box(fender, "Lip", Vector3(0.014, 0.006, 0.100),
 			Transform3D(Basis(Vector3.RIGHT, -a), p), _m_black_d)
 	for i in 3:
 		var ang := lerpf(a0 + 0.35, a1 - 0.35, float(i) * 0.5)
-		var p := center + Vector3(0.0, cos(ang) * (R + 0.006), sin(ang) * (R + 0.006))
+		var p := center + Vector3(0.0, cos(ang) * (R + 0.014), sin(ang) * (R + 0.014))
 		_box(fender, "Fin", Vector3(0.006, 0.008, 0.086),
 			Transform3D(Basis(Vector3.RIGHT, -ang), p), _m_black_d)
 	# шевроны на бортах крыла
@@ -1136,10 +1136,10 @@ func _build_rear_fender(root: Node3D) -> void:
 		var radial := Vector3(0.0, cos(ang), sin(ang))
 		var x_axis := -tang if float(side) > 0.0 else tang
 		var b := Basis(x_axis, radial, Vector3(float(side), 0.0, 0.0))
-		var p := center + Vector3(0.052 * float(side), cos(ang) * (R + 0.013), sin(ang) * (R + 0.013))
+		var p := center + Vector3(0.054 * float(side), cos(ang) * (R + 0.021), sin(ang) * (R + 0.021))
 		_chevron(fender, "FenderChevron", 0.024, Transform3D(b, p))
 	# стоп-сигнал на хвосте крыла
-	var tail_pos := center + Vector3(0.0, cos(a1) * (R + 0.028), sin(a1) * (R + 0.028))
+	var tail_pos := center + Vector3(0.0, cos(a1) * (R + 0.034), sin(a1) * (R + 0.034))
 	_box(fender, "TailBezel", Vector3(0.098, 0.026, 0.012),
 		Transform3D(Basis(Vector3.RIGHT, -a1), tail_pos), _m_black)
 	_box(fender, "TailLight", Vector3(0.084, 0.014, 0.006),
@@ -1187,7 +1187,7 @@ func _build_front_suspension(root: Node3D) -> void:
 			Vector3(sx, 0.062, -0.300),
 			Vector3(sx * 1.03, 0.036, -0.380),
 			Vector3(sx * 1.05, 0.008, -0.446),
-		], [0.026, 0.025, 0.023], [0.076, 0.068, 0.058], [0.008, 0.009, 0.012], Vector3.RIGHT)
+		], [0.078, 0.070, 0.058], [0.026, 0.025, 0.023], [0.010, 0.010, 0.014], Vector3.RIGHT)
 		# проушина качания: бобышка, ось, гайка, шайба
 		_cyl(susp, "PivotEye", 0.0215, 0.034,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx, 0.062, -0.300)), _m_frame_d, -1.0, 18)
@@ -1200,7 +1200,7 @@ func _build_front_suspension(root: Node3D) -> void:
 			Vector3(sx * 1.06, 0.056, -0.316),
 			Vector3(sx * 1.09, 0.032, -0.372),
 			Vector3(sx * 1.10, 0.012, -0.424),
-		], [0.010, 0.009, 0.008], [0.030, 0.026, 0.020], [0.004, 0.004, 0.004], Vector3.RIGHT)
+		], [0.030, 0.026, 0.020], [0.009, 0.008, 0.007], [0.004, 0.004, 0.004], Vector3.RIGHT)
 		# проушина у оси колеса и тормозной кронштейн
 		_cyl(susp, "AxleEye", 0.0205, 0.026,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx * 1.05, 0.0, AXLE_F)),
@@ -1259,7 +1259,7 @@ func _build_rear_suspension(root: Node3D) -> void:
 			Vector3(sx, 0.040, 0.248),
 			Vector3(sx * 1.02, 0.020, 0.336),
 			Vector3(sx * 1.05, 0.002, AXLE_R - 0.008),
-		], [0.019, 0.019, 0.018], [0.058, 0.052, 0.046], [0.008, 0.009, 0.012], Vector3.RIGHT)
+		], [0.056, 0.052, 0.046], [0.020, 0.019, 0.018], [0.010, 0.010, 0.014], Vector3.RIGHT)
 		# проушина шарнира с болтом
 		_cyl(susp, "SwingEye", 0.0175, 0.028,
 			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx, 0.040, 0.248)), _m_frame_d, -1.0, 16)
@@ -1317,12 +1317,12 @@ func _caliper(parent: Node3D, node_name: String, center: Vector3, angle: float,
 	var basis := Basis(Vector3.RIGHT, angle) * Basis(Vector3.UP, PI * 0.5 * float(side))
 	# корпус суппорта сидит на тормозном диске (x = 0.020), колодки — по обе стороны
 	_box(parent, node_name, Vector3(0.026, 0.064, 0.034),
-		Transform3D(basis, center), _m_caliper)
+		Transform3D(basis, center), _m_black_d)
 	for s in [-1.0, 1.0]:
 		_box(parent, node_name + "_Pad", Vector3(0.008, 0.030, 0.022),
 			Transform3D(basis, center + basis.z * (0.0115 * float(s))), _m_black_d)
 	_box(parent, node_name + "_Bridge", Vector3(0.030, 0.014, 0.020),
-		Transform3D(basis, center + Vector3(0.0, 0.038, 0.0)), _m_caliper)
+		Transform3D(basis, center + Vector3(0.0, 0.038, 0.0)), _m_black_d)
 	# скоба-держатель к рычагу
 	_box(parent, node_name + "_Bracket", Vector3(0.030, 0.030, 0.012),
 		Transform3D(basis, center + Vector3(0.026 * float(side), 0.026, 0.0)), _m_steel)
@@ -1338,6 +1338,17 @@ func _build_front_brake(root: Node3D) -> void:
 	# суппорт на диске, над осью и позади неё, за рычагом вилки
 	var c := Vector3(0.020, 0.052, AXLE_F + 0.068)
 	_caliper(holder, "FrontCaliper", c, -0.45, 1.0)
+	# шланг от суппорта вверх по рычагу к раме
+	var hose: Array = [
+		c + Vector3(0.016, 0.026, -0.014),
+		Vector3(0.046, 0.070, -0.372),
+		Vector3(0.056, 0.104, -0.336),
+		Vector3(0.050, 0.140, -0.300),
+		Vector3(0.032, 0.158, -0.286),
+	]
+	_tube(holder, "FrontBrakeHose", _m_black_d, hose, 0.0046, 8)
+	_box(holder, "HoseGuide", Vector3(0.012, 0.008, 0.036),
+		Transform3D(Basis(Vector3.RIGHT, -0.62), Vector3(0.054, 0.112, -0.322)), _m_black_d)
 func _build_rear_brake(root: Node3D) -> void:
 	# суппорт заднего диска: над осью, со стороны маятника
 	var c := Vector3(0.020, 0.050, AXLE_R + 0.070)
@@ -1424,6 +1435,7 @@ func _build_stem(steer: Node3D) -> void:
 		_m_steel, -1.0, 12)
 	_build_stem_top(stem)
 	_build_cables(steer, clamp)
+	_build_strap(steer)
 
 
 ## Верх стойки: площадка, разрезной хомут руля и стяжные болты.
@@ -1460,6 +1472,26 @@ func _stem_front_z(y: float) -> float:
 	return tan(RAKE) * y - half
 
 
+## Транспортировочный ремешок на руле (деталь с оригинальных фото).
+func _build_strap(steer: Node3D) -> void:
+	var strap := _node(steer, "Strap")
+	var c := _bar_local()
+	var pts: Array = [
+		Vector3(0.104, c.y + 0.004, c.z + 0.014),
+		Vector3(0.112, c.y - 0.062, c.z + 0.026),
+		Vector3(0.118, c.y - 0.140, c.z + 0.030),
+		Vector3(0.110, c.y - 0.196, c.z + 0.026),
+	]
+	_sweep(strap, "Belt", _m_black_d, pts,
+		[0.026, 0.026, 0.026, 0.024], [0.005, 0.005, 0.005, 0.005],
+		[0.002, 0.002, 0.002, 0.002], Vector3.FORWARD)
+	_box(strap, "Slider", Vector3(0.028, 0.010, 0.008),
+		Transform3D(Basis(Vector3.RIGHT, 0.12), Vector3(0.117, c.y - 0.150, c.z + 0.030)), _m_steel)
+	_box(strap, "Tag", Vector3(0.030, 0.016, 0.003),
+		Transform3D(Basis(Vector3.RIGHT, 0.10) * Basis(Vector3.UP, PI * 0.5),
+			Vector3(0.106, c.y - 0.206, c.z + 0.026)), _m_orange)
+
+
 ## Прокладка кабелей: два тормозных шланга и жгут по задней кромке стойки,
 ## с обходом стяжного хомута, клипсами и резиновым вводом в раму.
 func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
@@ -1492,18 +1524,7 @@ func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
 		var z0: float = _stem_front_z(y0)
 		_box(cables, "CableTie", Vector3(0.030, 0.006, 0.006),
 			Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(-0.021, y0, z0 + 0.004)), _m_black_d)
-	# шланг переднего тормоза по рычагу вилки
-	var dropl := Vector3(0.050, 0.060, -0.300)
-	var hose: Array = [
-		dropl,
-		Vector3(0.058, 0.028, -0.344),
-		Vector3(0.066, 0.004, -0.390),
-		Vector3(0.062, 0.034, -0.408),
-		Vector3(0.040, 0.048, -0.386),
-	]
-	_tube(cables, "FrontBrakeHose", _m_black_d, hose, 0.0046, 8)
-	_box(cables, "HoseGuide", Vector3(0.010, 0.008, 0.042),
-		Transform3D(Basis(Vector3.RIGHT, -0.85), Vector3(0.062, 0.058, -0.316)), _m_black_d)
+	pass
 # ---- руль ---------------------------------------------------------------------
 ## Переднее крыло в оригинале есть, но пользователь просил его не показывать.
 const HAS_FRONT_FENDER := false
@@ -1679,6 +1700,9 @@ func _build_dash(steer: Node3D) -> void:
 			Vector3.UP, 0.0045, 0.014, _m_steel)
 
 	_build_headlight_assembly(dash, Vector3(0.0, base + 0.020, cz - 0.062))
+	# логотип на передней грани корпуса
+	_decal(dash, "DashBrand", "KUKIRIN", 0.009, Color(0.66, 0.68, 0.70),
+		Transform3D(Basis(Vector3.UP, PI), Vector3(0.0, base + 0.064, cz - 0.052)))
 func _build_headlight(steer: Node3D) -> void:
 	# фара уже встроена в корпус приборки; узел оставлен для иерархии GLB.
 	var lamp := _node(steer, "Headlight")
@@ -1693,7 +1717,7 @@ func _build_headlight_assembly(parent: Node3D, pos: Vector3) -> void:
 	_box(lamp, "Recess", Vector3(0.126, 0.034, 0.014),
 		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.0, 0.004)), _m_black_d)
 	_box(lamp, "Reflector", Vector3(0.114, 0.024, 0.004),
-		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.0, -0.002)), _m_alu)
+		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.0, -0.002)), _m_steel)
 	for i in 6:
 		var x := -0.045 + i * 0.018
 		_box(lamp, "Led", Vector3(0.013, 0.014, 0.004),
@@ -1707,9 +1731,9 @@ func _build_headlight_assembly(parent: Node3D, pos: Vector3) -> void:
 	lin.transform = Transform3D(Basis(Vector3.RIGHT, PI), pos + Vector3(0.0, 0.0, -0.007))
 	lamp.add_child(lin)
 	_box(lamp, "BezelTop", Vector3(0.124, 0.005, 0.010),
-		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.016, -0.008)), _m_alu)
+		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.016, -0.008)), _m_steel)
 	_box(lamp, "BezelBottom", Vector3(0.124, 0.005, 0.010),
-		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, -0.016, -0.008)), _m_alu)
+		Transform3D(Basis.IDENTITY, pos + Vector3(0.0, -0.016, -0.008)), _m_steel)
 	for side in [-1.0, 1.0]:
 		_box(lamp, "BezelSide", Vector3(0.005, 0.037, 0.010),
-			Transform3D(Basis.IDENTITY, pos + Vector3(0.061 * float(side), 0.0, -0.008)), _m_alu)
+			Transform3D(Basis.IDENTITY, pos + Vector3(0.061 * float(side), 0.0, -0.008)), _m_steel)
