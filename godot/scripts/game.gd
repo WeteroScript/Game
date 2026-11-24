@@ -401,7 +401,7 @@ func _take_screenshots() -> void:
 		{"name": "deck", "offset": Vector3(0.78, 0.46, 0.16), "look": Vector3(0.0, 0.22, 0.02), "fov": 34.0},
 	]
 
-	for spec_id in ["g4", "f3"]:
+	for spec_id in ["g4", "f3", "g4_test"]:
 		_build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
 		camera_rig.target = null
 		await get_tree().create_timer(0.8).timeout

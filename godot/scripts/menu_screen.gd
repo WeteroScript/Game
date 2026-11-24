@@ -1,5 +1,7 @@
 ## Главное меню: самокат, карта, режим и кнопка старта. Без лишнего текста —
 ## только выбор и короткая карточка характеристик.
+## Список самокатов приходит из ScooterSpec.all(), поэтому кнопки создаются
+## по фактическому числу моделей (сейчас их три: G4, F3 Pro Max, G4 TEST).
 class_name MenuScreen
 extends CanvasLayer
 
@@ -13,6 +15,7 @@ var map_id := GameConfig.MapId.STRAIGHT_TRACK
 var mode_id := GameConfig.GameMode.FREE_RIDE
 
 var _specs: Array[ScooterSpec] = []
+var _left: Control
 var _scooter_buttons: Array[Button] = []
 var _map_buttons: Array[Button] = []
 var _mode_buttons: Array[Button] = []
@@ -40,46 +43,11 @@ func _ready() -> void:
 	UiFactory.place(title, 48.0, 26.0, 700.0, 56.0)
 	root.add_child(title)
 
-	var y := 104.0
-	root.add_child(_section_label("САМОКАТ", 50.0, y))
-	y += 28.0
-	# Кнопки создаём сразу: список самокатов приходит позже, из setup().
-	for index in 2:
-		var button := UiFactory.button("…", 20, Vector2(520.0, 54.0))
-		UiFactory.place(button, 50.0, y, 520.0, 54.0)
-		var captured_index := index
-		button.pressed.connect(func() -> void: _select_spec_index(captured_index))
-		root.add_child(button)
-		_scooter_buttons.append(button)
-		y += 62.0
-
-	y += 14.0
-	root.add_child(_section_label("КАРТА", 50.0, y))
-	y += 28.0
-	for index in MAP_NAMES.size():
-		var captured_map := index
-		var button := UiFactory.button(MAP_NAMES[index], 20, Vector2(250.0, 54.0))
-		UiFactory.place(button, 50.0 + index * 260.0, y, 250.0, 54.0)
-		button.pressed.connect(func() -> void: _select_map(captured_map))
-		root.add_child(button)
-		_map_buttons.append(button)
-	y += 66.0
-
-	root.add_child(_section_label("РЕЖИМ", 50.0, y))
-	y += 28.0
-	for index in MODE_NAMES.size():
-		var captured_mode := index
-		var button := UiFactory.button(MODE_NAMES[index], 16, Vector2(180.0, 54.0))
-		UiFactory.place(button, 50.0 + index * 186.0, y, 180.0, 54.0)
-		button.pressed.connect(func() -> void: _select_mode(captured_mode))
-		root.add_child(button)
-		_mode_buttons.append(button)
-	y += 78.0
-
-	var start_button := UiFactory.primary_button("ПОЕХАЛИ", 32, Vector2(520.0, 78.0))
-	UiFactory.place(start_button, 50.0, y, 520.0, 78.0)
-	start_button.pressed.connect(_on_start)
-	root.add_child(start_button)
+	# Левая колонка пересобирается, когда меняется число самокатов.
+	_left = Control.new()
+	_left.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_left)
 
 	# Карточка характеристик.
 	var card := UiFactory.panel(Color(0.05, 0.06, 0.09, 0.9))
@@ -93,7 +61,57 @@ func _ready() -> void:
 	UiFactory.place(_spec_info, 668.0, 128.0, 540.0, 360.0)
 	root.add_child(_spec_info)
 
+	_build_left()
 	_refresh()
+
+
+func _build_left() -> void:
+	for child in _left.get_children():
+		_left.remove_child(child)
+		child.queue_free()
+	_scooter_buttons.clear()
+	_map_buttons.clear()
+	_mode_buttons.clear()
+
+	var y := 104.0
+	_left.add_child(_section_label("САМОКАТ", 50.0, y))
+	y += 28.0
+	for index in _specs.size():
+		var captured_spec := index
+		var button := UiFactory.button("…", 20, Vector2(520.0, 54.0))
+		UiFactory.place(button, 50.0, y, 520.0, 54.0)
+		button.pressed.connect(func() -> void: _select_spec_index(captured_spec))
+		_left.add_child(button)
+		_scooter_buttons.append(button)
+		y += 62.0
+
+	y += 14.0
+	_left.add_child(_section_label("КАРТА", 50.0, y))
+	y += 28.0
+	for index in MAP_NAMES.size():
+		var captured_map := index
+		var button := UiFactory.button(MAP_NAMES[index], 20, Vector2(250.0, 54.0))
+		UiFactory.place(button, 50.0 + index * 260.0, y, 250.0, 54.0)
+		button.pressed.connect(func() -> void: _select_map(captured_map))
+		_left.add_child(button)
+		_map_buttons.append(button)
+	y += 66.0
+
+	_left.add_child(_section_label("РЕЖИМ", 50.0, y))
+	y += 28.0
+	for index in MODE_NAMES.size():
+		var captured_mode := index
+		var button := UiFactory.button(MODE_NAMES[index], 16, Vector2(180.0, 54.0))
+		UiFactory.place(button, 50.0 + index * 186.0, y, 180.0, 54.0)
+		button.pressed.connect(func() -> void: _select_mode(captured_mode))
+		_left.add_child(button)
+		_mode_buttons.append(button)
+	y += 78.0
+
+	var start_button := UiFactory.primary_button("ПОЕХАЛИ", 32, Vector2(520.0, 78.0))
+	UiFactory.place(start_button, 50.0, y, 520.0, 78.0)
+	start_button.pressed.connect(_on_start)
+	_left.add_child(start_button)
 
 
 func _section_label(text: String, x: float, y: float) -> Label:
@@ -129,6 +147,8 @@ func _on_start() -> void:
 
 
 func _refresh() -> void:
+	if _scooter_buttons.size() != _specs.size():
+		_build_left()
 	for index in _scooter_buttons.size():
 		if index >= _specs.size():
 			continue
