@@ -983,8 +983,8 @@ func _build_deck(root: Node3D) -> void:
 		trim_pts.append(Vector3(0.0, DECK_BOT + 0.011, row[0] * 0.995))
 		trim_wid.append(row[1] * 2.0 + 0.006)
 	_sweep(deck, "EdgeTrim", _m_plastic, trim_pts, trim_wid,
-		[0.016, 0.016, 0.016, 0.016, 0.016, 0.016, 0.016, 0.016],
-		[0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007], Vector3.UP)
+		[0.019, 0.019, 0.019, 0.019, 0.019, 0.019, 0.019, 0.019],
+		[0.0095, 0.0095, 0.0095, 0.0095, 0.0095, 0.0095, 0.0095, 0.0095], Vector3.UP)
 
 	# Боковые панели: шов, болты, шильдик, наклейки.
 	for side in [-1.0, 1.0]:
@@ -1083,6 +1083,8 @@ func _build_rear_platform(root: Node3D) -> void:
 		[Vector3(0.0, STEP_TOP + 0.002, 0.252), Vector3(0.0, STEP_TOP + 0.001, 0.300),
 			Vector3(0.0, STEP_TOP - 0.002, 0.342)],
 		[0.152, 0.150, 0.134], [0.005, 0.005, 0.005], [0.008, 0.008, 0.010], Vector3.UP)
+	_box(step, "PadLip", Vector3(0.152, 0.007, 0.009),
+		Transform3D(Basis(Vector3.RIGHT, -0.045), Vector3(0.0, STEP_TOP + 0.006, 0.249)), _m_black_d)
 	for side in [-1.0, 1.0]:
 		_box(step, "PadRib", Vector3(0.098, 0.003, 0.006),
 			Transform3D(Basis(Vector3.RIGHT, -0.045) * Basis(Vector3.UP, 0.62 * float(side)),
@@ -1527,7 +1529,7 @@ func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
 			Vector3(x, 0.330, _stem_front_z(0.330) + off),
 			Vector3(x, 0.210, _stem_front_z(0.210) + off),
 			Vector3(x, 0.150, _stem_front_z(0.150) + off + 0.004),
-			Vector3(x, 0.118, tan(RAKE) * 0.118 - 0.042),
+			Vector3(x, 0.104, tan(RAKE) * 0.104 - 0.040),
 		]
 		if float(run["r"]) > 0.008:
 			var w_flat: Array = []
@@ -1541,10 +1543,10 @@ func _build_cables(steer: Node3D, _clamp: Node3D) -> void:
 		else:
 			_tube(cables, str(run["name"]), _m_black_d, path, float(run["r"]), 8)
 		_cyl(cables, "CableBoot", float(run["r"]) + 0.005, 0.012,
-			Transform3D(Basis(Vector3.RIGHT, RAKE + 0.35), Vector3(x, 0.114, tan(RAKE) * 0.114 - 0.036)),
+			Transform3D(Basis(Vector3.RIGHT, RAKE + 0.35), Vector3(x, 0.098, tan(RAKE) * 0.098 - 0.034)),
 			_m_plastic, -1.0, 12)
 	# стяжки жгута
-	for y0 in [0.520, 0.400, 0.290, 0.190]:
+	for y0 in [0.520, 0.410, 0.310, 0.220, 0.150]:
 		var z0: float = _stem_front_z(y0)
 		_box(cables, "CableTie", Vector3(0.030, 0.006, 0.006),
 			Transform3D(Basis(Vector3.RIGHT, RAKE), Vector3(-0.021, y0, z0 + 0.004)), _m_black_d)
@@ -1580,10 +1582,13 @@ func _build_bar(steer: Node3D) -> void:
 			Transform3D(gb, Vector3((BAR_HALF + 0.002) * sx, c.y + 0.006, c.z + 0.006)),
 			_m_black_d, -1.0, 20)
 		# насечки на резине
-		for i in 5:
-			var ox := (GRIP_IN + 0.012 + i * 0.019) * sx
+		for i in 7:
+			var ox := (GRIP_IN + 0.011 + i * 0.0125) * sx
 			_cyl(bar, "GripGroove", 0.0173, 0.003,
 				Transform3D(gb, Vector3(ox, c.y + 0.006, c.z + 0.006)), _m_black_d, -1.0, 18)
+		_decal(bar, "GripLogo", "G4", 0.011, C_ORANGE,
+			Transform3D(Basis(Vector3(0.0, 0.0, -1.0), Vector3(0.0, 1.0, 0.0), Vector3(float(side), 0.0, 0.0)),
+				Vector3((BAR_HALF + 0.0065) * sx, c.y + 0.006, c.z + 0.006)))
 		# перчатка тормоза: хомут, рычаг, ось, регулировка
 		var px := 0.188 * sx
 		_box(bar, "Perch", Vector3(0.030, 0.036, 0.044),
