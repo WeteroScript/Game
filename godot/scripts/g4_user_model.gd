@@ -78,15 +78,20 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 	var body: Node3D = null
 	var front: Node3D = null
 	var rear: Node3D = null
+	var fork: Node3D = null
 	if inst != null:
 		body = inst.get_node_or_null("Body")
 		front = inst.get_node_or_null("WheelFront")
 		rear = inst.get_node_or_null("WheelRear")
+		fork = inst.get_node_or_null("Steer")
 
 	# Передняя сборка: колесо висит на узле Steer, чтобы поворачиваться с рулём.
 	var steer := Node3D.new()
 	steer.name = "Steer"
 	root.add_child(steer)
+	# Вилка с рулём поворачивается вместе с передним колесом.
+	if fork != null and fork.get_parent() != null:
+		fork.reparent(steer, true)
 	if front != null and front.get_parent() != null:
 		front.reparent(steer, true)
 	else:
