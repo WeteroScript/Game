@@ -579,6 +579,8 @@ func _take_screenshots() -> void:
 		await _build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
 		camera_rig.target = null
 		await get_tree().create_timer(0.8).timeout
+		if scooter != null:
+			print("MODEL plane: %s %s" % [spec_id, scooter.visual_report()])
 		# Сначала чистые кадры самой модели (без райдера), потом — с ним.
 		var rider_node: Node3D = null
 		if scooter != null and scooter.rider != null:

@@ -184,16 +184,28 @@ func _refresh_rider_visibility() -> void:
 	rider.visible = rider_shown and not first_person_view
 
 
+## Корень визуальной геометрии самоката: у загружаемого GLB это отдельный узел
+## `UserMesh`, райдера в расчёт высоты брать нельзя (до первой позы его суставы
+## стоят в нуле и утаскивают «низ модели» вниз).
+func _visual_root() -> Node3D:
+	if model_root == null:
+		return null
+	var user := model_root.get_node_or_null("UserMesh")
+	if user is Node3D:
+		return user as Node3D
+	return model_root
+
+
 ## Диагностика для CI: какие узлы модели подключены и где её низ относительно
-## самоката. Низ должен быть примерно на -0.20 (радиус колеса + ход подвески),
-## иначе модель висит в воздухе или тонет в асфальте.
+## самоката. Печатается один раз при сборке модели — по этой строке видно,
+## какой узел колеса реальный, а какой создан заглушкой.
 func _report_model() -> void:
 	var bottom := INF
 	var top := -INF
 	var meshes := 0
-	var model_root: Node3D = get_node_or_null("Model")
-	if model_root != null:
-		for mesh in _all_meshes(model_root):
+	var visual := _visual_root()
+	if visual != null:
+		for mesh in _all_meshes(visual):
 			meshes += 1
 			var box: AABB = mesh.global_transform * mesh.mesh.get_aabb()
 			bottom = minf(bottom, box.position.y - global_position.y)
@@ -207,6 +219,29 @@ func _report_model() -> void:
 	print("MODEL: %smeshes=%d bottom=%.3f top=%.3f wheel_r=%.3f" % [
 		spin_nodes, meshes, bottom, top, spec.wheel_radius,
 	])
+
+
+## Диагностика посадки на дорогу: низ модели, земля под самокатом и зазор.
+func visual_report() -> String:
+	var visual := _visual_root()
+	if visual == null:
+		return "нет модели"
+	var bottom := INF
+	for mesh in _all_meshes(visual):
+		var box: AABB = mesh.global_transform * mesh.mesh.get_aabb()
+		bottom = minf(bottom, box.position.y)
+	var query := PhysicsRayQueryParameters3D.create(
+		global_position + Vector3.UP * 0.45, global_position - Vector3.UP * 0.85)
+	var exclude_rids: Array[RID] = [get_rid()]
+	query.exclude = exclude_rids
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	var ground := NAN
+	if not hit.is_empty():
+		var point: Vector3 = hit["position"]
+		ground = point.y
+	return "bottom=%.3f ground=%.3f gap=%.3f offset=%.3f y=%.3f" % [
+		bottom, ground, bottom - ground, _ground_offset, global_position.y,
+	]
 
 
 func _all_meshes(node: Node) -> Array[MeshInstance3D]:

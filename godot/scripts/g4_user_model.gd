@@ -67,7 +67,11 @@ func _load_scene() -> Node3D:
 
 
 func _node_name(node: Node3D) -> String:
-	return "нет" if node == null else str(node.get_path())
+	if node == null:
+		return "нет"
+	if not node.is_inside_tree():
+		return str(node.name)
+	return str(node.get_path())
 
 
 ## Узел GLB по имени: файл может быть обёрнут root-узлом (`Scene → model → …`),
@@ -106,7 +110,11 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 
 	var body := _pick(inst, "Body")
 	var front := _pick(inst, "WheelFront")
-	var rear := _pick(inst, "WheelRear")
+	# В файле заднее колесо называется RearWheel; старое имя тоже принимаем,
+	# иначе узел не находился и колесо стояло на месте.
+	var rear := _pick(inst, "RearWheel")
+	if rear == null:
+		rear = _pick(inst, "WheelRear")
 	var fork := _pick(inst, "Steer")
 	print("G4UserModel: body=%s steer=%s front=%s rear=%s" % [
 		_node_name(body), _node_name(fork), _node_name(front), _node_name(rear),
