@@ -43,8 +43,8 @@ func setup(scooter: Scooter) -> void:
 
 ## Синхронизирует видимость райдера с текущим видом (после пересборки мира).
 func apply_view() -> void:
-	if target != null and target.rider != null:
-		target.rider.visible = not first_person
+	if target != null:
+		target.set_first_person(first_person)
 
 
 ## Переключение вида. Возвращает true, если включился вид от первого лица.
@@ -53,8 +53,8 @@ func toggle_view() -> bool:
 	orbit_yaw = 0.0
 	orbit_pitch = 0.0
 	_orbit_idle = ORBIT_IDLE_TIME
-	if target != null and target.rider != null:
-		target.rider.visible = not first_person
+	if target != null:
+		target.set_first_person(first_person)
 	if first_person and target != null:
 		_smooth_position = target.global_position
 		_yaw = rad_to_deg(target.global_rotation.y)

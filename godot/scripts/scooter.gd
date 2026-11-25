@@ -27,6 +27,16 @@ var foot_left: Node3D
 var foot_right: Node3D
 var rider: RiderModel
 var audio: ScooterAudio
+## Настройка игрока из меню: показывать персонажа вообще.
+var rider_shown := true
+## Вид от первого лица: райдер скрыт всегда, чтобы не смотреть из его головы.
+var first_person_view := false
+
+# Визуальная посадка на асфальт: низ модели (отрицательный, в системе самоката)
+# и текущее смещение, которое её прижимает к фактической точке контакта колеса.
+var model_root: Node3D
+var _model_bottom := -0.16
+var _ground_offset := 0.0
 
 var wheelie: Wheelie
 
@@ -146,11 +156,66 @@ func _ready() -> void:
 
 	rider = RiderModel.create(spec.deck_height, spec.accent_color, bar_left, bar_right)
 	model["root"].add_child(rider)
+	model_root = model["root"]
+	_refresh_rider_visibility()
+	_report_model()
 
 	audio = ScooterAudio.create(spec.top_speed_kmh)
 	add_child(audio)
 	respawn_position = global_position
 	respawn_basis = global_transform.basis
+
+
+# ---- персонаж ---------------------------------------------------------------
+## Показывать или убирать персонажа (переключатель в главном меню).
+func set_rider_shown(shown: bool) -> void:
+	rider_shown = shown
+	_refresh_rider_visibility()
+
+
+func set_first_person(first: bool) -> void:
+	first_person_view = first
+	_refresh_rider_visibility()
+
+
+func _refresh_rider_visibility() -> void:
+	if rider == null:
+		return
+	rider.visible = rider_shown and not first_person_view
+
+
+## Диагностика для CI: какие узлы модели подключены и где её низ относительно
+## самоката. Низ должен быть примерно на -0.20 (радиус колеса + ход подвески),
+## иначе модель висит в воздухе или тонет в асфальте.
+func _report_model() -> void:
+	var bottom := INF
+	var top := -INF
+	var meshes := 0
+	var model_root: Node3D = get_node_or_null("Model")
+	if model_root != null:
+		for mesh in _all_meshes(model_root):
+			meshes += 1
+			var box: AABB = mesh.global_transform * mesh.mesh.get_aabb()
+			bottom = minf(bottom, box.position.y - global_position.y)
+			top = maxf(top, box.end.y - global_position.y)
+	var spin_nodes := ""
+	for pair in [["front", front_visual], ["rear", rear_visual], ["steer", front_steer]]:
+		var node: Node3D = pair[1]
+		spin_nodes += "%s=%s " % [pair[0], "нет" if node == null else str(node.get_path())]
+	if meshes > 0:
+		_model_bottom = bottom
+	print("MODEL: %smeshes=%d bottom=%.3f top=%.3f wheel_r=%.3f" % [
+		spin_nodes, meshes, bottom, top, spec.wheel_radius,
+	])
+
+
+func _all_meshes(node: Node) -> Array[MeshInstance3D]:
+	var out: Array[MeshInstance3D] = []
+	for child in node.get_children():
+		if child is MeshInstance3D and (child as MeshInstance3D).mesh != null:
+			out.append(child as MeshInstance3D)
+		out.append_array(_all_meshes(child))
+	return out
 
 
 # ---- публичные свойства -----------------------------------------------------
@@ -679,7 +744,27 @@ func _update_rider(delta: float) -> void:
 		wheelie_blend, throttle_input, pitch_rate)
 
 
+## Прижать модель к дороге по фактической точке контакта колеса: подвеска
+## проседает под весом самоката, и жёстко заданная высота модели оставляет
+## колёса в воздухе. Берём самую низкую точку контакта, сглаживаем смещение.
+func _align_visual_to_ground(delta: float) -> void:
+	if model_root == null:
+		return
+	var contact := INF
+	if front_wheel != null and front_wheel.is_in_contact():
+		contact = front_wheel.get_contact_point().y
+	if rear_wheel != null and rear_wheel.is_in_contact():
+		var rear_y := rear_wheel.get_contact_point().y
+		contact = rear_y if contact == INF else minf(contact, rear_y)
+	if contact == INF:
+		return
+	var wanted := contact - global_position.y - _model_bottom
+	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.09, 0.05), clampf(delta * 9.0, 0.0, 1.0))
+	model_root.position.y = _ground_offset
+
+
 func _update_wheel_visuals(delta: float) -> void:
+	_align_visual_to_ground(delta)
 	var spin_delta := (speed_mps / maxf(0.02, spec.wheel_radius)) * delta
 	_front_spin += spin_delta
 	_rear_spin += spin_delta

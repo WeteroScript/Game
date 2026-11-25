@@ -6,6 +6,8 @@ class_name MenuScreen
 extends CanvasLayer
 
 signal start_pressed(spec_id: String, map_id: int, mode_id: int)
+## Переключатель персонажа: игра прячет/показывает райдера и запоминает выбор.
+signal rider_toggled(shown: bool)
 
 const MAP_NAMES := ["Ровная дорога", "Город"]
 const MODE_NAMES := ["Свободная езда", "На время", "Фристайл"]
@@ -13,6 +15,8 @@ const MODE_NAMES := ["Свободная езда", "На время", "Фрис
 var spec_id := "g4"
 var map_id := GameConfig.MapId.STRAIGHT_TRACK
 var mode_id := GameConfig.GameMode.FREE_RIDE
+## Показывать персонажа (райдера) в игре и в фоне меню.
+var rider_shown := true
 
 var _specs: Array[ScooterSpec] = []
 var _left: Control
@@ -20,6 +24,7 @@ var _scooter_buttons: Array[Button] = []
 var _map_buttons: Array[Button] = []
 var _mode_buttons: Array[Button] = []
 var _spec_info: Label
+var _rider_button: Button
 
 
 func setup(specs: Array[ScooterSpec]) -> void:
@@ -60,6 +65,18 @@ func _ready() -> void:
 	_spec_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UiFactory.place(_spec_info, 668.0, 128.0, 540.0, 360.0)
 	root.add_child(_spec_info)
+
+	# Переключатель персонажа — справа под карточкой характеристик.
+	_rider_button = UiFactory.button("", 22, Vector2(592.0, 60.0))
+	UiFactory.place(_rider_button, 640.0, 520.0, 592.0, 60.0)
+	_rider_button.pressed.connect(_toggle_rider)
+	root.add_child(_rider_button)
+
+	var hint := UiFactory.label("Выключи — в меню и в заезде будет виден только самокат.",
+		16, UiFactory.MUTED_COLOR)
+	UiFactory.place(hint, 648.0, 588.0, 576.0, 44.0)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	root.add_child(hint)
 
 	_build_left()
 	_refresh()
@@ -142,6 +159,12 @@ func _select_mode(new_mode: int) -> void:
 	_refresh()
 
 
+func _toggle_rider() -> void:
+	rider_shown = not rider_shown
+	_refresh()
+	rider_toggled.emit(rider_shown)
+
+
 func _on_start() -> void:
 	start_pressed.emit(spec_id, map_id, mode_id)
 
@@ -164,6 +187,10 @@ func _refresh() -> void:
 	for index in _mode_buttons.size():
 		_mode_buttons[index].text = ("● " if index == mode_id else "   ") + MODE_NAMES[index]
 		UiFactory.style_button(_mode_buttons[index], index == mode_id)
+
+	if _rider_button != null:
+		_rider_button.text = ("● ПЕРСОНАЖ: ВКЛ" if rider_shown else "   ПЕРСОНАЖ: ВЫКЛ")
+		UiFactory.style_button(_rider_button, rider_shown)
 
 	if _spec_info != null and not _specs.is_empty():
 		_spec_info.text = _describe_spec(ScooterSpec.get_by_id(spec_id))

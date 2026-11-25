@@ -5,6 +5,8 @@ extends Node3D
 enum State { MENU, COUNTDOWN, RUNNING, FINISHED, PAUSED }
 
 const RESULTS_LAYER := 20
+## Настройки игрока (показывать персонажа) переживают перезапуск.
+const SETTINGS_PATH := "user://settings.cfg"
 
 var state: int = State.MENU
 
@@ -29,6 +31,8 @@ var selected_mode: int = GameConfig.GameMode.FREE_RIDE
 var countdown_time := 0.0
 var time_left := 0.0
 var menu_angle := 0.0
+## Показывать персонажа: переключатель в главном меню, по умолчанию — да.
+var rider_shown := true
 var _go_timer := 0.0
 ## Режим съёмки: отключает орбитальную камеру меню, чтобы кадры были по делу.
 var _shots := false
@@ -51,6 +55,7 @@ var _state_before_pause: int = State.RUNNING
 
 func _ready() -> void:
 	randomize()
+	_load_settings()
 	_setup_environment()
 
 	world_builder = WorldBuilder.new()
@@ -72,8 +77,10 @@ func _ready() -> void:
 
 	menu = MenuScreen.new()
 	add_child(menu)
+	menu.rider_shown = rider_shown
 	menu.setup(ScooterSpec.all())
 	menu.start_pressed.connect(_start_run)
+	menu.rider_toggled.connect(_on_rider_toggled)
 
 	pause_screen = PauseScreen.new()
 	add_child(pause_screen)
@@ -156,6 +163,7 @@ func _build_world(map_id: int, spec_id: String) -> void:
 	add_child(scooter)
 	scooter.set_respawn_point(spawn, Basis.IDENTITY)
 	scooter.set_input_enabled(false)
+	scooter.set_rider_shown(rider_shown)
 	scooter.crashed.connect(_on_crash)
 	scooter.respawned.connect(_on_respawned)
 
@@ -163,6 +171,7 @@ func _build_world(map_id: int, spec_id: String) -> void:
 # ---- меню -------------------------------------------------------------------
 func _enter_menu() -> void:
 	get_tree().paused = false
+	menu.rider_shown = rider_shown
 	if pause_screen != null:
 		pause_screen.close()
 	state = State.MENU
@@ -547,6 +556,8 @@ func _take_screenshots() -> void:
 		{"name": "wheel", "offset": Vector3(0.70, 0.26, -0.95), "look": Vector3(0.0, 0.13, -0.50), "fov": 34.0},
 		{"name": "dash", "offset": Vector3(0.10, 1.34, 0.78), "look": Vector3(0.0, 1.10, -0.20), "fov": 34.0},
 		{"name": "deck", "offset": Vector3(0.78, 0.46, 0.16), "look": Vector3(0.0, 0.22, 0.02), "fov": 34.0},
+		# Колесо впритык к асфальту: по этому кадру видно, не висит ли самокат.
+		{"name": "contact", "offset": Vector3(1.05, 0.22, -1.15), "look": Vector3(0.0, 0.10, -0.42), "fov": 30.0},
 		# Строгие ортогональные проекции для сверки с фото.
 		{"name": "o_front", "offset": Vector3(0.0, 0.60, -4.6), "look": Vector3(0.0, 0.60, 0.0),
 			"fov": 12.0, "ortho": true, "size": 1.38},
@@ -572,7 +583,7 @@ func _take_screenshots() -> void:
 		var rider_node: Node3D = null
 		if scooter != null and scooter.rider != null:
 			rider_node = scooter.rider
-			rider_node.visible = false
+			scooter.set_rider_shown(false)
 		for index in shots.size():
 			var shot: Dictionary = shots[index]
 			var origin: Vector3 = scooter.global_position
@@ -609,7 +620,7 @@ func _take_screenshots() -> void:
 
 		# Кадр с райдером.
 		if rider_node != null:
-			rider_node.visible = true
+			scooter.set_rider_shown(true)
 			var origin2: Vector3 = scooter.global_position
 			camera_rig.global_position = origin2 + Vector3(1.95, 0.90, -2.50)
 			camera_rig.look_at(origin2 + Vector3(0.0, 0.98, -0.1), Vector3.UP)
@@ -630,6 +641,14 @@ func _take_screenshots() -> void:
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "menu")
 
+	# То же меню с выключенным персонажем: проверяем переключатель.
+	_on_rider_toggled(false)
+	for frame in 6:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "menu_no_rider")
+	_on_rider_toggled(true)
+
 	# Геймплей: вид от камеры игрока, с HUD и райдером на ходу.
 	hud.visible = true
 	_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.FREE_RIDE)
@@ -637,6 +656,15 @@ func _take_screenshots() -> void:
 	await get_tree().create_timer(4.2).timeout
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_drive")
+	print("MODEL drive: front=%s rear=%s steer=%s front_spin=%.2f rear_spin=%.2f steer_vis=%.2f speed=%.1f" % [
+		"нет" if scooter.front_visual == null else str(scooter.front_visual.get_path()),
+		"нет" if scooter.rear_visual == null else str(scooter.rear_visual.get_path()),
+		"нет" if scooter.front_steer == null else str(scooter.front_steer.get_path()),
+		scooter.front_visual.rotation.x if scooter.front_visual != null else 0.0,
+		scooter.rear_visual.rotation.x if scooter.rear_visual != null else 0.0,
+		scooter.front_steer.rotation.y if scooter.front_steer != null else 0.0,
+		scooter.speed_kmh(),
+	])
 
 	# На кадре станта газ средний: на полном контроллер уводит нос почти
 	# в вертикаль (перегазовка), и позу не разобрать.
@@ -795,6 +823,28 @@ func _over_controls(point: Vector2) -> bool:
 
 func _has_timer() -> bool:
 	return selected_mode == GameConfig.GameMode.FREESTYLE or selected_mode == GameConfig.GameMode.TIME_ATTACK
+
+
+# ---- настройки --------------------------------------------------------------
+func _load_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_PATH) != OK:
+		return
+	rider_shown = bool(cfg.get_value("game", "rider_shown", true))
+
+
+func _save_settings() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS_PATH)
+	cfg.set_value("game", "rider_shown", rider_shown)
+	cfg.save(SETTINGS_PATH)
+
+
+func _on_rider_toggled(shown: bool) -> void:
+	rider_shown = shown
+	_save_settings()
+	if scooter != null:
+		scooter.set_rider_shown(shown)
 
 
 # ---- действия ---------------------------------------------------------------
