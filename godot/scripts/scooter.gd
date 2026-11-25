@@ -203,13 +203,11 @@ func _report_model() -> void:
 	var bottom := INF
 	var top := -INF
 	var meshes := 0
-	var visual := _visual_root()
-	if visual != null:
-		for mesh in _all_meshes(visual):
-			meshes += 1
-			var box: AABB = mesh.global_transform * mesh.mesh.get_aabb()
-			bottom = minf(bottom, box.position.y - global_position.y)
-			top = maxf(top, box.end.y - global_position.y)
+	for mesh in _visual_meshes():
+		meshes += 1
+		var box: AABB = mesh.global_transform * mesh.mesh.get_aabb()
+		bottom = minf(bottom, box.position.y - global_position.y)
+		top = maxf(top, box.end.y - global_position.y)
 	var spin_nodes := ""
 	for pair in [["front", front_visual], ["rear", rear_visual], ["steer", front_steer]]:
 		var node: Node3D = pair[1]
@@ -223,11 +221,10 @@ func _report_model() -> void:
 
 ## Диагностика посадки на дорогу: низ модели, земля под самокатом и зазор.
 func visual_report() -> String:
-	var visual := _visual_root()
-	if visual == null:
+	if _visual_root() == null:
 		return "нет модели"
 	var bottom := INF
-	for mesh in _all_meshes(visual):
+	for mesh in _visual_meshes():
 		var box: AABB = mesh.global_transform * mesh.mesh.get_aabb()
 		bottom = minf(bottom, box.position.y)
 	var query := PhysicsRayQueryParameters3D.create(
@@ -242,6 +239,20 @@ func visual_report() -> String:
 	return "bottom=%.3f ground=%.3f gap=%.3f offset=%.3f y=%.3f" % [
 		bottom, ground, bottom - ground, _ground_offset, global_position.y,
 	]
+
+
+## Меши самой модели без райдера: до первой позы его суставы стоят в нуле,
+## и его геометрия утаскивает «низ модели» на полметра вниз.
+func _visual_meshes() -> Array[MeshInstance3D]:
+	var out: Array[MeshInstance3D] = []
+	var visual := _visual_root()
+	if visual == null:
+		return out
+	for mesh in _all_meshes(visual):
+		if rider != null and rider.is_ancestor_of(mesh):
+			continue
+		out.append(mesh)
+	return out
 
 
 func _all_meshes(node: Node) -> Array[MeshInstance3D]:
