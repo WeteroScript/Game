@@ -744,23 +744,40 @@ func _update_rider(delta: float) -> void:
 		wheelie_blend, throttle_input, pitch_rate)
 
 
-## Прижать модель к дороге по фактической точке контакта колеса: подвеска
-## проседает под весом самоката, и жёстко заданная высота модели оставляет
-## колёса в воздухе. Берём самую низкую точку контакта, сглаживаем смещение.
+## Прижать модель к дороге: подвеска проседает под весом самоката, и жёстко
+## заданная высота модели оставляет колёса в воздухе. Луч вниз под каждым
+## колесом, стоящим на земле, даёт фактическую высоту асфальта — по ней и
+## опускаем визуал. В полёте смещение не трогаем.
 func _align_visual_to_ground(delta: float) -> void:
-	if model_root == null:
+	if model_root == null or spec == null:
 		return
-	var contact := INF
+	var probes: Array[float] = []
 	if front_wheel != null and front_wheel.is_in_contact():
-		var front_point: Vector3 = front_wheel.get_contact_point()
-		contact = front_point.y
+		probes.append(-spec.wheel_base * 0.5)
 	if rear_wheel != null and rear_wheel.is_in_contact():
-		var rear_point: Vector3 = rear_wheel.get_contact_point()
-		contact = rear_point.y if contact == INF else minf(contact, rear_point.y)
-	if contact == INF:
+		probes.append(spec.wheel_base * 0.5)
+	if probes.is_empty():
 		return
-	var wanted := contact - global_position.y - _model_bottom
-	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.09, 0.05), clampf(delta * 9.0, 0.0, 1.0))
+	var space := get_world_3d().direct_space_state
+	var exclude_rids: Array[RID] = [get_rid()]
+	var sum := 0.0
+	var hits := 0
+	for z in probes:
+		var probe := global_transform * Vector3(0.0, 0.0, z)
+		var query := PhysicsRayQueryParameters3D.create(
+			probe + Vector3.UP * 0.45, probe - Vector3.UP * 0.65)
+		query.exclude = exclude_rids
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			continue
+		var point: Vector3 = hit["position"]
+		sum += point.y
+		hits += 1
+	if hits == 0:
+		return
+	var ground := sum / float(hits)
+	var wanted := ground - global_position.y - _model_bottom
+	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.12, 0.05), clampf(delta * 9.0, 0.0, 1.0))
 	model_root.position.y = _ground_offset
 
 
