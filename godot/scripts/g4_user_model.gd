@@ -12,9 +12,9 @@ const PATH := "res://assets/models/g4_user.glb.dat"
 const R := 0.153
 const AXLE_F := -0.4525
 const AXLE_R := 0.4525
-const BAR_Y := 0.962
-const BAR_HALF := 0.290
-const DECK_TOP := 0.168
+const BAR_Y := 1.150
+const BAR_HALF := 0.235
+const DECK_TOP := 0.243
 
 var spec: ScooterSpec
 var _scene_cache: Node3D
@@ -63,6 +63,8 @@ func _load_scene() -> Node3D:
 
 func build_model(new_spec: ScooterSpec) -> Dictionary:
 	spec = new_spec
+	# Высота деки берётся с фактической геометрии модели, иначе райдер висит.
+	spec.deck_height = DECK_TOP
 	var root := Node3D.new()
 	root.name = "Model"
 
@@ -100,11 +102,11 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 
 	var bar_left := Node3D.new()
 	bar_left.name = "BarLeft"
-	bar_left.position = Vector3(-(BAR_HALF - 0.09), BAR_Y, AXLE_F + 0.09)
+	bar_left.position = Vector3(-BAR_HALF, BAR_Y, -0.285)
 	steer.add_child(bar_left)
 	var bar_right := Node3D.new()
 	bar_right.name = "BarRight"
-	bar_right.position = Vector3(BAR_HALF - 0.09, BAR_Y, AXLE_F + 0.09)
+	bar_right.position = Vector3(BAR_HALF, BAR_Y, -0.285)
 	steer.add_child(bar_right)
 
 	var foot_left := Node3D.new()
