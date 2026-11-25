@@ -810,7 +810,7 @@ func _align_visual_to_ground(delta: float) -> void:
 	var space := get_world_3d().direct_space_state
 	var exclude_rids: Array[RID] = [get_rid()]
 	var wheels := [[front_wheel, -spec.wheel_base * 0.5], [rear_wheel, spec.wheel_base * 0.5]]
-	var sum := 0.0
+	var needed := -INF
 	var found := 0
 	for entry in wheels:
 		var wheel: VehicleWheel3D = entry[0]
@@ -828,12 +828,14 @@ func _align_visual_to_ground(delta: float) -> void:
 		# Низ колеса в системе корпуса — (0, offset - tyre, z); его высота в мире
 		# = y корпуса + (ось колеса по вертикали) + (offset - tyre) * basis.y.y.
 		var axle_height := (basis * Vector3(0.0, 0.0, z)).y
-		sum += tyre + (point.y - global_position.y - axle_height) / basis.y.y
+		var offset := tyre + (point.y - global_position.y - axle_height) / basis.y.y
+		needed = maxf(needed, offset)
 		found += 1
 	if found == 0:
 		return
-	var wanted := sum / float(found)
-	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.35, 0.20), clampf(delta * 12.0, 0.0, 1.0))
+	# Из двух колёс берём максимум: модель садится по тому, которому нужен
+	# больший подъём, иначе второе колесо уходит в асфальт.
+	_ground_offset = lerpf(_ground_offset, clampf(needed, -0.35, 0.20), clampf(delta * 12.0, 0.0, 1.0))
 	model_root.position.y = _ground_offset
 
 

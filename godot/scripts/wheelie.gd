@@ -10,7 +10,7 @@ extends RefCounted
 
 ## Угол на полном газу. Заведомо ниже точки переворота (LOOP_OUT_ANGLE),
 ## чтобы полный газ держал самокат, а не валил его.
-const MAX_ANGLE := 64.0
+const MAX_ANGLE := 58.0
 ## Ниже этого газа нос не поднимается вообще.
 const MIN_GAS := 0.10
 const MIN_SPEED_KMH := 4.0
@@ -21,9 +21,6 @@ const ANGLE_RATE := 320.0
 ## Зона, в которой трюковая система считает вилли удержанным.
 const BALANCE_MIN_ANGLE := 24.0
 const BALANCE_MAX_ANGLE := 60.0
-## Плечо центра масс до пятна заднего колеса, м.
-const PIVOT_DISTANCE := 0.44
-
 var active := false
 ## Кнопка ВИЛЛИ включена.
 var armed := false
@@ -92,14 +89,11 @@ func tick(delta: float, armed_input: bool, throttle: float, body_pitch_input: fl
 	lift_progress = clampf(pitch / MAX_ANGLE, 0.0, 1.0)
 	in_balance_zone = pitch >= BALANCE_MIN_ANGLE and pitch <= BALANCE_MAX_ANGLE
 
+	# Прямое управление: момент пропорционален разнице «угол по газу − угол
+	# сейчас» и гасится скоростью тангажа. Никаких подпорок моментом тяжести и
+	# помощников — чем сильнее газ, тем выше нос, и всё.
 	var rate: float = _scooter.pitch_rate
 	var error := deg_to_rad(target_pitch - pitch)
 	var torque := error * spec.wheelie_balance_gain - rate * spec.wheelie_balance_damping
-	# Пока переднее колесо на земле, вес самоката держит асфальт. Как только
-	# нос в воздухе, вес держит мотор — ровно моментом тяжести, иначе самокат
-	# проседает и газ приходится всё время добирать.
-	if not _scooter.front_grounded:
-		var lever := cos(deg_to_rad(clampf(target_pitch, 0.0, 89.0))) * PIVOT_DISTANCE
-		torque += spec.mass_kg * GameConfig.GRAVITY * lever
 	torque = clampf(torque, -spec.wheelie_max_torque, spec.wheelie_max_torque)
 	_scooter.apply_nose_up_torque(torque)

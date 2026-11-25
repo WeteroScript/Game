@@ -59,12 +59,13 @@ var grip_road := 1.8
 var grip_off_road := 0.95
 var steer_angle_max := 26.0
 
-# ---- Вилли ------------------------------------------------------------------
-var wheelie_lift_time := 0.8
-var wheelie_balance_gain := 130.0
-var wheelie_balance_damping := 8.0
-var wheelie_max_torque := 460.0
-var wheelie_equilibrium := 38.0
+# ---- Вилли (стант) ----------------------------------------------------------
+## Жёсткость контура угла и демпфирование: момент = (угол по газу − угол) * gain
+## − скорость тангажа * damping. Большой gain держит угол точно по газу без
+## «просадки», damping не даёт раскачаться.
+var wheelie_balance_gain := 1600.0
+var wheelie_balance_damping := 200.0
+var wheelie_max_torque := 700.0
 
 # ---- Внешний вид ------------------------------------------------------------
 var frame_color := Color(0.09, 0.09, 0.10)
@@ -125,12 +126,10 @@ static func create_g4() -> ScooterSpec:
 	s.grip_off_road = 0.95
 	s.steer_angle_max = 26.0
 
-	# RWD: легче поднять, сложнее удержать баланс.
-	s.wheelie_lift_time = 0.75
-	s.wheelie_balance_gain = 700.0
-	s.wheelie_balance_damping = 220.0
-	s.wheelie_max_torque = 420.0
-	s.wheelie_equilibrium = 37.0
+	# RWD: поднимается резче, контур угла чуть мягче.
+	s.wheelie_balance_gain = 2000.0
+	s.wheelie_balance_damping = 260.0
+	s.wheelie_max_torque = 700.0
 
 	# По фото: серый gunmetal с оранжевыми шевронами и надписями.
 	s.frame_color = Color(0.335, 0.340, 0.335)
@@ -184,12 +183,10 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.grip_off_road = 1.0
 	s.steer_angle_max = 27.0
 
-	# AWD: передний мотор тянет вниз — поднимать тяжелее, но баланс стабильнее.
-	s.wheelie_lift_time = 0.8
-	s.wheelie_balance_gain = 780.0
-	s.wheelie_balance_damping = 240.0
-	s.wheelie_max_torque = 400.0
-	s.wheelie_equilibrium = 39.0
+	# AWD: передний мотор тянет нос вниз — контур жёстче, чтобы газ слушался так же.
+	s.wheelie_balance_gain = 2100.0
+	s.wheelie_balance_damping = 280.0
+	s.wheelie_max_torque = 700.0
 
 	# По фото: чёрный корпус, оранжевые рычаги подвески и кольца на дисках.
 	s.frame_color = Color(0.075, 0.075, 0.085)
