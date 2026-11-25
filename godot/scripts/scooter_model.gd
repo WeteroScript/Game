@@ -10,6 +10,6 @@ extends RefCounted
 static func build(spec: ScooterSpec) -> Dictionary:
 	if spec.id == "f3":
 		return F3Model.new().build_model(spec)
-	if spec.id == "g4_test":
-		return G4TestModel.new().build_model(spec)
+	if spec.id == "g4":
+		return G4UserModel.new().build_model(spec)
 	return G4Model.new().build_model(spec)

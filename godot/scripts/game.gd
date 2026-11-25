@@ -296,11 +296,11 @@ func _telemetry() -> String:
 		wheelie_state = "on" if scooter.wheelie.active else "off"
 		if scooter.wheelie.in_balance_zone:
 			wheelie_state = "zone"
-	return "%s speed=%.1f dist=%.1f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s gas=%.2f score=%d combo=%.2f battery=%.0f%% crashes=%d last=%s" % [
+	return "%s speed=%.1f dist=%.1f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s gas=%.2f score=%d combo=%.2f crashes=%d last=%s" % [
 		scooter.spec.id, scooter.speed_kmh(), scooter.distance_meters, pos.y,
 		scooter.pitch_deg, scooter.max_pitch_deg, scooter.roll_deg, contact,
 		wheelie_state, scooter.throttle_input, tricks.score,
-		tricks.combo_multiplier(), scooter.battery_percent(),
+		tricks.combo_multiplier(),
 		scooter.crash_count, scooter.last_crash_reason,
 	]
 
@@ -564,7 +564,7 @@ func _take_screenshots() -> void:
 			"fov": 30.0},
 	]
 
-	for spec_id in ["g4", "f3", "g4_test"]:
+	for spec_id in ["g4", "f3"]:
 		await _build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
 		camera_rig.target = null
 		await get_tree().create_timer(0.8).timeout
@@ -597,13 +597,13 @@ func _take_screenshots() -> void:
 			var error := image.save_png(path)
 			print("SHOT %s err=%d" % [path, error])
 			# Дублируем кадры исправленной модели с префиксом g4_fixed для сравнения.
-			if spec_id == "g4_test":
+			if spec_id == "g4":
 				image.save_png("%s/g4_fixed_%d_%s.png" % [shot_dir, index, shot["name"]])
 			if shot.get("hide_world", false) and world_root != null:
 				world_root.visible = true
 
-		# Кадры каждой группы деталей модели — чтобы можно было дорабатывать по отдельности.
-		if spec_id == "g4_test":
+		# Кадры каждой группы деталей: только для модели пользователя.
+		if spec_id == "g4":
 			await _take_part_shots(shot_dir, spec_id)
 			await _take_detail_shots(shot_dir, spec_id)
 

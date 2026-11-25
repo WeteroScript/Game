@@ -205,69 +205,11 @@ static func create_f3_pro_max() -> ScooterSpec:
 
 ## Kugoo G4 TEST — отдельная модель, собранная заново по фотографиям
 ## (11" наружный диаметр шины, база 0.94 м, дека 0.46 м, настил 0.100 м над осями).
-static func create_g4_test() -> ScooterSpec:
-	var s := ScooterSpec.new()
-	s.id = "g4_test"
-	s.display_name = "Kugoo G4 TEST"
-	s.tagline = "новая модель · с нуля"
-	s.drive_description = "RWD — один задний хаб-мотор"
-	s.mass_kg = 37.0
-	s.max_load_kg = 120.0
-	s.power_watts = 2000.0
-	s.peak_power_watts = 2400.0
-	s.motor_count = 1
-	s.top_speed_kmh = 70.0
-	s.range_km = 75.0
-	s.battery_voltage = 60.0
-	s.battery_amp_hours = 20.0
-	s.wheel_inches = 11.0
-	s.battery_text = "60V 20Ah"
-	s.brakes_text = "Передний + задний дисковые"
-	s.suspension_text = "Рычажная спереди, маятник сзади"
-	s.features_text = "LCD 155×55 · фара-планка · стоп-сигнал · подножка"
-
-	# 11" у G4 — наружный диаметр покрышки, поэтому радиус 139.7 мм.
-	s.wheel_radius = 0.153
-	s.wheel_base = 0.905
-	s.deck_length = 0.477
-	s.deck_height = 0.089
-	s.deck_width = 0.215
-	s.battery_wh = s.battery_voltage * s.battery_amp_hours
-	s.gear_top_speeds_kmh = [20.0, 40.0, 70.0]
-	s.supports_awd_toggle = false
-
-	s.power_per_motor_watts = 2000.0
-	s.max_traction_force_per_motor = 320.0
-	s.motor_ramp_rate = 4.2
-	s.torque_ceiling = 45.0
-	s.max_brake_torque = 62.0
-	s.regen_brake_torque = 8.0
-	s.grip_road = 1.85
-	s.grip_off_road = 0.95
-	s.steer_angle_max = 26.0
-
-	s.wheelie_lift_time = 0.75
-	s.wheelie_balance_gain = 700.0
-	s.wheelie_balance_damping = 220.0
-	s.wheelie_max_torque = 420.0
-	s.wheelie_equilibrium = 37.0
-
-	s.frame_color = Color(0.352, 0.360, 0.352)
-	s.accent_color = Color(0.98, 0.40, 0.03)
-	s.suspension_color = Color(0.35, 0.36, 0.37)
-	s.brand_text = "KUKIRIN G4"
-	s.front_fender = false
-	s.stem_rake_deg = 15.0
-	s.off_road_tires = false
-	s.orange_accents = false
-	return s
-
-
 static func all() -> Array[ScooterSpec]:
 	var result: Array[ScooterSpec] = []
 	result.append(create_g4())
 	result.append(create_f3_pro_max())
-	result.append(create_g4_test())
+	# g4_test убран: вместо него в игре модель пользователя (base.glb)
 	return result
 
 

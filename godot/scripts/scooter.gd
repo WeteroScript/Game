@@ -49,6 +49,8 @@ var ground_normal := Vector3.UP
 var off_road_amount := 0.0
 
 var battery_wh := 0.0
+## Сглаженный угол руля: поворот не дёргается от резкого ввода.
+var _steer_smooth := 0.0
 var distance_meters := 0.0
 var run_time := 0.0
 var air_time := 0.0
@@ -161,7 +163,8 @@ func signed_speed_kmh() -> float:
 
 
 func battery_percent() -> float:
-	return clampf(battery_wh / maxf(1.0, spec.battery_wh), 0.0, 1.0) * 100.0
+	# Батарея отключена в игре; оставлено для совместимости старых вызовов.
+	return 100.0
 
 
 func is_grounded() -> bool:
@@ -246,7 +249,6 @@ func _physics_process(delta: float) -> void:
 	_apply_balance()
 	_anti_sink()
 	_tick_wheelie(delta)
-	_update_battery(delta)
 	_check_failures()
 	_update_rider(delta)
 	_update_audio()
@@ -362,8 +364,9 @@ func _apply_drive(delta: float) -> void:
 	var active_motors := 2 if is_awd else 1
 	var top_speed_mps := max_speed_kmh() / 3.6
 
+	# Система батареи убрана: тяга всегда полная.
 	var battery_scale := 1.0
-	var percent := battery_percent()
+	var percent := 100.0
 	if percent <= 0.01:
 		battery_scale = 0.0
 	elif percent < GameConfig.LOW_BATTERY_PERCENT:
@@ -473,9 +476,12 @@ func _apply_wheel_limit() -> void:
 		var need: float = hit["position"].y + spec.wheel_radius * 0.94
 		if probe.y >= need:
 			continue
-		# Мягко, чтобы не подбрасывало: сила ограничена глубиной 0.10 м.
-		var push := minf(need - probe.y, 0.10)
-		apply_central_force(Vector3.UP * push * spec.mass_kg * 200.0)
+		# Только реальный провал: иначе на поворотах сила дёргала самокат.
+		var depth_in := need - probe.y
+		if depth_in < 0.035:
+			continue
+		var push := minf(depth_in, 0.10)
+		apply_central_force(Vector3.UP * push * spec.mass_kg * 90.0)
 		linear_velocity.y = maxf(linear_velocity.y, 0.0)
 
 
@@ -483,14 +489,23 @@ func _apply_balance() -> void:
 	# Наклон в поворот.
 	var speed_abs := absf(speed_mps)
 	var lean_factor := clampf(speed_abs / GameConfig.LEAN_INTO_TURN_FULL_SPEED, 0.0, 1.0)
-	var target_roll := -steer_input * GameConfig.LEAN_INTO_TURN_MAX_ANGLE * lean_factor
+	# Руль догоняет ввод плавно и тем медленнее, чем выше скорость, а на скорости
+	# угол ещё и подрезается — иначе самокат дёргало и швыряло в поворотах.
+	var dt := get_physics_process_delta_time()
+	var steer_rate: float = lerpf(5.2, 2.1, clampf(speed_abs / 20.0, 0.0, 1.0))
+	_steer_smooth = move_toward(_steer_smooth, steer_input, dt * steer_rate)
+	var steer_gain: float = lerpf(1.0, 0.62, clampf(speed_abs / 24.0, 0.0, 1.0))
+	var steer_use: float = _steer_smooth * steer_gain
+	var target_roll := -steer_use * GameConfig.LEAN_INTO_TURN_MAX_ANGLE * lean_factor
 	var roll_error := deg_to_rad(target_roll - roll_deg)
 	# Момент крена положителен вокруг локальной +Z, поэтому и скорость крена
 	# считаем по +Z: со знаком минус демпфирование превращалось в раскачку.
 	var roll_rate := angular_velocity.dot(global_transform.basis.z)
+	# Дополнительное демпфирование крена: убирает раскачку «дёргается и летает».
+	var roll_damp := -roll_rate * spec.mass_kg * 0.06
 	var support := 1.0 if is_grounded() else 0.12
 
-	var roll_torque := roll_error * GameConfig.ROLL_STABILITY_GAIN - roll_rate * GameConfig.ROLL_STABILITY_DAMPING
+	var roll_torque := roll_error * GameConfig.ROLL_STABILITY_GAIN - roll_rate * GameConfig.ROLL_STABILITY_DAMPING + roll_damp
 	roll_torque *= support
 	var roll_limit := GameConfig.ROLL_MAX_TORQUE
 	# Самокат не падает от потери равновесия: сильный завал вытягиваем

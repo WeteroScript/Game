@@ -6,7 +6,7 @@
 extends SceneTree
 
 const MODELS := {
-	"g4_test": "KuKirin_G4_TEST",
+	"g4_user": "KuKirin_G4_USER",
 	"g4": "KuKirin_G4",
 	"f3": "Kugoo_F3_Pro_Max",
 }
