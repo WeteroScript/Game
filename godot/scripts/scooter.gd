@@ -203,11 +203,14 @@ func _report_model() -> void:
 	var bottom := INF
 	var top := -INF
 	var meshes := 0
+	# Низ считаем в системе самоката: мировой AABB растёт при крене и наклоне,
+	# и по нему модель «садилась» бы ниже, чем нужно.
+	var to_mine := global_transform.affine_inverse()
 	for mesh in _visual_meshes():
 		meshes += 1
-		var box: AABB = mesh.global_transform * mesh.mesh.get_aabb()
-		bottom = minf(bottom, box.position.y - global_position.y)
-		top = maxf(top, box.end.y - global_position.y)
+		var box: AABB = to_mine * mesh.global_transform * mesh.mesh.get_aabb()
+		bottom = minf(bottom, box.position.y)
+		top = maxf(top, box.end.y)
 	var spin_nodes := ""
 	for pair in [["front", front_visual], ["rear", rear_visual], ["steer", front_steer]]:
 		var node: Node3D = pair[1]
