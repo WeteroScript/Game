@@ -823,7 +823,7 @@ func _align_visual_to_ground(delta: float) -> void:
 		return
 	var ground := sum / float(hits)
 	var wanted := ground - global_position.y - _model_bottom
-	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.12, 0.05), clampf(delta * 9.0, 0.0, 1.0))
+	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.30, 0.20), clampf(delta * 9.0, 0.0, 1.0))
 	model_root.position.y = _ground_offset
 
 

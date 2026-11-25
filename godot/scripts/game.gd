@@ -845,6 +845,9 @@ func _save_settings() -> void:
 func _on_rider_toggled(shown: bool) -> void:
 	rider_shown = shown
 	_save_settings()
+	# Кнопку в меню перерисовываем всегда: состояние может прийти и от самой игры.
+	menu.rider_shown = shown
+	menu.refresh()
 	if scooter != null:
 		scooter.set_rider_shown(shown)
 
