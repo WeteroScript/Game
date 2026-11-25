@@ -184,6 +184,11 @@ func _enter_menu() -> void:
 		scooter.set_input_enabled(false)
 	if camera_rig != null:
 		camera_rig.target = null
+		# В меню самокат показываем от третьего лица: иначе после вида «из глаз»
+		# райдер остаётся скрытым, и в меню стоит безголовый самокат.
+		camera_rig.first_person = false
+	if scooter != null:
+		scooter.set_first_person(false)
 	menu_angle = 0.4
 	_update_menu_camera(0.0)
 
