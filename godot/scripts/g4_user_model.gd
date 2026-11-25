@@ -87,11 +87,10 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 	var steer := Node3D.new()
 	steer.name = "Steer"
 	root.add_child(steer)
-	# Вилка с рулём поворачивается вместе с передним колесом.
-	if fork != null and fork.get_parent() != null:
-		fork.reparent(steer, true)
-	if front != null and front.get_parent() != null:
-		front.reparent(steer, true)
+	# Иерархия уже собрана в GLB (Steer -> SteerMesh + WheelFront), поэтому
+	# ничего не перевешиваем — только подключаем узлы.
+	if fork != null:
+		steer = fork
 	else:
 		front = Node3D.new()
 		front.name = "WheelFront"
