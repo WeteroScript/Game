@@ -2,7 +2,7 @@
 ## Собирает мир, самокат, камеру и интерфейс, ведёт таймеры режимов.
 extends Node3D
 
-enum State { MENU, COUNTDOWN, RUNNING, FINISHED, PAUSED }
+enum State { MENU, COUNTDOWN, RUNNING, FINISHED }
 
 const RESULTS_LAYER := 20
 
@@ -17,7 +17,6 @@ var scooter: Scooter
 var camera_rig: CameraRig
 var hud: Hud
 var menu: MenuScreen
-var pause_screen: PauseScreen
 var results_root: Control
 var results_label: Label
 var _results_built := false
@@ -30,8 +29,6 @@ var countdown_time := 0.0
 var time_left := 0.0
 var menu_angle := 0.0
 var _go_timer := 0.0
-## Режим съёмки: отключает орбитальную камеру меню, чтобы кадры были по делу.
-var _shots := false
 
 # Автотест для CI: `godot --headless --fixed-fps 60 -- --smoke` проезжает
 # заезд за игрока (газ, руль, вилли, падение) и печатает SMOKE OK.
@@ -39,14 +36,6 @@ var _smoke := false
 var _smoke_timer := 0.0
 var _smoke_crashed := false
 var _smoke_phase := 0
-var _smoke_wheelie_on := false
-# Проверка знака руля: вправо (+) должен давать поворот по часовой (yaw вниз).
-
-# Перетаскивание камеры.
-var _camera_dragging := false
-var _camera_touch_index := -1
-## Состояние до паузы, чтобы вернуться именно туда.
-var _state_before_pause: int = State.RUNNING
 
 
 func _ready() -> void:
@@ -64,23 +53,17 @@ func _ready() -> void:
 	add_child(hud)
 	hud.setup(input_state)
 	hud.visible = false
-	hud.menu_pressed.connect(_on_menu_pressed)
+	hud.menu_pressed.connect(_back_to_menu)
 	hud.drive_toggled.connect(_toggle_drive)
 	hud.speed_mode_changed.connect(_on_speed_mode_button)
 	hud.respawn_pressed.connect(_respawn)
-	hud.view_toggled.connect(_toggle_view)
 
 	menu = MenuScreen.new()
 	add_child(menu)
 	menu.setup(ScooterSpec.all())
 	menu.start_pressed.connect(_start_run)
 
-	pause_screen = PauseScreen.new()
-	add_child(pause_screen)
-	pause_screen.resume_pressed.connect(_resume)
-	pause_screen.menu_pressed.connect(_back_to_menu)
-
-	await _build_world(selected_map, selected_spec_id)
+	_build_world(selected_map, selected_spec_id)
 	_enter_menu()
 
 	if OS.get_cmdline_user_args().has("--smoke"):
@@ -140,15 +123,6 @@ func _build_world(map_id: int, spec_id: String) -> void:
 	add_child(world_root)
 
 	var info := world_builder.build(map_id, world_root)
-	# Сцена строится не одним куском: лес и дома достраиваются порциями по кадрам,
-	# поэтому нет длинного фриза на старте. В автотестах и на съёмке — сразу целиком.
-	var args := OS.get_cmdline_user_args()
-	if args.has("--shot") or args.has("--smoke"):
-		world_builder.pump(600000.0)
-	else:
-		while world_builder.pending_jobs() > 0:
-			world_builder.pump(5.0)
-			await get_tree().process_frame
 	var spawn: Vector3 = info["spawn"]
 
 	scooter = Scooter.create(ScooterSpec.get_by_id(spec_id), input_state)
@@ -162,9 +136,6 @@ func _build_world(map_id: int, spec_id: String) -> void:
 
 # ---- меню -------------------------------------------------------------------
 func _enter_menu() -> void:
-	get_tree().paused = false
-	if pause_screen != null:
-		pause_screen.close()
 	state = State.MENU
 	menu.visible = true
 	menu.refresh()
@@ -190,14 +161,11 @@ func _update_menu_camera(delta: float) -> void:
 
 
 func _start_run(spec_id: String, map_id: int, mode_id: int) -> void:
-	get_tree().paused = false
-	if pause_screen != null:
-		pause_screen.close()
 	selected_spec_id = spec_id
 	selected_map = map_id
 	selected_mode = mode_id
 
-	await _build_world(map_id, spec_id)
+	_build_world(map_id, spec_id)
 	tricks = TrickSystem.new()
 	tricks.trick_scored.connect(_on_trick)
 
@@ -209,7 +177,6 @@ func _start_run(spec_id: String, map_id: int, mode_id: int) -> void:
 
 	camera_rig.target = scooter
 	camera_rig.setup(scooter)
-	camera_rig.apply_view()
 
 	match mode_id:
 		GameConfig.GameMode.FREESTYLE:
@@ -227,44 +194,8 @@ func _start_run(spec_id: String, map_id: int, mode_id: int) -> void:
 
 
 func _back_to_menu() -> void:
-	await _build_world(selected_map, selected_spec_id)
+	_build_world(selected_map, selected_spec_id)
 	_enter_menu()
-
-
-## Кнопка МЕНЮ / Esc: во время заезда открывает паузу, на результатах — в меню.
-func _on_menu_pressed() -> void:
-	if state == State.FINISHED:
-		_back_to_menu()
-	else:
-		_open_pause()
-
-
-func _open_pause() -> void:
-	if state != State.RUNNING and state != State.COUNTDOWN:
-		return
-	_state_before_pause = state
-	state = State.PAUSED
-	input_state.enabled = false
-	if hud != null:
-		hud.release_touches()
-	if scooter != null:
-		scooter.set_input_enabled(false)
-	if pause_screen != null:
-		pause_screen.open()
-	get_tree().paused = true
-
-
-func _resume() -> void:
-	if state != State.PAUSED:
-		return
-	if pause_screen != null:
-		pause_screen.close()
-	get_tree().paused = false
-	state = _state_before_pause
-	if state == State.RUNNING:
-		input_state.enabled = true
-		if scooter != null:
-			scooter.set_input_enabled(true)
 
 
 # ---- автотест ---------------------------------------------------------------
@@ -296,11 +227,11 @@ func _telemetry() -> String:
 		wheelie_state = "on" if scooter.wheelie.active else "off"
 		if scooter.wheelie.in_balance_zone:
 			wheelie_state = "zone"
-	return "%s speed=%.1f dist=%.1f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s gas=%.2f score=%d combo=%.2f crashes=%d last=%s" % [
+	return "%s speed=%.1f dist=%.1f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s gas=%.2f score=%d combo=%.2f battery=%.0f%% crashes=%d last=%s" % [
 		scooter.spec.id, scooter.speed_kmh(), scooter.distance_meters, pos.y,
 		scooter.pitch_deg, scooter.max_pitch_deg, scooter.roll_deg, contact,
 		wheelie_state, scooter.throttle_input, tricks.score,
-		tricks.combo_multiplier(),
+		tricks.combo_multiplier(), scooter.battery_percent(),
 		scooter.crash_count, scooter.last_crash_reason,
 	]
 
@@ -338,29 +269,17 @@ func _tick_smoke(delta: float) -> void:
 	if state != State.RUNNING:
 		return
 
-	# В вилли автотест держит газ ниже упора: так проверяется управление углом
-	# без намеренного переворота через заднее колесо.
-	input_state.touch_throttle = 0.75 if _smoke_wheelie_on else 1.0
-	# На ровной дороге автотест виляет рулём, в городе едет прямо.
-	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35 if _smoke_phase == 0 else 0.0
+	input_state.touch_throttle = 1.0
+	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35
 
 	if _smoke_phase == 0:
-		if not _smoke_wheelie_on and _smoke_timer > 3.0:
-			_smoke_wheelie_on = true
-			input_state.request_wheelie_toggle()
-			print("SMOKE wheelie toggle ON")
-		elif _smoke_wheelie_on and _smoke_timer > 9.5:
-			_smoke_wheelie_on = false
-			input_state.request_wheelie_toggle()
-			print("SMOKE wheelie toggle OFF")
+		input_state.touch_wheelie = _smoke_timer > 3.0 and _smoke_timer < 9.5
 		if not _smoke_crashed and _smoke_timer > 10.5 and scooter != null:
 			_smoke_crashed = true
 			scooter.crash("smoke test")
 			print("SMOKE forced crash")
 
-	# Во время вилли печатаем чаще: нужно видеть траекторию угла.
-	var period := 1.0 if _smoke_wheelie_on else 3.0
-	if fmod(_smoke_timer, period) < delta:
+	if fmod(_smoke_timer, 3.0) < delta:
 		print("SMOKE t=%.1f %s" % [_smoke_timer, _telemetry()])
 
 
@@ -368,168 +287,11 @@ func _tick_smoke(delta: float) -> void:
 # `godot --rendering-driver opengl3 -- --shot` под xvfb снимает оба самоката
 # с трёх ракурсов и складывает PNG в каталог из переменной SHOT_DIR.
 func _start_screenshots() -> void:
-	_shots = true
-	# Студийный свет для рендеров: два мягких источника без теней, чтобы детали
-	# моделей читались на снимках, плюс поднятая засветка окружения.
-	for yaw in [-70.0, 110.0]:
-		var fill := DirectionalLight3D.new()
-		fill.rotation = Vector3(deg_to_rad(-28.0), deg_to_rad(yaw), 0.0)
-		fill.light_energy = 0.58
-		fill.shadow_enabled = false
-		add_child(fill)
-	for child in get_children():
-		if child is WorldEnvironment and child.environment != null:
-			var env: Environment = child.environment
-			# Нейтральная засветка вместо неба: иначе серый корпус уходит в синеву,
-			# а на фото он тёплый нейтральный.
-			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-			env.ambient_light_color = Color(0.62, 0.62, 0.62)
-			env.ambient_light_energy = 0.52
-			env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	menu.visible = false
 	hud.visible = false
 	# HUD не должен затирать виртуальные касания нулями при съёмке.
 	hud.set_process(false)
 	_take_screenshots()
-
-
-## Обойти дерево модели и собрать группы деталей: узел с прямыми мешами = деталь.
-func _collect_part_groups(node: Node3D, out: Array) -> void:
-	for child in node.get_children():
-		if not (child is Node3D):
-			continue
-		var meshes := 0
-		for sub in child.get_children():
-			if sub is MeshInstance3D:
-				meshes += 1
-		if meshes > 0:
-			out.append({"node": child, "count": meshes})
-		if child.get_child_count() > 0:
-			_collect_part_groups(child, out)
-
-
-## Совмещённый AABB прямых мешей узла.
-func _group_aabb(node: Node3D) -> AABB:
-	var box := AABB()
-	var first := true
-	for child in node.get_children():
-		if child is MeshInstance3D and child.mesh != null:
-			var local: AABB = child.mesh.get_aabb()
-			var world: AABB = child.global_transform * local
-			if first:
-				box = world
-				first = false
-			else:
-				box = box.merge(world)
-	return box
-
-
-## По одному кадру на каждую группу деталей (имя файла = путь узла в модели).
-func _take_part_shots(shot_dir: String, spec_id: String) -> void:
-	var model_root: Node3D = null
-	if scooter != null:
-		model_root = scooter.get_node_or_null("Model")
-	if model_root == null:
-		print("PART SHOTS: нет узла Model")
-		return
-	var groups: Array = []
-	_collect_part_groups(model_root, groups)
-	print("PART SHOTS: групп %d" % groups.size())
-	var made := 0
-	for entry in groups:
-		var node: Node3D = entry["node"]
-		if str(node.get_path()).contains("Rider"):
-			continue
-		var box := _group_aabb(node)
-		if box.size.length() < 0.004:
-			continue
-		var center := box.get_center()
-		var radius := maxf(box.size.length() * 0.5, 0.015)
-		var dist := radius * 3.6 + 0.14
-		var dir := Vector3(0.62, 0.52, -0.58)
-		if center.x < -0.015:
-			dir = Vector3(-0.62, 0.52, -0.58)
-		dir = dir.normalized()
-		camera_rig.target = null
-		camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
-		camera_rig.fov = 36.0
-		camera_rig.global_position = center + dir * dist
-		camera_rig.look_at(center, Vector3.UP)
-		for frame in 3:
-			await get_tree().process_frame
-		await RenderingServer.frame_post_draw
-		var image := get_viewport().get_texture().get_image()
-		var rel := str(node.get_path())
-		var cut := rel.find("Model/")
-		if cut >= 0:
-			rel = rel.substr(cut + 6)
-		rel = rel.replace("/", "-")
-		var path := "%s/%s_part_%s.png" % [shot_dir, spec_id, rel]
-		image.save_png(path)
-		made += 1
-	print("PART SHOTS: снято %d" % made)
-
-
-## Собрать отдельные детали-меши: повторяющиеся (шашки протектора, болты) — по 2 образца.
-func _collect_detail_meshes(node: Node, out: Array, seen: Dictionary) -> void:
-	for child in node.get_children():
-		if child is MeshInstance3D and child.mesh != null:
-			var base := str(child.name)
-			var cut := base.rfind("_")
-			if cut > 0 and base.substr(cut + 1).is_valid_int():
-				base = base.substr(0, cut)
-			var key := "%s/%s" % [str(node.get_path()), base]
-			var count: int = int(seen.get(key, 0))
-			seen[key] = count + 1
-			if count > 1:
-				continue
-			var box: AABB = child.global_transform * child.mesh.get_aabb()
-			if box.size.length() < 0.004:
-				continue
-			out.append({"mesh": child, "box": box, "group": str(node.get_path())})
-		elif child is Node:
-			_collect_detail_meshes(child, out, seen)
-
-
-## Кадры отдельных деталей: имя файла = группа + имя меша.
-func _take_detail_shots(shot_dir: String, spec_id: String) -> void:
-	var model_root: Node3D = null
-	if scooter != null:
-		model_root = scooter.get_node_or_null("Model")
-	if model_root == null:
-		return
-	var items: Array = []
-	_collect_detail_meshes(model_root, items, {})
-	print("DETAIL SHOTS: деталей %d" % items.size())
-	var made := 0
-	for item in items:
-		var box: AABB = item["box"]
-		var center := box.get_center()
-		var radius := maxf(box.size.length() * 0.5, 0.008)
-		var dist := radius * 3.4 + 0.10
-		var dir := Vector3(0.60, 0.52, -0.60)
-		if center.x < -0.015:
-			dir = Vector3(-0.60, 0.52, -0.60)
-		dir = dir.normalized()
-		camera_rig.target = null
-		camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
-		camera_rig.fov = 36.0
-		camera_rig.global_position = center + dir * dist
-		camera_rig.look_at(center, Vector3.UP)
-		for frame in 2:
-			await get_tree().process_frame
-		await RenderingServer.frame_post_draw
-		var image := get_viewport().get_texture().get_image()
-		image.resize(640, 360, Image.INTERPOLATE_BILINEAR)
-		var group := str(item["group"])
-		var cut := group.find("Model/")
-		if cut >= 0:
-			group = group.substr(cut + 6)
-		var path := "%s/%s_detail_%s-%s.png" % [shot_dir, spec_id,
-			group.replace("/", "-"), str(item["mesh"].name)]
-		image.save_png(path)
-		made += 1
-	print("DETAIL SHOTS: снято %d" % made)
 
 
 func _take_screenshots() -> void:
@@ -540,55 +302,24 @@ func _take_screenshots() -> void:
 
 	# offset — где стоит камера, look — куда смотрит, fov — угол.
 	var shots := [
-		{"name": "front", "offset": Vector3(1.45, 0.92, -2.25), "look": Vector3(0.0, 0.58, -0.05), "fov": 34.0},
-		{"name": "side", "offset": Vector3(6.20, 0.62, 0.0), "look": Vector3(0.0, 0.62, 0.0), "fov": 15.0, "ortho": true, "size": 1.55},
-		{"name": "rear", "offset": Vector3(-1.35, 0.78, 1.95), "look": Vector3(0.0, 0.50, 0.02), "fov": 34.0},
-		{"name": "bar", "offset": Vector3(0.62, 1.42, -0.85), "look": Vector3(0.0, 1.10, -0.28), "fov": 34.0},
-		{"name": "wheel", "offset": Vector3(0.70, 0.26, -0.95), "look": Vector3(0.0, 0.13, -0.50), "fov": 34.0},
-		{"name": "dash", "offset": Vector3(0.10, 1.34, 0.78), "look": Vector3(0.0, 1.10, -0.20), "fov": 34.0},
-		{"name": "deck", "offset": Vector3(0.78, 0.46, 0.16), "look": Vector3(0.0, 0.22, 0.02), "fov": 34.0},
-		# Строгие ортогональные проекции для сверки с фото.
-		{"name": "o_front", "offset": Vector3(0.0, 0.60, -4.6), "look": Vector3(0.0, 0.60, 0.0),
-			"fov": 12.0, "ortho": true, "size": 1.38},
-		{"name": "o_rear", "offset": Vector3(0.0, 0.60, 4.6), "look": Vector3(0.0, 0.60, 0.0),
-			"fov": 12.0, "ortho": true, "size": 1.38},
-		{"name": "o_left", "offset": Vector3(-4.6, 0.60, 0.0), "look": Vector3(0.0, 0.60, 0.0),
-			"fov": 12.0, "ortho": true, "size": 1.38},
-		{"name": "o_right", "offset": Vector3(4.6, 0.60, 0.0), "look": Vector3(0.0, 0.60, 0.0),
-			"fov": 12.0, "ortho": true, "size": 1.38},
-		{"name": "o_top", "offset": Vector3(0.0, 3.40, 0.0), "look": Vector3(0.0, 0.40, 0.0),
-			"fov": 12.0, "ortho": true, "size": 1.48, "up": Vector3(0.0, 0.0, -1.0), "hide_world": true},
-		{"name": "o_bottom", "offset": Vector3(0.0, -2.20, 0.0), "look": Vector3(0.0, 0.40, 0.0),
-			"fov": 12.0, "ortho": true, "size": 1.48, "up": Vector3(0.0, 0.0, 1.0), "hide_world": true},
-		{"name": "o_quarter", "offset": Vector3(1.90, 1.05, -2.35), "look": Vector3(0.0, 0.62, 0.0),
-			"fov": 30.0},
+		{"name": "front", "offset": Vector3(1.05, 0.72, -1.75), "look": Vector3(0.0, 0.48, -0.15), "fov": 42.0},
+		{"name": "side", "offset": Vector3(2.05, 0.52, 0.05), "look": Vector3(0.0, 0.44, 0.0), "fov": 40.0},
+		{"name": "rear", "offset": Vector3(-1.05, 0.95, 1.55), "look": Vector3(0.0, 0.5, 0.1), "fov": 42.0},
+		{"name": "bar", "offset": Vector3(0.62, 1.18, -0.95), "look": Vector3(0.0, 0.86, -0.38), "fov": 38.0},
+		{"name": "wheel", "offset": Vector3(0.85, 0.30, -0.95), "look": Vector3(0.0, 0.12, -0.5), "fov": 40.0},
 	]
 
 	for spec_id in ["g4", "f3"]:
-		await _build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
+		_build_world(GameConfig.MapId.STRAIGHT_TRACK, spec_id)
 		camera_rig.target = null
 		await get_tree().create_timer(0.8).timeout
-		# Сначала чистые кадры самой модели (без райдера), потом — с ним.
-		var rider_node: Node3D = null
-		if scooter != null and scooter.rider != null:
-			rider_node = scooter.rider
-			rider_node.visible = false
 		for index in shots.size():
 			var shot: Dictionary = shots[index]
 			var origin: Vector3 = scooter.global_position
 			var look_point: Vector3 = origin + shot["look"]
-			var up: Vector3 = shot.get("up", Vector3.UP)
-			if shot.get("hide_world", false) and world_root != null:
-				world_root.visible = false
 			camera_rig.global_position = origin + shot["offset"]
-			camera_rig.look_at(look_point, up)
+			camera_rig.look_at(look_point, Vector3.UP)
 			camera_rig.fov = shot["fov"]
-			# Ортокамера для кадров, по которым сверяем силуэт с фото.
-			if shot.get("ortho", false):
-				camera_rig.projection = Camera3D.PROJECTION_ORTHOGONAL
-				camera_rig.size = shot["size"]
-			else:
-				camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
 			for frame in 4:
 				await get_tree().process_frame
 			await RenderingServer.frame_post_draw
@@ -596,35 +327,9 @@ func _take_screenshots() -> void:
 			var path := "%s/%s_%d_%s.png" % [shot_dir, spec_id, index, shot["name"]]
 			var error := image.save_png(path)
 			print("SHOT %s err=%d" % [path, error])
-			# Дублируем кадры исправленной модели с префиксом g4_fixed для сравнения.
-			if spec_id == "g4":
-				image.save_png("%s/g4_fixed_%d_%s.png" % [shot_dir, index, shot["name"]])
-			if shot.get("hide_world", false) and world_root != null:
-				world_root.visible = true
-
-		# Кадры каждой группы деталей: только для модели пользователя.
-		if spec_id == "g4":
-			await _take_part_shots(shot_dir, spec_id)
-			await _take_detail_shots(shot_dir, spec_id)
-
-		# Кадр с райдером.
-		if rider_node != null:
-			rider_node.visible = true
-			var origin2: Vector3 = scooter.global_position
-			camera_rig.global_position = origin2 + Vector3(1.95, 0.90, -2.50)
-			camera_rig.look_at(origin2 + Vector3(0.0, 0.98, -0.1), Vector3.UP)
-			camera_rig.fov = 32.0
-			for frame in 6:
-				await get_tree().process_frame
-			await RenderingServer.frame_post_draw
-			_save_shot(shot_dir, "%s_rider" % spec_id)
 
 	# Меню: проверяем вёрстку кнопок и карточку характеристик.
 	_enter_menu()
-	camera_rig.target = null
-	camera_rig.global_position = scooter.global_position + Vector3(1.95, 1.25, 2.55)
-	camera_rig.look_at(scooter.global_position + Vector3.UP * 0.60, Vector3.UP)
-	camera_rig.fov = 40.0
 	for frame in 10:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
@@ -638,51 +343,10 @@ func _take_screenshots() -> void:
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_drive")
 
-	# На кадре станта газ средний: на полном контроллер уводит нос почти
-	# в вертикаль (перегазовка), и позу не разобрать.
-	input_state.touch_throttle = 0.55
-	input_state.request_wheelie_toggle()
-	await get_tree().create_timer(2.4).timeout
+	input_state.touch_wheelie = true
+	await get_tree().create_timer(1.6).timeout
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_wheelie")
-
-	# Стант сбоку: видно позу райдера — опорная нога на деке, вторая в воздухе.
-	# Камеру переставляем каждый кадр: на софтверном рендере в CI кадр долгий,
-	# и статичная камера теряет уезжающий самокат.
-	hud.visible = false
-	camera_rig.target = null
-	camera_rig.fov = 38.0
-	for frame in 5:
-		var stunt_origin: Vector3 = scooter.global_position
-		camera_rig.global_position = stunt_origin + Vector3(4.3, 1.25, 1.5)
-		camera_rig.look_at(stunt_origin + Vector3(0.0, 0.85, 0.25), Vector3.UP)
-		await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	print("SHOT stunt scooter=%s pitch=%.1f roll=%.1f y=%.2f speed=%.1f lift=%.2f active=%s crashed=%s" % [
-		str(scooter.global_position), scooter.pitch_deg, scooter.roll_deg,
-		scooter.global_position.y, scooter.speed_kmh(),
-		scooter.wheelie.lift_progress if scooter.wheelie != null else 0.0,
-		str(scooter.wheelie.active if scooter.wheelie != null else false),
-		str(scooter.is_crashed),
-	])
-	_save_shot(shot_dir, "wheelie_side")
-
-	# Пауза: проверяем новое меню с «Продолжить» и «В меню».
-	_open_pause()
-	for frame in 6:
-		await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	_save_shot(shot_dir, "pause")
-	_resume()
-
-	# Вид от первого лица: райдер скрыт, камера на уровне шлема.
-	camera_rig.target = scooter
-	camera_rig.toggle_view()
-	hud.visible = true
-	for frame in 8:
-		await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	_save_shot(shot_dir, "hud_fp")
 
 	print("SHOTS DONE %s" % shot_dir)
 	get_tree().quit()
@@ -704,8 +368,7 @@ func _process(delta: float) -> void:
 
 	match state:
 		State.MENU:
-			if not _shots:
-				_update_menu_camera(delta)
+			_update_menu_camera(delta)
 		State.COUNTDOWN:
 			_process_countdown(delta)
 		State.RUNNING:
@@ -760,37 +423,12 @@ func _handle_actions() -> void:
 		scooter.set_speed_mode(requested_mode)
 	if input_state.consume_respawn():
 		_respawn()
-	if input_state.consume_view_toggle():
-		_toggle_view()
 	if input_state.consume_menu():
-		_on_menu_pressed()
+		_back_to_menu()
 
 
-## Камера: тащим мышью с зажатой ЛКМ или свайпом по экрану, где нет кнопок.
 func _unhandled_input(event: InputEvent) -> void:
 	input_state.handle_key_events(event)
-
-	if camera_rig == null or state == State.MENU or _shots:
-		return
-
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			_camera_dragging = not _over_controls(event.position)
-		else:
-			_camera_dragging = false
-	elif event is InputEventMouseMotion and _camera_dragging:
-		camera_rig.orbit_input(event.relative.x * 0.005, -event.relative.y * 0.004)
-	elif event is InputEventScreenTouch:
-		if event.pressed:
-			_camera_touch_index = event.index if not _over_controls(event.position) else -1
-		elif event.index == _camera_touch_index:
-			_camera_touch_index = -1
-	elif event is InputEventScreenDrag and event.index == _camera_touch_index:
-		camera_rig.orbit_input(event.relative.x * 0.006, -event.relative.y * 0.005)
-
-
-func _over_controls(point: Vector2) -> bool:
-	return hud != null and hud.is_over_controls(point)
 
 
 func _has_timer() -> bool:
@@ -809,22 +447,8 @@ func _on_speed_mode_button(_mode: int) -> void:
 
 
 func _respawn() -> void:
-	if scooter == null or state != State.RUNNING:
-		return
-	scooter.respawn()
-	# Камера снова за спиной, иначе после телепорта она «улетает».
-	if camera_rig != null:
-		camera_rig.reset_orbit()
-		camera_rig.snap_behind()
-	if hud != null:
-		hud.clear_crash()
-
-
-## Переключение вида: третье лицо ⇄ первое.
-func _toggle_view() -> void:
-	if camera_rig == null or scooter == null or state == State.MENU:
-		return
-	camera_rig.toggle_view()
+	if scooter != null and state == State.RUNNING:
+		scooter.respawn()
 
 
 func _on_crash(reason: String) -> void:
@@ -841,10 +465,7 @@ func _on_respawned() -> void:
 func _on_trick(trick_name: String, points: int) -> void:
 	if hud != null:
 		hud.show_trick(trick_name, points)
-	# «Дзынь» только за прыжки и вращения. Вилли и стоппи начисляются каждые
-	# полсекунды, и писк на них раздражал больше, чем радовал.
-	var quiet := trick_name.begins_with("WHEELIE") or trick_name.begins_with("STOPPIE")
-	if not quiet and scooter != null and scooter.audio != null:
+	if scooter != null and scooter.audio != null:
 		scooter.audio.play_chime()
 
 

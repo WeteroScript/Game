@@ -59,8 +59,6 @@ jobs:
             godot --path "$PROJECT_PATH" --rendering-driver opengl3 \
             --rendering-method gl_compatibility --resolution 1280x720 -- --shot 2>&1 | tee /tmp/shot.log || true
           grep -E "SHOT|ERROR|SCRIPT" /tmp/shot.log | head -40
-          grep -E "^SHOT stunt" /tmp/shot.log | head -2 \
-            | sed 's/^/::notice title=stunt-shot::/' || true
           ls -la "$SHOT_DIR" || true
           test -n "$(ls -A "$SHOT_DIR" 2>/dev/null)"
 
@@ -76,61 +74,6 @@ jobs:
           git commit -q -m "screenshots: ${GITHUB_SHA}"
           git push --force origin shots:ci-screenshots
           echo "Скриншоты: https://github.com/$GITHUB_REPOSITORY/tree/ci-screenshots/screenshots"
-
-  glb:
-    name: Export GLB models
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    # Экспорт в GLB — отдельный артефакт: нужен для просмотра/анимации вне Godot.
-    continue-on-error: true
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Godot
-        uses: chickensoft-games/setup-godot@v2
-        with:
-          version: ${{ env.GODOT_VERSION }}
-          use-dotnet: false
-          include-templates: false
-
-      - name: Import project
-        run: godot --headless --path "$PROJECT_PATH" --import || true
-
-      - name: Export GLB
-        run: |
-          godot --headless --path "$PROJECT_PATH" -s res://tools/export_glb.gd 2>&1 | tee /tmp/glb.log
-          grep -E "GLB" /tmp/glb.log || true
-          ls -la "$PROJECT_PATH/build/glb" || true
-          test -n "$(ls -A "$PROJECT_PATH/build/glb" 2>/dev/null)"
-          grep -E "GLB DONE" /tmp/glb.log | sed 's/^/::notice title=glb::/'
-
-      - name: Upload GLB
-        uses: actions/upload-artifact@v4
-        with:
-          name: glb-models
-          path: ${{ env.PROJECT_PATH }}/build/glb/*.glb
-          if-no-files-found: error
-          retention-days: 30
-
-      # Стабильная ссылка на файлы: ветка ci-glb, оттуда GLB скачивается
-      # одним кликом, без распаковки артефакта.
-      - name: Publish GLB to the ci-glb branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          mkdir -p "$RUNNER_TEMP/glbout"
-          cp "$PROJECT_PATH"/build/glb/*.glb "$RUNNER_TEMP/glbout/"
-          git checkout --orphan glb-export
-          git rm -rf --cached . > /dev/null
-          cp "$RUNNER_TEMP/glbout"/*.glb .
-          git add -f ./*.glb
-          git commit -q -m "glb: ${GITHUB_SHA}"
-          git push --force origin glb-export:ci-glb
-          echo "GLB: https://github.com/$GITHUB_REPOSITORY/tree/ci-glb"
 
   build:
     name: Build APK (Godot 4.3 · Android)
@@ -243,12 +186,6 @@ jobs:
             echo "::error::Ошибка в рантайме, смотрите лог выше"
             status=1
           fi
-          # Числа автотеста выводим аннотациями: их видно через check-runs API
-          # и они не зависят от комментария в PR.
-          grep -E "pitch=" /tmp/run.log | head -8 \
-            | sed 's/^/::notice title=smoke-trace::/' || true
-          grep -E "^SMOKE OK" /tmp/run.log | head -1 \
-            | sed 's/^/::notice title=smoke-final::/' || true
           if [ "$status" -ne 0 ]; then
             {
               echo "### Ошибки при запуске игры"

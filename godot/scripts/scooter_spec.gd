@@ -25,21 +25,11 @@ var suspension_text := "Регулируемая двойная"
 var features_text := "LCD · фара · стоп-сигнал · поворотники · ключ"
 
 # ---- Симуляция --------------------------------------------------------------
-var wheel_radius := 0.162
+var wheel_radius := 0.14
 var wheel_base := 1.06
 var deck_length := 0.51
 ## Высота настила над осями колёс (для модели).
-var deck_height := 0.155
-## Цвет рычагов подвески (на F3 они оранжевые, на G4 — в цвет рамы).
-var suspension_color := Color(0.45, 0.47, 0.50)
-## Надпись на стойке и деке.
-var brand_text := "KUGOO"
-## Приподнятая задняя площадка на кронштейне — она есть на обоих фото.
-var has_rear_step := true
-## Переднее крыло: у G4 его нет, у F3 — есть.
-var front_fender := false
-## Наклон стойки назад, градусы (у F3 она заметно завалена, у G4 почти вертикальная).
-var stem_rake_deg := 6.0
+var deck_height := 0.075
 var deck_width := 0.22
 
 var battery_wh := 1200.0
@@ -105,11 +95,10 @@ static func create_g4() -> ScooterSpec:
 	s.suspension_text = "Регулируемая двойная"
 	s.features_text = "LCD · фара · стоп-сигнал · поворотники · ключ"
 
-	# 11" — это обод; наружный радиус шины больше на борт (~0.022 м).
-	s.wheel_radius = 0.5 * 11.0 * 0.0254 + 0.022
+	s.wheel_radius = 0.5 * 11.0 * 0.0254
 	s.wheel_base = 1.06
 	s.deck_length = 0.51
-	s.deck_height = 0.155
+	s.deck_height = 0.075
 	s.deck_width = 0.22
 	s.battery_wh = s.battery_voltage * s.battery_amp_hours
 	s.gear_top_speeds_kmh = [20.0, 40.0, 70.0]
@@ -132,13 +121,8 @@ static func create_g4() -> ScooterSpec:
 	s.wheelie_max_torque = 420.0
 	s.wheelie_equilibrium = 37.0
 
-	# По фото: серый gunmetal с оранжевыми шевронами и надписями.
-	s.frame_color = Color(0.335, 0.340, 0.335)
-	s.accent_color = Color(0.98, 0.42, 0.07)
-	s.suspension_color = Color(0.36, 0.38, 0.41)
-	s.brand_text = "KUKIRIN G4"
-	s.front_fender = false
-	s.stem_rake_deg = 6.0
+	s.frame_color = Color(0.085, 0.088, 0.095)
+	s.accent_color = Color(0.86, 0.87, 0.90)
 	s.off_road_tires = true
 	s.orange_accents = false
 	return s
@@ -165,10 +149,10 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.suspension_text = "Передняя и задняя амортизация"
 	s.features_text = "LCD · AWD/RWD · фара · стоп-сигнал · габариты"
 
-	s.wheel_radius = 0.5 * 10.0 * 0.0254 + 0.020
+	s.wheel_radius = 0.5 * 10.0 * 0.0254
 	s.wheel_base = 1.0
 	s.deck_length = 0.48
-	s.deck_height = 0.148
+	s.deck_height = 0.07
 	s.deck_width = 0.21
 	s.battery_wh = s.battery_voltage * s.battery_amp_hours
 	s.gear_top_speeds_kmh = [30.0, 51.0, 66.0]
@@ -191,25 +175,17 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.wheelie_max_torque = 400.0
 	s.wheelie_equilibrium = 39.0
 
-	# По фото: чёрный корпус, оранжевые рычаги подвески и кольца на дисках.
-	s.frame_color = Color(0.075, 0.075, 0.085)
-	s.accent_color = Color(1.00, 0.40, 0.04)
-	s.suspension_color = Color(0.88, 0.44, 0.11)
-	s.brand_text = "KUGOO"
-	s.front_fender = true
-	s.stem_rake_deg = 13.0
+	s.frame_color = Color(0.10, 0.10, 0.105)
+	s.accent_color = Color(0.95, 0.45, 0.08)
 	s.off_road_tires = false
 	s.orange_accents = true
 	return s
 
 
-## Kugoo G4 TEST — отдельная модель, собранная заново по фотографиям
-## (11" наружный диаметр шины, база 0.94 м, дека 0.46 м, настил 0.100 м над осями).
 static func all() -> Array[ScooterSpec]:
 	var result: Array[ScooterSpec] = []
 	result.append(create_g4())
 	result.append(create_f3_pro_max())
-	# g4_test убран: вместо него в игре модель пользователя (base.glb)
 	return result
 
 
