@@ -15,7 +15,9 @@ const R := 0.153
 const AXLE_F := -0.4525
 const AXLE_R := 0.4525
 const BAR_Y := 1.150
-## Середины грипс: |x| = BAR_HALF, z в системе рулевой колонки (Steer).
+## Середины грипс. Маркеры руля — дети узла Steer из GLB, то есть живут в
+## координатах файла (y = 1.150 от асфальта), а не в системе игры: смещение
+## модели на -AXLE_Y на них действует сверху. |x| = BAR_HALF, z — в системе Steer.
 const BAR_HALF := 0.235
 const BAR_Z := -0.201
 const DECK_TOP := 0.243
@@ -141,11 +143,11 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 
 	var bar_left := Node3D.new()
 	bar_left.name = "BarLeft"
-	bar_left.position = Vector3(-BAR_HALF, BAR_Y - AXLE_Y, BAR_Z)
+	bar_left.position = Vector3(-BAR_HALF, BAR_Y, BAR_Z)
 	steer.add_child(bar_left)
 	var bar_right := Node3D.new()
 	bar_right.name = "BarRight"
-	bar_right.position = Vector3(BAR_HALF, BAR_Y - AXLE_Y, BAR_Z)
+	bar_right.position = Vector3(BAR_HALF, BAR_Y, BAR_Z)
 	steer.add_child(bar_right)
 
 	var foot_left := Node3D.new()
