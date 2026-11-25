@@ -1,19 +1,25 @@
-## Главное меню: выбор самоката, карты и режима.
+## Главное меню: самокат, карта, режим и кнопка старта. Без лишнего текста —
+## только выбор и короткая карточка характеристик.
+## Список самокатов приходит из ScooterSpec.all(), поэтому кнопки создаются
+## по фактическому числу моделей (сейчас их три: G4, F3 Pro Max, G4 TEST).
 class_name MenuScreen
 extends CanvasLayer
 
 signal start_pressed(spec_id: String, map_id: int, mode_id: int)
+
+const MAP_NAMES := ["Ровная дорога", "Город"]
+const MODE_NAMES := ["Свободная езда", "На время", "Фристайл"]
 
 var spec_id := "g4"
 var map_id := GameConfig.MapId.STRAIGHT_TRACK
 var mode_id := GameConfig.GameMode.FREE_RIDE
 
 var _specs: Array[ScooterSpec] = []
+var _left: Control
 var _scooter_buttons: Array[Button] = []
 var _map_buttons: Array[Button] = []
 var _mode_buttons: Array[Button] = []
 var _spec_info: Label
-var _title: Label
 
 
 func setup(specs: Array[ScooterSpec]) -> void:
@@ -28,84 +34,84 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
-	var backdrop := UiFactory.panel(Color(0.02, 0.03, 0.05, 0.86))
+	var backdrop := UiFactory.panel(Color(0.02, 0.03, 0.05, 0.88))
 	UiFactory.place(backdrop, 0.0, 0.0, 1280.0, 720.0)
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(backdrop)
 
-	_title = UiFactory.label("KUGOO FREERIDE", 46, Color(1.0, 0.95, 0.9))
-	UiFactory.place(_title, 48.0, 24.0, 700.0, 56.0)
-	root.add_child(_title)
+	var title := UiFactory.label("KUGOO FREERIDE", 46, Color(1.0, 0.95, 0.9))
+	UiFactory.place(title, 48.0, 26.0, 700.0, 56.0)
+	root.add_child(title)
 
-	var subtitle := UiFactory.label("Два самоката · две карты · трюки и комбо", 20, UiFactory.MUTED_COLOR)
-	UiFactory.place(subtitle, 50.0, 78.0, 700.0, 28.0)
-	root.add_child(subtitle)
+	# Левая колонка пересобирается, когда меняется число самокатов.
+	_left = Control.new()
+	_left.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_left)
 
-	var y := 130.0
-	root.add_child(_section_label("САМОКАТ", 50.0, y))
-	y += 30.0
-	# Кнопки создаём сразу (список самокатов приходит позже, из setup()),
-	# иначе _ready отработал бы с пустым списком и кнопок не было бы вообще.
-	for index in 2:
-		var button := UiFactory.button("…", 20, Vector2(520.0, 52.0))
-		UiFactory.place(button, 50.0, y, 520.0, 52.0)
-		var captured_index := index
-		button.pressed.connect(func() -> void: _select_spec_index(captured_index))
-		root.add_child(button)
-		_scooter_buttons.append(button)
-		y += 60.0
-
-	y += 10.0
-	root.add_child(_section_label("КАРТА", 50.0, y))
-	y += 30.0
-	var map_names := ["Прямая трасса", "Город"]
-	for index in map_names.size():
-		var captured_map := index
-		var button := UiFactory.button(map_names[index], 20, Vector2(250.0, 52.0))
-		UiFactory.place(button, 50.0 + index * 260.0, y, 250.0, 52.0)
-		button.pressed.connect(func() -> void: _select_map(captured_map))
-		root.add_child(button)
-		_map_buttons.append(button)
-	y += 66.0
-
-	root.add_child(_section_label("РЕЖИМ", 50.0, y))
-	y += 30.0
-	var mode_names := ["Свободная езда", "На время", "Фристайл"]
-	for index in mode_names.size():
-		var captured_mode := index
-		var button := UiFactory.button(mode_names[index], 19, Vector2(172.0, 52.0))
-		UiFactory.place(button, 50.0 + index * 178.0, y, 172.0, 52.0)
-		button.pressed.connect(func() -> void: _select_mode(captured_mode))
-		root.add_child(button)
-		_mode_buttons.append(button)
-	y += 78.0
-
-	var start_button := UiFactory.primary_button("ПОЕХАЛИ", 30, Vector2(520.0, 74.0))
-	UiFactory.place(start_button, 50.0, y, 520.0, 74.0)
-	start_button.pressed.connect(_on_start)
-	root.add_child(start_button)
-
-	# Правая карточка с характеристиками.
+	# Карточка характеристик.
 	var card := UiFactory.panel(Color(0.05, 0.06, 0.09, 0.9))
-	UiFactory.place(card, 640.0, 130.0, 592.0, 470.0)
+	UiFactory.place(card, 640.0, 104.0, 592.0, 400.0)
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(card)
 
-	_spec_info = UiFactory.label("", 20, Color(0.95, 0.95, 1.0))
+	_spec_info = UiFactory.label("", 21, Color(0.95, 0.95, 1.0))
 	_spec_info.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_spec_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	UiFactory.place(_spec_info, 664.0, 152.0, 544.0, 430.0)
+	UiFactory.place(_spec_info, 668.0, 128.0, 540.0, 360.0)
 	root.add_child(_spec_info)
 
-	var hint := UiFactory.label(
-		"В игре: ГАЗ / ЗАД / ПЕРЕД — справа, РУЛЬ — слева, ВИЛЛИ — над газом.\n" +
-		"С клавиатуры: W — газ, S — задний тормоз, Shift — передний, A/D — руль,\n" +
-		"Space — вилли, Q/E — наклон, 1/2/3 — режимы, Tab — привод, R — респаун.",
-		16, UiFactory.MUTED_COLOR)
-	UiFactory.place(hint, 50.0, 630.0, 1180.0, 70.0)
-	root.add_child(hint)
-
+	_build_left()
 	_refresh()
+
+
+func _build_left() -> void:
+	for child in _left.get_children():
+		_left.remove_child(child)
+		child.queue_free()
+	_scooter_buttons.clear()
+	_map_buttons.clear()
+	_mode_buttons.clear()
+
+	var y := 104.0
+	_left.add_child(_section_label("САМОКАТ", 50.0, y))
+	y += 28.0
+	for index in _specs.size():
+		var captured_spec := index
+		var button := UiFactory.button("…", 20, Vector2(520.0, 54.0))
+		UiFactory.place(button, 50.0, y, 520.0, 54.0)
+		button.pressed.connect(func() -> void: _select_spec_index(captured_spec))
+		_left.add_child(button)
+		_scooter_buttons.append(button)
+		y += 62.0
+
+	y += 14.0
+	_left.add_child(_section_label("КАРТА", 50.0, y))
+	y += 28.0
+	for index in MAP_NAMES.size():
+		var captured_map := index
+		var button := UiFactory.button(MAP_NAMES[index], 20, Vector2(250.0, 54.0))
+		UiFactory.place(button, 50.0 + index * 260.0, y, 250.0, 54.0)
+		button.pressed.connect(func() -> void: _select_map(captured_map))
+		_left.add_child(button)
+		_map_buttons.append(button)
+	y += 66.0
+
+	_left.add_child(_section_label("РЕЖИМ", 50.0, y))
+	y += 28.0
+	for index in MODE_NAMES.size():
+		var captured_mode := index
+		var button := UiFactory.button(MODE_NAMES[index], 16, Vector2(180.0, 54.0))
+		UiFactory.place(button, 50.0 + index * 186.0, y, 180.0, 54.0)
+		button.pressed.connect(func() -> void: _select_mode(captured_mode))
+		_left.add_child(button)
+		_mode_buttons.append(button)
+	y += 78.0
+
+	var start_button := UiFactory.primary_button("ПОЕХАЛИ", 32, Vector2(520.0, 78.0))
+	UiFactory.place(start_button, 50.0, y, 520.0, 78.0)
+	start_button.pressed.connect(_on_start)
+	_left.add_child(start_button)
 
 
 func _section_label(text: String, x: float, y: float) -> Label:
@@ -141,6 +147,8 @@ func _on_start() -> void:
 
 
 func _refresh() -> void:
+	if _scooter_buttons.size() != _specs.size():
+		_build_left()
 	for index in _scooter_buttons.size():
 		if index >= _specs.size():
 			continue
@@ -149,14 +157,12 @@ func _refresh() -> void:
 			+ "  ·  " + _specs[index].tagline
 		UiFactory.style_button(_scooter_buttons[index], active)
 
-	var maps := ["Прямая трасса", "Город"]
 	for index in _map_buttons.size():
-		_map_buttons[index].text = ("● " if index == map_id else "   ") + maps[index]
+		_map_buttons[index].text = ("● " if index == map_id else "   ") + MAP_NAMES[index]
 		UiFactory.style_button(_map_buttons[index], index == map_id)
 
-	var modes := ["Свободная езда", "На время", "Фристайл"]
 	for index in _mode_buttons.size():
-		_mode_buttons[index].text = ("● " if index == mode_id else "   ") + modes[index]
+		_mode_buttons[index].text = ("● " if index == mode_id else "   ") + MODE_NAMES[index]
 		UiFactory.style_button(_mode_buttons[index], index == mode_id)
 
 	if _spec_info != null and not _specs.is_empty():
@@ -164,12 +170,10 @@ func _refresh() -> void:
 
 
 func _describe_spec(spec: ScooterSpec) -> String:
-	return "%s\n%s\n\nПривод: %s\nМотор: %d × %d Вт (пик %d Вт)\nМаксимальная скорость: %d км/ч\nЗапас хода: %d км\nБатарея: %s (%.0f Вт·ч)\nКолёса: %d″\nТормоза: %s\nПодвеска: %s\nМасса: %.1f кг · нагрузка до %d кг\nРежимы: %d / %d / %d км/ч\n\n%s" % [
+	return "%s\n%s\n\nПривод: %s\nМотор: %d × %d Вт (пик %d)\nСкорость: %d км/ч\nЗапас: %d км · %s\nКолёса: %d″ · масса %.0f кг\nРежимы: %d / %d / %d км/ч" % [
 		spec.display_name, spec.tagline, spec.drive_description,
 		spec.motor_count, int(spec.power_watts), int(spec.peak_power_watts),
-		int(spec.top_speed_kmh), int(spec.range_km), spec.battery_text, spec.battery_wh,
-		int(spec.wheel_inches), spec.brakes_text, spec.suspension_text,
-		spec.mass_kg, int(spec.max_load_kg),
+		int(spec.top_speed_kmh), int(spec.range_km), spec.battery_text,
+		int(spec.wheel_inches), spec.mass_kg,
 		int(spec.gear_top_speed_kmh(0)), int(spec.gear_top_speed_kmh(1)), int(spec.gear_top_speed_kmh(2)),
-		spec.features_text,
 	]

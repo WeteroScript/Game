@@ -3,8 +3,10 @@
 class_name WorldBuilder
 extends RefCounted
 
-const ROAD_WIDTH := 14.0
-const TRACK_LENGTH := 700.0
+const ROAD_WIDTH := 12.0
+## Длина ровного шоссе: длинный прямой участок без единого бугра.
+const FLAT_LENGTH := 1500.0
+const FLAT_START_Z := 60.0
 const ROAD_TOP := 0.0
 
 var _asphalt: StandardMaterial3D
@@ -16,6 +18,12 @@ var _metal: StandardMaterial3D
 var _brick_a: StandardMaterial3D
 var _brick_b: StandardMaterial3D
 var _roof: StandardMaterial3D
+var _bark: StandardMaterial3D
+var _pine: StandardMaterial3D
+
+## Очередь «добора» сцены: тяжёлые куски (лес, дома) строятся по одному за кадр,
+## а не всей картой сразу — прогрузка идёт плавно, без длинного фриза.
+var _queue: Array = []
 
 
 func _init() -> void:
@@ -28,6 +36,8 @@ func _init() -> void:
 	_brick_a = _mat(Color(0.72, 0.55, 0.44), 0.0, 0.85)
 	_brick_b = _mat(Color(0.82, 0.78, 0.70), 0.0, 0.85)
 	_roof = _mat(Color(0.35, 0.18, 0.16), 0.0, 0.8)
+	_bark = _mat(Color(0.28, 0.21, 0.15), 0.0, 0.95)
+	_pine = _mat(Color(0.13, 0.27, 0.15), 0.0, 0.9)
 
 
 func _mat(color: Color, metallic: float, roughness: float, emission := false) -> StandardMaterial3D:
@@ -112,75 +122,146 @@ func _post(parent: Node3D, radius: float, height: float, pos: Vector3, mat: Mate
 # ---------------------------------------------------------------------------
 func _build_straight_track(parent: Node3D) -> Dictionary:
 	var holder := Node3D.new()
-	holder.name = "StraightTrack"
+	holder.name = "FlatRoad"
 	parent.add_child(holder)
 
-	# Трава под всем и обочины — низкое сцепление.
-	_solid(holder, Vector3(240.0, 0.3, TRACK_LENGTH + 240.0), Vector3(0.0, -0.55, -TRACK_LENGTH * 0.5),
-		_grass, Vector3.ZERO, true)
-	_solid(holder, Vector3(9.0, 0.35, TRACK_LENGTH), Vector3(-11.5, -0.28, -TRACK_LENGTH * 0.5 + 20.0),
-		_grass, Vector3.ZERO, true)
-	_solid(holder, Vector3(9.0, 0.35, TRACK_LENGTH), Vector3(11.5, -0.28, -TRACK_LENGTH * 0.5 + 20.0),
-		_grass, Vector3.ZERO, true)
+	var length := FLAT_LENGTH
+	var mid_z := FLAT_START_Z - length * 0.5
 
-	# Асфальт.
-	_solid(holder, Vector3(ROAD_WIDTH, 0.4, TRACK_LENGTH), Vector3(0.0, ROAD_TOP - 0.2, -TRACK_LENGTH * 0.5 + 20.0),
-		_asphalt)
+	# Асфальт: идеально ровный, во всю длину, без трамплинов и конусов.
+	_solid(holder, Vector3(ROAD_WIDTH, 0.5, length),
+		Vector3(0.0, ROAD_TOP - 0.25, mid_z), _asphalt)
 
-	# Разметка: прерывистая центральная линия.
-	var z := 10.0
-	while z > -TRACK_LENGTH + 40.0:
-		_decor(holder, Vector3(0.22, 0.02, 3.0), Vector3(0.0, ROAD_TOP + 0.01, z), _white)
-		z -= 9.0
+	var post_xforms := []
+	var dash_xforms := []
+	for side in [-1.0, 1.0]:
+		# Грунтовая обочина за отбойником.
+		_solid(holder, Vector3(10.0, 0.30, length),
+			Vector3(side * (ROAD_WIDTH * 0.5 + 5.5), -0.20, mid_z), _grass,
+			Vector3.ZERO, true)
+		# Отбойник: две балки на столбах.
+		_solid(holder, Vector3(0.14, 0.30, length),
+			Vector3(side * (ROAD_WIDTH * 0.5 + 0.55), 0.70, mid_z), _metal)
+		_solid(holder, Vector3(0.10, 0.13, length),
+			Vector3(side * (ROAD_WIDTH * 0.5 + 0.55), 0.36, mid_z), _metal)
+		# Сплошная разметка по краю полосы.
+		_decor(holder, Vector3(0.16, 0.02, length),
+			Vector3(side * (ROAD_WIDTH * 0.5 - 0.45), ROAD_TOP + 0.012, mid_z), _white)
+		var post_z := FLAT_START_Z
+		while post_z > FLAT_START_Z - length:
+			post_xforms.append(_inst(Vector3(side * (ROAD_WIDTH * 0.5 + 0.55), 0.36, post_z),
+				Vector3(0.11, 0.72, 0.11)))
+			post_z -= 4.5
 
-	# Отбойники по краям.
-	_solid(holder, Vector3(0.25, 0.85, TRACK_LENGTH), Vector3(-ROAD_WIDTH * 0.5 - 0.4, 0.42, -TRACK_LENGTH * 0.5 + 20.0),
-		_metal)
-	_solid(holder, Vector3(0.25, 0.85, TRACK_LENGTH), Vector3(ROAD_WIDTH * 0.5 + 0.4, 0.42, -TRACK_LENGTH * 0.5 + 20.0),
-		_metal)
+	# Прерывистая осевая.
+	var dash_z := FLAT_START_Z - 6.0
+	while dash_z > FLAT_START_Z - length + 6.0:
+		dash_xforms.append(_inst(Vector3(0.0, ROAD_TOP + 0.012, dash_z),
+			Vector3(0.22, 0.02, 3.2)))
+		dash_z -= 9.0
 
-	# Трамплины: чем дальше, тем круче.
-	var ramp_z := -80.0
-	var ramp_angle := 11.0
+	_add_forest(holder, length)
+
+	# Столбы отбойника и разметку рисуем одним MultiMesh: на телефоне это
+	# пара вызовов отрисовки вместо тысячи отдельных узлов.
+	_multimesh(holder, _unit_box(), _metal, post_xforms)
+	_multimesh(holder, _unit_box(), _white, dash_xforms, false)
+
+	return {"spawn": Vector3(0.0, 0.6, FLAT_START_Z - 20.0), "basis": Basis.IDENTITY}
+
+
+## Лес по обе стороны: три линии деревьев в MultiMesh.
+## Сколько кусков сцены ещё не построено.
+func pending_jobs() -> int:
+	return _queue.size()
+
+
+func _defer(job: Callable) -> void:
+	if job.is_valid():
+		_queue.append(job)
+
+
+## Строит очередь порциями: не дольше budget_ms за кадр.
+func pump(budget_ms := 4.0) -> void:
+	var start := Time.get_ticks_usec()
+	while not _queue.is_empty():
+		var job: Callable = _queue.pop_front()
+		if job.is_valid():
+			job.call()
+		if float(Time.get_ticks_usec() - start) / 1000.0 > budget_ms:
+			break
+
+
+func _add_forest(parent: Node3D, length: float) -> void:
 	var index := 0
-	while index < 5 and ramp_z > -TRACK_LENGTH + 80.0:
-		_add_ramp(holder, ramp_z, ramp_angle, 8.0, 12.0)
-		ramp_z -= 110.0
-		ramp_angle += 2.0
-		index += 1
-
-	# Столбы-ворота каждые 100 метров.
-	z = 0.0
-	while z > -TRACK_LENGTH + 60.0:
-		_post(holder, 0.12, 3.2, Vector3(-ROAD_WIDTH * 0.5 + 0.6, ROAD_TOP, z), _metal)
-		_post(holder, 0.12, 3.2, Vector3(ROAD_WIDTH * 0.5 - 0.6, ROAD_TOP, z), _metal)
-		_decor(holder, Vector3(ROAD_WIDTH - 1.2, 0.18, 0.18), Vector3(0.0, 3.0, z), _orange)
-		z -= 100.0
-
-	# Конический слалом ближе к финишу.
-	index = 0
-	while index < 12:
-		_post(holder, 0.22, 0.7, Vector3(sin(index * 1.1) * 4.5, ROAD_TOP, -420.0 - index * 8.0), _orange)
-		index += 1
-
-	# Финишная арка.
-	_solid(holder, Vector3(0.4, 5.0, 0.4), Vector3(-ROAD_WIDTH * 0.5, 2.5, -TRACK_LENGTH + 100.0), _metal)
-	_solid(holder, Vector3(0.4, 5.0, 0.4), Vector3(ROAD_WIDTH * 0.5, 2.5, -TRACK_LENGTH + 100.0), _metal)
-	_decor(holder, Vector3(ROAD_WIDTH, 1.2, 0.3), Vector3(0.0, 5.0, -TRACK_LENGTH + 100.0), _orange)
-
-	return {"spawn": Vector3(0.0, 0.6, 6.0), "basis": Basis.IDENTITY}
+	for side in [-1.0, 1.0]:
+		for row in 3:
+			var lane: float = side * (ROAD_WIDTH * 0.5 + 7.4 + row * 4.6)
+			_defer(Callable(self, "_forest_row").bind(parent, lane, length, 20261124 + index))
+			index += 1
 
 
-func _add_ramp(parent: Node3D, z: float, angle_deg: float, width: float, length: float) -> void:
-	var angle := deg_to_rad(angle_deg)
-	var half_len := length * 0.5
-	var center_y := half_len * sin(angle) + ROAD_TOP
-	# rotation.x отрицательный — дальний край (-Z) поднимается.
-	_solid(parent, Vector3(width, 0.45, length), Vector3(0.0, center_y, z),
-		_concrete, Vector3(-angle, 0.0, 0.0))
-	# жёлтая кромка на подъёме
-	_decor(parent, Vector3(width, 0.06, 0.5), Vector3(0.0, center_y + half_len * sin(angle) - 0.2, z - half_len * 0.9),
-		_orange, Vector3(-angle, 0.0, 0.0))
+## Один ряд леса: стволы и кроны одним MultiMesh.
+func _forest_row(parent: Node3D, lane: float, length: float, seed_value: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+
+	var trunks := []
+	var crowns := []
+	var z := FLAT_START_Z - 4.0
+	while z > FLAT_START_Z - length:
+		var height := rng.randf_range(4.2, 8.6)
+		var radius := rng.randf_range(1.05, 1.85)
+		var px := lane + rng.randf_range(-1.5, 1.5)
+		var pz := z + rng.randf_range(-2.4, 2.4)
+		trunks.append(_inst(Vector3(px, ROAD_TOP + height * 0.22, pz),
+			Vector3(0.30, height * 0.44, 0.30)))
+		crowns.append(_inst(Vector3(px, ROAD_TOP + height * 0.40 + height * 0.37, pz),
+			Vector3(radius, height * 0.74, radius), rng.randf_range(0.0, TAU)))
+		z -= rng.randf_range(7.0, 12.0)
+
+	var trunk_mesh := CylinderMesh.new()
+	trunk_mesh.top_radius = 0.5
+	trunk_mesh.bottom_radius = 0.58
+	trunk_mesh.height = 1.0
+	trunk_mesh.radial_segments = 6
+	_multimesh(parent, trunk_mesh, _bark, trunks)
+
+	var crown_mesh := CylinderMesh.new()
+	crown_mesh.top_radius = 0.0
+	crown_mesh.bottom_radius = 1.0
+	crown_mesh.height = 1.0
+	crown_mesh.radial_segments = 7
+	_multimesh(parent, crown_mesh, _pine, crowns)
+
+
+static func _unit_box() -> BoxMesh:
+	var box := BoxMesh.new()
+	box.size = Vector3.ONE
+	return box
+
+
+## Трансформация инстанса: масштаб + поворот вокруг вертикали.
+static func _inst(pos: Vector3, scale_value: Vector3, yaw := 0.0) -> Transform3D:
+	return Transform3D(Basis(Vector3.UP, yaw).scaled(scale_value), pos)
+
+
+func _multimesh(parent: Node3D, mesh: Mesh, mat: Material, xforms: Array,
+		shadows := true) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = xforms.size()
+	for i in xforms.size():
+		mm.set_instance_transform(i, xforms[i])
+
+	var node := MultiMeshInstance3D.new()
+	node.multimesh = mm
+	node.material_override = mat
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows \
+		else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(node)
+	return node
 
 
 # ---------------------------------------------------------------------------
@@ -206,8 +287,8 @@ func _build_city(parent: Node3D) -> Dictionary:
 		var hz := house_z
 		var count := 0
 		while count < 6 and hz > -160.0:
-			_add_house(holder, Vector3(x_side * 30.0, 0.0, hz), 10.0 + count % 2 * 2.0,
-				7.0 + (count % 3) * 1.5, count % 2 == 0)
+			_defer(Callable(self, "_add_house").bind(holder, Vector3(x_side * 30.0, 0.0, hz),
+				10.0 + count % 2 * 2.0, 7.0 + (count % 3) * 1.5, count % 2 == 0))
 			hz -= 34.0
 			count += 1
 		row += 1
@@ -234,13 +315,16 @@ func _build_city(parent: Node3D) -> Dictionary:
 		_decor(holder, Vector3(0.18, 0.02, 5.0), Vector3(14.0 + stall * 3.0, 0.02, -70.0), _white)
 		stall += 1
 
+	# Барьеры стройки: по центру оставляем проезд, иначе улица перекрыта
+	# полностью и заезд по прямой упирается в забор.
 	var barrier := 0
 	while barrier < 10:
 		var bx := -6.0 + (barrier % 5) * 3.0
 		var bz := -100.0 - (barrier / 5) * 5.0
-		_solid(holder, Vector3(2.6, 0.9, 0.3), Vector3(bx, 0.45, bz), _orange)
+		if absf(bx) > 0.1:
+			_solid(holder, Vector3(2.6, 0.9, 0.3), Vector3(bx, 0.45, bz), _orange)
 		barrier += 1
-	_solid(holder, Vector3(6.0, 1.6, 6.0), Vector3(-2.0, 0.8, -112.0), _brick_b)
+	_solid(holder, Vector3(6.0, 1.6, 6.0), Vector3(-9.0, 0.8, -112.0), _brick_b)
 
 	# Фонари с настоящим светом (мало, ради производительности на телефоне).
 	var lamp := 0
