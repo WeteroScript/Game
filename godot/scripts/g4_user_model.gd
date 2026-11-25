@@ -69,6 +69,8 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 	var inst: Node3D = _load_scene()
 	if inst != null:
 		inst.name = "UserMesh"
+		# Модель собрана «рулём назад»: разворачиваем, чтобы перед смотрел в -Z.
+		inst.rotation = Vector3(0.0, PI, 0.0)
 		root.add_child(inst)
 
 	var body: Node3D = null
