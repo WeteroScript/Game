@@ -17,7 +17,7 @@ const BAR_HALF := 0.235
 const DECK_TOP := 0.243
 
 var spec: ScooterSpec
-var _scene_cache: Node3D
+var _bytes_cache: PackedByteArray
 
 
 ## Свой материал поверх GLB: модель не должна зависеть от того, что записано
@@ -37,12 +37,11 @@ func _apply_material(node: Node) -> void:
 
 ## Разбор GLB в рантайме: свой буфер, свой GLTFDocument.
 func _load_scene() -> Node3D:
-	if _scene_cache != null:
-		return _scene_cache.duplicate() as Node3D
 	if not FileAccess.file_exists(PATH):
 		push_warning("G4UserModel: нет файла " + PATH)
 		return null
-	var bytes := FileAccess.get_file_as_bytes(PATH)
+	var bytes := _bytes_cache if not _bytes_cache.is_empty() else FileAccess.get_file_as_bytes(PATH)
+	_bytes_cache = bytes
 	if bytes.is_empty():
 		push_warning("G4UserModel: пустой файл " + PATH)
 		return null
@@ -57,7 +56,6 @@ func _load_scene() -> Node3D:
 		push_warning("G4UserModel: сцена из GLB не собралась")
 		return null
 	_apply_material(scene)
-	_scene_cache = scene
 	return scene
 
 
