@@ -752,10 +752,11 @@ func _align_visual_to_ground(delta: float) -> void:
 		return
 	var contact := INF
 	if front_wheel != null and front_wheel.is_in_contact():
-		contact = front_wheel.get_contact_point().y
+		var front_point: Vector3 = front_wheel.get_contact_point()
+		contact = front_point.y
 	if rear_wheel != null and rear_wheel.is_in_contact():
-		var rear_y := rear_wheel.get_contact_point().y
-		contact = rear_y if contact == INF else minf(contact, rear_y)
+		var rear_point: Vector3 = rear_wheel.get_contact_point()
+		contact = rear_point.y if contact == INF else minf(contact, rear_point.y)
 	if contact == INF:
 		return
 	var wanted := contact - global_position.y - _model_bottom
