@@ -20,6 +20,21 @@ var spec: ScooterSpec
 var _scene_cache: Node3D
 
 
+## Свой материал поверх GLB: модель не должна зависеть от того, что записано
+## в файле (там может не быть материала или нормалей).
+func _apply_material(node: Node) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.105, 0.115, 0.110)
+	mat.metallic = 0.55
+	mat.roughness = 0.42
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for child in node.get_children():
+		if child is MeshInstance3D:
+			(child as MeshInstance3D).material_override = mat
+			(child as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		_apply_material(child)
+
+
 ## Разбор GLB в рантайме: свой буфер, свой GLTFDocument.
 func _load_scene() -> Node3D:
 	if _scene_cache != null:
@@ -41,6 +56,7 @@ func _load_scene() -> Node3D:
 	if scene == null:
 		push_warning("G4UserModel: сцена из GLB не собралась")
 		return null
+	_apply_material(scene)
 	_scene_cache = scene
 	return scene
 
