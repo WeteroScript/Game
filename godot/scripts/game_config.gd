@@ -40,9 +40,9 @@ const ROLLING_RESISTANCE_TORQUE := 0.5
 const AIR_DRAG_COEFFICIENT := 0.160
 
 # ---- Руль -------------------------------------------------------------------
-const STEER_FALLOFF_START := 2.0
-const STEER_FALLOFF_END := 22.0
-const STEER_MIN_FACTOR := 0.42
+const STEER_FALLOFF_START := 4.0
+const STEER_FALLOFF_END := 30.0
+const STEER_MIN_FACTOR := 0.62
 const REAR_STEER_FACTOR := 0.3
 
 # ---- Баланс (искусственная устойчивость) ------------------------------------
@@ -53,7 +53,7 @@ const ROLL_MAX_TORQUE := 520.0
 ## равновесия нельзя, самокат просто вытягивает обратно.
 const ROLL_ASSIST_ANGLE := 26.0
 const ROLL_RECOVERY_TORQUE := 620.0
-const LEAN_INTO_TURN_MAX_ANGLE := 21.0
+const LEAN_INTO_TURN_MAX_ANGLE := 24.0
 const LEAN_INTO_TURN_FULL_SPEED := 14.0
 
 const PITCH_STABILITY_GAIN := 120.0
@@ -69,10 +69,10 @@ const ENDO_RISK_TORQUE := 55.0
 const ENDO_CRASH_ANGLE := -26.0
 
 # ---- Аварии -----------------------------------------------------------------
+## Выше этого угла самокат валится через заднее колесо. Полный газ держит
+## угол ниже (Wheelie.MAX_ANGLE), так что переворот — только от кочки или
+## слишком долгого заброса.
 const LOOP_OUT_ANGLE := 76.0
-## Выше этого угла вилли-контроллер сам гасит случайный заброс
-## (но не перегазовку — она и должна валить).
-const WHEELIE_SAVE_ANGLE := 66.0
 const HARD_IMPACT_SPEED := 8.5
 
 # ---- Батарея ----------------------------------------------------------------

@@ -606,9 +606,11 @@ func _apply_balance() -> void:
 	# Руль догоняет ввод плавно и тем медленнее, чем выше скорость, а на скорости
 	# угол ещё и подрезается — иначе самокат дёргало и швыряло в поворотах.
 	var dt := get_physics_process_delta_time()
-	var steer_rate: float = lerpf(5.2, 2.1, clampf(speed_abs / 20.0, 0.0, 1.0))
+	# Руль должен слушаться: раньше ввод догонялся слишком медленно и на
+	# скорости подрезался — поворот ощущался «тугим».
+	var steer_rate: float = lerpf(8.5, 4.0, clampf(speed_abs / 20.0, 0.0, 1.0))
 	_steer_smooth = move_toward(_steer_smooth, steer_input, dt * steer_rate)
-	var steer_gain: float = lerpf(1.0, 0.62, clampf(speed_abs / 24.0, 0.0, 1.0))
+	var steer_gain: float = lerpf(1.0, 0.86, clampf(speed_abs / 24.0, 0.0, 1.0))
 	var steer_use: float = _steer_smooth * steer_gain
 	var target_roll := -steer_use * GameConfig.LEAN_INTO_TURN_MAX_ANGLE * lean_factor
 	var roll_error := deg_to_rad(target_roll - roll_deg)
@@ -631,15 +633,10 @@ func _apply_balance() -> void:
 	roll_torque = clampf(roll_torque, -roll_limit, roll_limit)
 	apply_torque(global_transform.basis * Vector3(0.0, 0.0, roll_torque))
 
-	# Стабилизация тангажа, когда вилли не активно.
-	var wheelie_active := wheelie != null and wheelie.active
-	if wheelie_active:
-		# Заброс выше цели (кочка, приземление) гасим, но только пока игрок
-		# не перегазовывает: перегазовка должна валить самокат.
-		if wheelie.overdrive < 0.2 and pitch_deg > GameConfig.WHEELIE_SAVE_ANGLE:
-			var save := clampf((pitch_deg - GameConfig.WHEELIE_SAVE_ANGLE) * 30.0, 0.0, 900.0)
-			apply_nose_up_torque(-save)
-	elif is_grounded():
+	# Стабилизация тангажа — только когда стант не активен. В станте тангаж
+	# целиком на газе, без «спасательных» моментов: иначе самокат держится сам,
+	# и газ перестаёт что-либо решать.
+	if not (wheelie != null and wheelie.active) and is_grounded():
 		var slope_pitch := _slope_pitch()
 		var pitch_error := deg_to_rad(slope_pitch - pitch_deg)
 		var stability := 0.5 if (brake_front_input > 0.8 and speed_kmh() > GameConfig.ENDO_RISK_SPEED_KMH) else 1.0
@@ -647,7 +644,9 @@ func _apply_balance() -> void:
 		nose_up = clampf(nose_up, -GameConfig.PITCH_MAX_TORQUE, GameConfig.PITCH_MAX_TORQUE)
 		apply_nose_up_torque(nose_up)
 
-	apply_torque(Vector3.UP * (-angular_velocity.y * GameConfig.YAW_DAMPING * 8.0))
+	# Демпфирование рыскания оставлено только для стабильности на прямой:
+	# прежний коэффициент гасил сам поворот, и самокат «не хотел» рулиться.
+	apply_torque(Vector3.UP * (-angular_velocity.y * GameConfig.YAW_DAMPING * 3.0))
 
 
 func _slope_pitch() -> float:
@@ -695,7 +694,7 @@ func _check_failures() -> void:
 		# Единственное падение в вилли. Случайный заброс от кочки гасится,
 		# а вот удержанная перегазовка или слишком долгий заброс — падение.
 		_loop_out_time += get_physics_process_delta_time()
-		if wheelie.overdrive > 0.25 or _loop_out_time > 0.5:
+		if _loop_out_time > 0.35:
 			crash("Loop out — переворот через заднее колесо")
 	elif (is_grounded() and brake_front_input > 0.5 and speed_kmh() > 20.0
 			and pitch_deg < GameConfig.ENDO_CRASH_ANGLE):
@@ -793,40 +792,48 @@ func _update_rider(delta: float) -> void:
 		wheelie_blend, throttle_input, pitch_rate)
 
 
-## Прижать модель к дороге: подвеска проседает под весом самоката, и жёстко
-## заданная высота модели оставляет колёса в воздухе. Луч вниз под каждым
-## колесом, стоящим на земле, даёт фактическую высоту асфальта — по ней и
-## опускаем визуал. В полёте смещение не трогаем.
+## Прижать модель к дороге по фактической высоте асфальта.
+##
+## Смещение считается отдельно для каждого колеса, которое стоит на земле, и
+## через поворот корпуса: при вилли «плоская» посадка уводит заднее колесо в
+## асфальт на 20–30 см. Затем смещение сглаживается, чтобы не дрожало.
 func _align_visual_to_ground(delta: float) -> void:
 	if model_root == null or spec == null:
 		return
-	var probes: Array[float] = []
-	if front_wheel != null and front_wheel.is_in_contact():
-		probes.append(-spec.wheel_base * 0.5)
-	if rear_wheel != null and rear_wheel.is_in_contact():
-		probes.append(spec.wheel_base * 0.5)
-	if probes.is_empty():
+	var tyre := -_model_bottom
+	if tyre <= 0.01:
+		return
+	var basis := global_transform.basis
+	# Корпус почти лёг на бок — считать нечего, оставляем прошлое смещение.
+	if absf(basis.y.y) < 0.25:
 		return
 	var space := get_world_3d().direct_space_state
 	var exclude_rids: Array[RID] = [get_rid()]
+	var wheels := [[front_wheel, -spec.wheel_base * 0.5], [rear_wheel, spec.wheel_base * 0.5]]
 	var sum := 0.0
-	var hits := 0
-	for z in probes:
+	var found := 0
+	for entry in wheels:
+		var wheel: VehicleWheel3D = entry[0]
+		if wheel == null or not wheel.is_in_contact():
+			continue
+		var z: float = entry[1]
 		var probe := global_transform * Vector3(0.0, 0.0, z)
 		var query := PhysicsRayQueryParameters3D.create(
-			probe + Vector3.UP * 0.45, probe - Vector3.UP * 0.65)
+			probe + Vector3.UP * 0.45, probe - Vector3.UP * 0.75)
 		query.exclude = exclude_rids
 		var hit := space.intersect_ray(query)
 		if hit.is_empty():
 			continue
 		var point: Vector3 = hit["position"]
-		sum += point.y
-		hits += 1
-	if hits == 0:
+		# Низ колеса в системе корпуса — (0, offset - tyre, z); его высота в мире
+		# = y корпуса + (ось колеса по вертикали) + (offset - tyre) * basis.y.y.
+		var axle_height := (basis * Vector3(0.0, 0.0, z)).y
+		sum += tyre + (point.y - global_position.y - axle_height) / basis.y.y
+		found += 1
+	if found == 0:
 		return
-	var ground := sum / float(hits)
-	var wanted := ground - global_position.y - _model_bottom
-	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.30, 0.20), clampf(delta * 9.0, 0.0, 1.0))
+	var wanted := sum / float(found)
+	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.35, 0.20), clampf(delta * 12.0, 0.0, 1.0))
 	model_root.position.y = _ground_offset
 
 

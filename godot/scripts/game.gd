@@ -693,6 +693,7 @@ func _take_screenshots() -> void:
 		camera_rig.look_at(stunt_origin + Vector3(0.0, 0.85, 0.25), Vector3.UP)
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
+	print("SHOT stunt %s" % scooter.visual_report())
 	print("SHOT stunt scooter=%s pitch=%.1f roll=%.1f y=%.2f speed=%.1f lift=%.2f active=%s crashed=%s" % [
 		str(scooter.global_position), scooter.pitch_deg, scooter.roll_deg,
 		scooter.global_position.y, scooter.speed_kmh(),
