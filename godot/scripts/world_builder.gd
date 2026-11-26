@@ -384,6 +384,11 @@ func _build_city(parent: Node3D) -> Dictionary:
 
 	# Асфальт и удалённые кварталы.
 	_solid(holder, Vector3(240.0, 0.4, 240.0), Vector3(0.0, -0.2, 0.0), _asphalt)
+	# Главная улица продолжается за кварталами: раньше асфальт кончался на
+	# отметке 120 м, и едущий по прямой игрок падал с 0.4-метрового края на
+	# грунт (в автотесте Freestyle — y=-0.23 вместо 0.17 уже на 200-м метре).
+	_solid(holder, Vector3(ROAD_WIDTH, 0.4, FLAT_LENGTH),
+		Vector3(0.0, ROAD_TOP - 0.2, FLAT_START_Z - FLAT_LENGTH * 0.5), _asphalt)
 
 	# Главная улица вдоль -Z: тротуары по бокам.
 	_solid(holder, Vector3(6.0, 0.25, 220.0), Vector3(-13.0, 0.12, 0.0), _concrete)
