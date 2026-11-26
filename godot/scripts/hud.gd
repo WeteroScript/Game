@@ -1,4 +1,5 @@
-## Игровой интерфейс: спидометр, батарея, режимы, трюки и экранные кнопки.
+## Игровой интерфейс: спидометр, дистанция, время, трюки, шкала вилли и
+## экранные кнопки.
 ## Кнопки газа/тормозов/руля сделаны мультитач-зонами: обычные Button в Godot
 ## получают только одно касание, а игроку нужно держать газ и руль одновременно.
 class_name Hud
@@ -11,6 +12,8 @@ signal respawn_pressed
 signal view_toggled
 
 const DESIGN_WIDTH := 1280.0
+## Верхняя граница шкалы вилли, градусы.
+## Геометрия шкалы вилли (совпадает с местом под счётом).
 
 var input: InputState
 
@@ -18,8 +21,7 @@ var _speed_label: Label
 var _speed_unit: Label
 var _mode_label: Label
 var _drive_label: Label
-var _battery_bar: ProgressBar
-var _battery_label: Label
+var _fps_label: Label
 var _distance_label: Label
 var _time_label: Label
 var _score_label: Label
@@ -85,34 +87,14 @@ func _build_top_right(root: Control) -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(panel)
 
-	_battery_bar = ProgressBar.new()
-	_battery_bar.min_value = 0.0
-	_battery_bar.max_value = 100.0
-	_battery_bar.value = 100.0
-	_battery_bar.show_percentage = false
-	UiFactory.place(_battery_bar, 980.0, 26.0, 200.0, 22.0)
-	var bar_bg := StyleBoxFlat.new()
-	bar_bg.bg_color = Color(0.09, 0.11, 0.15, 0.95)
-	bar_bg.set_corner_radius_all(8)
-	var bar_fill := StyleBoxFlat.new()
-	bar_fill.bg_color = Color(0.36, 0.86, 0.48)
-	bar_fill.set_corner_radius_all(8)
-	_battery_bar.add_theme_stylebox_override("background", bar_bg)
-	_battery_bar.add_theme_stylebox_override("fill", bar_fill)
-	root.add_child(_battery_bar)
-
-	var battery_caption := UiFactory.label("БАТАРЕЯ", 14, UiFactory.MUTED_COLOR)
-	UiFactory.place(battery_caption, 980.0, 52.0, 200.0, 20.0)
-	root.add_child(battery_caption)
-
-	_battery_label = UiFactory.label("100%", 26, Color(0.6, 1.0, 0.7), HORIZONTAL_ALIGNMENT_RIGHT)
-	UiFactory.place(_battery_label, 1186.0, 22.0, 70.0, 30.0)
-	root.add_child(_battery_label)
 
 	_distance_label = UiFactory.label("0.00 км", 22, Color(1.0, 1.0, 1.0))
 	UiFactory.place(_distance_label, 980.0, 78.0, 260.0, 28.0)
 	root.add_child(_distance_label)
 
+	_fps_label = UiFactory.label("— FPS", 20, Color(0.72, 0.80, 0.72), HORIZONTAL_ALIGNMENT_RIGHT)
+	UiFactory.place(_fps_label, 1140.0, 142.0, 116.0, 26.0)
+	root.add_child(_fps_label)
 	_time_label = UiFactory.label("0:00", 22, Color(1.0, 1.0, 1.0))
 	UiFactory.place(_time_label, 980.0, 110.0, 260.0, 28.0)
 	root.add_child(_time_label)
@@ -292,18 +274,26 @@ func update_stats(scooter: Scooter, tricks: TrickSystem, time_left: float, show_
 	_mode_label.text = "РЕЖИМ %d · до %d км/ч" % [scooter.speed_mode + 1, gear_limit]
 	_drive_label.text = "AWD — полный привод" if scooter.drive_mode == GameConfig.DriveMode.AWD else "RWD — задний привод"
 
-	var percent := scooter.battery_percent()
-	_battery_bar.value = percent
-	_battery_label.text = "%d%%" % int(round(percent))
-	_distance_label.text = "%.2f км" % (scooter.distance_meters / 1000.0)
-	_time_label.text = _format_time(scooter.run_time if not show_timer else time_left)
+
+	if _fps_label != null:
+		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
 
 	_wheelie_active = scooter.wheelie != null and scooter.wheelie.active
+	# Дистанция и время: раньше эти подписи так и висели на нулях весь заезд.
+	_distance_label.text = "%.2f км" % (scooter.distance_meters / 1000.0)
+	var clock := time_left if show_timer else scooter.run_time
+	_time_label.text = ("до финиша " if show_timer else "") + _format_time(clock)
+
 	_score_label.text = "%d" % tricks.score
 	if tricks.combo > 1:
 		_combo_label.text = "КОМБО x%.2f · %.1f с" % [tricks.combo_multiplier(), tricks.combo_time_left]
 	else:
 		_combo_label.text = ""
+
+
+## Для автотеста: что реально написано в подписях дистанции и времени.
+func debug_clock() -> String:
+	return "dist=%s time=%s" % [_distance_label.text, _time_label.text]
 
 
 func _format_time(seconds: float) -> String:
@@ -324,7 +314,12 @@ func clear_crash() -> void:
 
 
 func show_trick(trick_name: String, points: int) -> void:
-	_trick_label.text = "%s  +%d" % [trick_name, points]
+	show_banner("%s  +%d" % [trick_name, points])
+
+
+## Короткое сообщение по центру: чекпоинт, бонус времени и т.п.
+func show_banner(text: String) -> void:
+	_trick_label.text = text
 	_trick_timer = 1.6
 
 

@@ -29,7 +29,7 @@ var wheel_radius := 0.162
 var wheel_base := 1.06
 var deck_length := 0.51
 ## Высота настила над осями колёс (для модели).
-var deck_height := 0.10
+var deck_height := 0.155
 ## Цвет рычагов подвески (на F3 они оранжевые, на G4 — в цвет рамы).
 var suspension_color := Color(0.45, 0.47, 0.50)
 ## Надпись на стойке и деке.
@@ -59,12 +59,13 @@ var grip_road := 1.8
 var grip_off_road := 0.95
 var steer_angle_max := 26.0
 
-# ---- Вилли ------------------------------------------------------------------
-var wheelie_lift_time := 0.8
-var wheelie_balance_gain := 130.0
-var wheelie_balance_damping := 8.0
-var wheelie_max_torque := 460.0
-var wheelie_equilibrium := 38.0
+# ---- Вилли (стант) ----------------------------------------------------------
+## Жёсткость контура угла и демпфирование: момент = (угол по газу − угол) * gain
+## − скорость тангажа * damping. Большой gain держит угол точно по газу без
+## «просадки», damping не даёт раскачаться.
+var wheelie_balance_gain := 1600.0
+var wheelie_balance_damping := 200.0
+var wheelie_max_torque := 700.0
 
 # ---- Внешний вид ------------------------------------------------------------
 var frame_color := Color(0.09, 0.09, 0.10)
@@ -109,7 +110,7 @@ static func create_g4() -> ScooterSpec:
 	s.wheel_radius = 0.5 * 11.0 * 0.0254 + 0.022
 	s.wheel_base = 1.06
 	s.deck_length = 0.51
-	s.deck_height = 0.10
+	s.deck_height = 0.155
 	s.deck_width = 0.22
 	s.battery_wh = s.battery_voltage * s.battery_amp_hours
 	s.gear_top_speeds_kmh = [20.0, 40.0, 70.0]
@@ -125,12 +126,10 @@ static func create_g4() -> ScooterSpec:
 	s.grip_off_road = 0.95
 	s.steer_angle_max = 26.0
 
-	# RWD: легче поднять, сложнее удержать баланс.
-	s.wheelie_lift_time = 0.75
-	s.wheelie_balance_gain = 700.0
-	s.wheelie_balance_damping = 220.0
-	s.wheelie_max_torque = 420.0
-	s.wheelie_equilibrium = 37.0
+	# RWD: поднимается резче, контур угла чуть мягче.
+	s.wheelie_balance_gain = 2000.0
+	s.wheelie_balance_damping = 260.0
+	s.wheelie_max_torque = 700.0
 
 	# По фото: серый gunmetal с оранжевыми шевронами и надписями.
 	s.frame_color = Color(0.335, 0.340, 0.335)
@@ -168,7 +167,7 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.wheel_radius = 0.5 * 10.0 * 0.0254 + 0.020
 	s.wheel_base = 1.0
 	s.deck_length = 0.48
-	s.deck_height = 0.095
+	s.deck_height = 0.148
 	s.deck_width = 0.21
 	s.battery_wh = s.battery_voltage * s.battery_amp_hours
 	s.gear_top_speeds_kmh = [30.0, 51.0, 66.0]
@@ -184,12 +183,10 @@ static func create_f3_pro_max() -> ScooterSpec:
 	s.grip_off_road = 1.0
 	s.steer_angle_max = 27.0
 
-	# AWD: передний мотор тянет вниз — поднимать тяжелее, но баланс стабильнее.
-	s.wheelie_lift_time = 0.8
-	s.wheelie_balance_gain = 780.0
-	s.wheelie_balance_damping = 240.0
-	s.wheelie_max_torque = 400.0
-	s.wheelie_equilibrium = 39.0
+	# AWD: передний мотор тянет нос вниз — контур жёстче, чтобы газ слушался так же.
+	s.wheelie_balance_gain = 2100.0
+	s.wheelie_balance_damping = 280.0
+	s.wheelie_max_torque = 700.0
 
 	# По фото: чёрный корпус, оранжевые рычаги подвески и кольца на дисках.
 	s.frame_color = Color(0.075, 0.075, 0.085)
@@ -203,10 +200,13 @@ static func create_f3_pro_max() -> ScooterSpec:
 	return s
 
 
+## Kugoo G4 TEST — отдельная модель, собранная заново по фотографиям
+## (11" наружный диаметр шины, база 0.94 м, дека 0.46 м, настил 0.100 м над осями).
 static func all() -> Array[ScooterSpec]:
 	var result: Array[ScooterSpec] = []
 	result.append(create_g4())
 	result.append(create_f3_pro_max())
+	# g4_test убран: вместо него в игре модель пользователя (base.glb)
 	return result
 
 

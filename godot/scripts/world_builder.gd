@@ -8,6 +8,10 @@ const ROAD_WIDTH := 12.0
 const FLAT_LENGTH := 1500.0
 const FLAT_START_Z := 60.0
 const ROAD_TOP := 0.0
+## Трамплины на прямой трассе: длина плиты, угол подъёма и ширина.
+const RAMP_LENGTH := 5.6
+const RAMP_ANGLE := 12.0
+const RAMP_WIDTH := 5.2
 
 var _asphalt: StandardMaterial3D
 var _concrete: StandardMaterial3D
@@ -20,6 +24,13 @@ var _brick_b: StandardMaterial3D
 var _roof: StandardMaterial3D
 var _bark: StandardMaterial3D
 var _pine: StandardMaterial3D
+var _window: StandardMaterial3D
+var _ramp: StandardMaterial3D
+var _ramp_dark: StandardMaterial3D
+
+## Очередь «добора» сцены: тяжёлые куски (лес, дома) строятся по одному за кадр,
+## а не всей картой сразу — прогрузка идёт плавно, без длинного фриза.
+var _queue: Array = []
 
 
 func _init() -> void:
@@ -34,6 +45,13 @@ func _init() -> void:
 	_roof = _mat(Color(0.35, 0.18, 0.16), 0.0, 0.8)
 	_bark = _mat(Color(0.28, 0.21, 0.15), 0.0, 0.95)
 	_pine = _mat(Color(0.13, 0.27, 0.15), 0.0, 0.9)
+	# Одно окно на все дома: раньше материал создавался на каждое окно,
+	# и в городе набегали сотни лишних материалов.
+	_window = _mat(Color(0.15, 0.2, 0.26), 0.3, 0.2)
+	_ramp = _mat(Color(0.93, 0.72, 0.12), 0.05, 0.55)
+	# Клин собирается SurfaceTool'ом: не хотим зависеть от порядка обхода вершин.
+	_ramp.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_ramp_dark = _mat(Color(0.24, 0.25, 0.27), 0.35, 0.6)
 
 
 func _mat(color: Color, metallic: float, roughness: float, emission := false) -> StandardMaterial3D:
@@ -55,9 +73,13 @@ func build(map_id: int, parent: Node3D) -> Dictionary:
 	_solid(parent, Vector3(2400.0, 0.3, 2400.0), Vector3(0.0, -0.55, -400.0),
 		_grass, Vector3.ZERO, true)
 
-	if map_id == GameConfig.MapId.CITY:
-		return _build_city(parent)
-	return _build_straight_track(parent)
+	match map_id:
+		GameConfig.MapId.CITY:
+			return _build_city(parent)
+		GameConfig.MapId.JUMP_PARK:
+			return _build_jump_park(parent)
+		_:
+			return _build_straight_track(parent)
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +138,7 @@ func _post(parent: Node3D, radius: float, height: float, pos: Vector3, mat: Mate
 # ---------------------------------------------------------------------------
 # Карта 1: прямая трасса с трамплинами, обочинами и отбойниками.
 # ---------------------------------------------------------------------------
-func _build_straight_track(parent: Node3D) -> Dictionary:
+func _build_straight_track(parent: Node3D, with_landings := false) -> Dictionary:
 	var holder := Node3D.new()
 	holder.name = "FlatRoad"
 	parent.add_child(holder)
@@ -124,7 +146,8 @@ func _build_straight_track(parent: Node3D) -> Dictionary:
 	var length := FLAT_LENGTH
 	var mid_z := FLAT_START_Z - length * 0.5
 
-	# Асфальт: идеально ровный, во всю длину, без трамплинов и конусов.
+	# Асфальт: идеально ровный, во всю длину; трамплины ставятся отдельно
+	# поверх него, чтобы не ломать основание.
 	_solid(holder, Vector3(ROAD_WIDTH, 0.5, length),
 		Vector3(0.0, ROAD_TOP - 0.25, mid_z), _asphalt)
 
@@ -156,6 +179,10 @@ func _build_straight_track(parent: Node3D) -> Dictionary:
 			Vector3(0.22, 0.02, 3.2)))
 		dash_z -= 9.0
 
+	# Ровная дорога остаётся ровной: трамплины живут на отдельной карте.
+	if with_landings:
+		_add_jump_line(holder)
+
 	_add_forest(holder, length)
 
 	# Столбы отбойника и разметку рисуем одним MultiMesh: на телефоне это
@@ -163,30 +190,145 @@ func _build_straight_track(parent: Node3D) -> Dictionary:
 	_multimesh(holder, _unit_box(), _metal, post_xforms)
 	_multimesh(holder, _unit_box(), _white, dash_xforms, false)
 
-	return {"spawn": Vector3(0.0, 0.6, FLAT_START_Z - 20.0), "basis": Basis.IDENTITY}
+	# Спаун почти на асфальте: раньше самокат падал с 0.6 м, бился о дорогу
+	# и начинал заезд с «приземления» в счётчике прыжков.
+	return {"spawn": Vector3(0.0, 0.14, FLAT_START_Z - 20.0), "basis": Basis.IDENTITY}
+
+
+## Трамплин — цельный клин (ConvexPolygonShape3D) вместо тонкой плиты.
+##
+## Тонкая наклонная плита на 38 км/ч пробивалась насквозь: за один шаг физики
+## самокат проходит 17 см, колесо оказывалось внутри 22-см плиты, и решатель
+## выталкивал его вниз — сквозь асфальт (в автотесте y=-0.31 при норме 0.18).
+## Клин — монолит от верха до низа дороги, поэтому выталкивание всегда вверх.
+func _add_ramp(parent: Node3D, z: float, angle_deg := RAMP_ANGLE,
+		length := RAMP_LENGTH, width := RAMP_WIDTH) -> void:
+	var angle := deg_to_rad(angle_deg)
+	var half := length * 0.5
+	var half_w := width * 0.5
+	# length — горизонтальный забег клина, поэтому подъём через тангенс.
+	var lip: float = tan(angle) * length
+	var depth := 0.6
+
+	var corners := [
+		Vector3(-half_w, 0.0, half), Vector3(half_w, 0.0, half),
+		Vector3(half_w, lip, -half), Vector3(-half_w, lip, -half),
+		Vector3(-half_w, -depth, half), Vector3(half_w, -depth, half),
+		Vector3(half_w, -depth, -half), Vector3(-half_w, -depth, -half),
+	]
+
+	var body := StaticBody3D.new()
+	body.position = Vector3(0.0, ROAD_TOP, z)
+	parent.add_child(body)
+
+	var shape := CollisionShape3D.new()
+	var convex := ConvexPolygonShape3D.new()
+	convex.points = PackedVector3Array(corners)
+	shape.shape = convex
+	body.add_child(shape)
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(-1)
+	for tri in [
+		[0, 1, 2], [0, 2, 3],      # верхняя (наклонная) грань
+		[0, 4, 5], [0, 5, 1],      # низкий торец
+		[3, 6, 7], [3, 7, 2],      # высокий торец
+		[4, 5, 6], [4, 6, 7],      # низ
+		[0, 3, 7], [0, 7, 4],      # левая сторона
+		[1, 5, 6], [1, 6, 2],      # правая сторона
+	]:
+		for index in tri:
+			st.add_vertex(corners[index])
+	st.generate_normals()
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.mesh = st.commit()
+	mesh_instance.material_override = _ramp
+	body.add_child(mesh_instance)
+
+	# Полосы по краям наклонной грани — трамплин читается с ходу.
+	var slope := sqrt(length * length + lip * lip)
+	for side in [-1.0, 1.0]:
+		_decor(parent, Vector3(0.22, 0.06, slope),
+			Vector3(side * (half_w - 0.2), ROAD_TOP + lip * 0.5 + 0.03, z), _white,
+			Vector3(angle, 0.0, 0.0))
+	# Подпорка под высоким торцом.
+	var post_h: float = maxf(0.2, lip * (1.0 - 0.7 / length))
+	_decor(parent, Vector3(width, post_h, 0.6),
+		Vector3(0.0, ROAD_TOP + post_h * 0.5, z - half + 0.35), _ramp_dark)
+	# Разметка приземления: белая полоса за трамплином.
+	_decor(parent, Vector3(width, 0.02, 0.25),
+		Vector3(0.0, ROAD_TOP + 0.014, z - half - 9.0), _white)
+
+
+## Джамп-парк: та же ровная дорога, но с пятью трамплинами разной высоты.
+## Отдельная карта, чтобы «Ровная дорога» оставалась действительно ровной.
+func _build_jump_park(parent: Node3D) -> Dictionary:
+	var info := _build_straight_track(parent, true)
+	info["spawn"] = Vector3(0.0, 0.14, FLAT_START_Z - 18.0)
+	return info
+
+
+## Пять трамплинов: от маленького разминочного до большого.
+func _add_jump_line(parent: Node3D) -> void:
+	# Углы подобраны по реальному отрыву: на 10° самокат почти не улетал
+	# (0.2 с в воздухе), на 16–20° уже хватает на JUMP и вращение.
+	_add_ramp(parent, FLAT_START_Z - 120.0, 12.0, 5.2, 5.6)
+	_add_ramp(parent, FLAT_START_Z - 280.0, 16.0, 6.2, 5.2)
+	_add_ramp(parent, FLAT_START_Z - 460.0, 20.0, 7.0, 4.8)
+	_add_ramp(parent, FLAT_START_Z - 660.0, 14.0, 5.6, 6.0)
+	_add_ramp(parent, FLAT_START_Z - 850.0, 18.0, 6.6, 5.0)
 
 
 ## Лес по обе стороны: три линии деревьев в MultiMesh.
-func _add_forest(parent: Node3D, length: float) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 20261124
+## Сколько кусков сцены ещё не построено.
+func pending_jobs() -> int:
+	return _queue.size()
 
-	var trunks := []
-	var crowns := []
+
+func _defer(job: Callable) -> void:
+	if job.is_valid():
+		_queue.append(job)
+
+
+## Строит очередь порциями: не дольше budget_ms за кадр.
+func pump(budget_ms := 4.0) -> void:
+	var start := Time.get_ticks_usec()
+	while not _queue.is_empty():
+		var job: Callable = _queue.pop_front()
+		if job.is_valid():
+			job.call()
+		if float(Time.get_ticks_usec() - start) / 1000.0 > budget_ms:
+			break
+
+
+func _add_forest(parent: Node3D, length: float) -> void:
+	var index := 0
 	for side in [-1.0, 1.0]:
 		for row in 3:
 			var lane: float = side * (ROAD_WIDTH * 0.5 + 7.4 + row * 4.6)
-			var z := FLAT_START_Z - 4.0 - row * 6.0
-			while z > FLAT_START_Z - length:
-				var height := rng.randf_range(4.2, 8.6)
-				var radius := rng.randf_range(1.05, 1.85)
-				var px := lane + rng.randf_range(-1.5, 1.5)
-				var pz := z + rng.randf_range(-2.4, 2.4)
-				trunks.append(_inst(Vector3(px, ROAD_TOP + height * 0.22, pz),
-					Vector3(0.30, height * 0.44, 0.30)))
-				crowns.append(_inst(Vector3(px, ROAD_TOP + height * 0.40 + height * 0.37, pz),
-					Vector3(radius, height * 0.74, radius), rng.randf_range(0.0, TAU)))
-				z -= rng.randf_range(7.0, 12.0)
+			_defer(Callable(self, "_forest_row").bind(parent, lane, length, 20261124 + index))
+			index += 1
+
+
+## Один ряд леса: стволы и кроны одним MultiMesh.
+func _forest_row(parent: Node3D, lane: float, length: float, seed_value: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+
+	var trunks := []
+	var crowns := []
+	var z := FLAT_START_Z - 4.0
+	while z > FLAT_START_Z - length:
+		var height := rng.randf_range(4.2, 8.6)
+		var radius := rng.randf_range(1.05, 1.85)
+		var px := lane + rng.randf_range(-1.5, 1.5)
+		var pz := z + rng.randf_range(-2.4, 2.4)
+		trunks.append(_inst(Vector3(px, ROAD_TOP + height * 0.22, pz),
+			Vector3(0.30, height * 0.44, 0.30)))
+		crowns.append(_inst(Vector3(px, ROAD_TOP + height * 0.40 + height * 0.37, pz),
+			Vector3(radius, height * 0.74, radius), rng.randf_range(0.0, TAU)))
+		z -= rng.randf_range(7.0, 12.0)
 
 	var trunk_mesh := CylinderMesh.new()
 	trunk_mesh.top_radius = 0.5
@@ -242,6 +384,11 @@ func _build_city(parent: Node3D) -> Dictionary:
 
 	# Асфальт и удалённые кварталы.
 	_solid(holder, Vector3(240.0, 0.4, 240.0), Vector3(0.0, -0.2, 0.0), _asphalt)
+	# Главная улица продолжается за кварталами: раньше асфальт кончался на
+	# отметке 120 м, и едущий по прямой игрок падал с 0.4-метрового края на
+	# грунт (в автотесте Freestyle — y=-0.23 вместо 0.17 уже на 200-м метре).
+	_solid(holder, Vector3(ROAD_WIDTH, 0.4, FLAT_LENGTH),
+		Vector3(0.0, ROAD_TOP - 0.2, FLAT_START_Z - FLAT_LENGTH * 0.5), _asphalt)
 
 	# Главная улица вдоль -Z: тротуары по бокам.
 	_solid(holder, Vector3(6.0, 0.25, 220.0), Vector3(-13.0, 0.12, 0.0), _concrete)
@@ -255,8 +402,8 @@ func _build_city(parent: Node3D) -> Dictionary:
 		var hz := house_z
 		var count := 0
 		while count < 6 and hz > -160.0:
-			_add_house(holder, Vector3(x_side * 30.0, 0.0, hz), 10.0 + count % 2 * 2.0,
-				7.0 + (count % 3) * 1.5, count % 2 == 0)
+			_defer(Callable(self, "_add_house").bind(holder, Vector3(x_side * 30.0, 0.0, hz),
+				10.0 + count % 2 * 2.0, 7.0 + (count % 3) * 1.5, count % 2 == 0))
 			hz -= 34.0
 			count += 1
 		row += 1
@@ -314,7 +461,7 @@ func _build_city(parent: Node3D) -> Dictionary:
 		_decor(holder, Vector3(1.1, 0.02, 6.0), Vector3(-3.5 + stripe * 1.4, 0.02, 8.0), _white)
 		stripe += 1
 
-	return {"spawn": Vector3(0.0, 0.6, 34.0), "basis": Basis.IDENTITY}
+	return {"spawn": Vector3(0.0, 0.14, 34.0), "basis": Basis.IDENTITY}
 
 
 func _add_house(parent: Node3D, base: Vector3, width: float, height: float, use_brick_a: bool) -> void:
@@ -331,8 +478,8 @@ func _add_house(parent: Node3D, base: Vector3, width: float, height: float, use_
 	while row < int(height / 2.6):
 		_decor(parent, Vector3(width * 0.22, 1.0, 0.12),
 			Vector3(base.x - width * 0.25, base.y + 1.8 + row * 2.4, base.z + width * 0.5 + 0.02),
-			_mat(Color(0.15, 0.2, 0.26), 0.3, 0.2))
+			_window)
 		_decor(parent, Vector3(width * 0.22, 1.0, 0.12),
 			Vector3(base.x + width * 0.25, base.y + 1.8 + row * 2.4, base.z + width * 0.5 + 0.02),
-			_mat(Color(0.15, 0.2, 0.26), 0.3, 0.2))
+			_window)
 		row += 1

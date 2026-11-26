@@ -27,6 +27,18 @@ var foot_left: Node3D
 var foot_right: Node3D
 var rider: RiderModel
 var audio: ScooterAudio
+## Настройка игрока из меню: показывать персонажа вообще.
+var rider_shown := true
+## Вид от первого лица: райдер скрыт всегда, чтобы не смотреть из его головы.
+var first_person_view := false
+
+# Визуальная посадка на асфальт: низ модели (отрицательный, в системе самоката)
+# и текущее смещение, которое её прижимает к фактической точке контакта колеса.
+var model_root: Node3D
+## Отчёт о разделении колёс (только у user-модели G4).
+var model_split := ""
+var _model_bottom := -0.16
+var _ground_offset := 0.0
 
 var wheelie: Wheelie
 
@@ -49,6 +61,8 @@ var ground_normal := Vector3.UP
 var off_road_amount := 0.0
 
 var battery_wh := 0.0
+## Сглаженный угол руля: поворот не дёргается от резкого ввода.
+var _steer_smooth := 0.0
 var distance_meters := 0.0
 var run_time := 0.0
 var air_time := 0.0
@@ -73,8 +87,22 @@ var current_force := 0.0
 var respawn_position := Vector3.ZERO
 var respawn_basis := Basis.IDENTITY
 
+## Перекос от пробуксовки: меняется плавно, чтобы корпус не дрожал.
+var _spin_bias := 0.0
 var _front_spin := 0.0
 var _rear_spin := 0.0
+## Скорость качения колёс (м/с) — своя у каждого колеса.
+var _front_roll := 0.0
+var _rear_roll := 0.0
+## Сглаженные моменты стабилизации — набираются с ограниченной скоростью.
+var _roll_torque_out := 0.0
+var _pitch_torque_out := 0.0
+var _pitch_assist := 0.0
+## Рывки для автотеста: максимальное угловое ускорение, град/с².
+var max_pitch_jerk := 0.0
+var max_roll_jerk := 0.0
+var _prev_pitch_rate := 0.0
+var _prev_roll_rate := 0.0
 
 
 static func create(new_spec: ScooterSpec, new_input: InputState) -> Scooter:
@@ -141,14 +169,170 @@ func _ready() -> void:
 	bar_right = model["bar_right"]
 	foot_left = model["foot_left"]
 	foot_right = model["foot_right"]
+	model_split = str(model.get("split_report", ""))
 
 	rider = RiderModel.create(spec.deck_height, spec.accent_color, bar_left, bar_right)
 	model["root"].add_child(rider)
+	model_root = model["root"]
+	_refresh_rider_visibility()
+	_report_model()
 
 	audio = ScooterAudio.create(spec.top_speed_kmh)
 	add_child(audio)
 	respawn_position = global_position
 	respawn_basis = global_transform.basis
+
+
+# ---- персонаж ---------------------------------------------------------------
+## Показывать или убирать персонажа (переключатель в главном меню).
+func set_rider_shown(shown: bool) -> void:
+	rider_shown = shown
+	_refresh_rider_visibility()
+
+
+func set_first_person(first: bool) -> void:
+	first_person_view = first
+	_refresh_rider_visibility()
+
+
+func _refresh_rider_visibility() -> void:
+	if rider == null:
+		return
+	rider.visible = rider_shown and not first_person_view
+
+
+## Корень визуальной геометрии самоката: у загружаемого GLB это отдельный узел
+## `UserMesh`, райдера в расчёт высоты брать нельзя (до первой позы его суставы
+## стоят в нуле и утаскивают «низ модели» вниз).
+func _visual_root() -> Node3D:
+	if model_root == null:
+		return null
+	var user := model_root.get_node_or_null("UserMesh")
+	if user is Node3D:
+		return user as Node3D
+	return model_root
+
+
+## Диагностика для CI: какие узлы модели подключены и где её низ относительно
+## самоката. Печатается один раз при сборке модели — по этой строке видно,
+## какой узел колеса реальный, а какой создан заглушкой.
+func _report_model() -> void:
+	var bottom := INF
+	var top := -INF
+	var meshes := 0
+	# Низ считаем в системе самоката: мировой AABB растёт при крене и наклоне,
+	# и по нему модель «садилась» бы ниже, чем нужно.
+	var to_mine := global_transform.affine_inverse()
+	for mesh in _visual_meshes():
+		meshes += 1
+		var box: AABB = to_mine * mesh.global_transform * mesh.mesh.get_aabb()
+		bottom = minf(bottom, box.position.y)
+		top = maxf(top, box.end.y)
+	var spin_nodes := ""
+	for pair in [["front", front_visual], ["rear", rear_visual], ["steer", front_steer]]:
+		var node: Node3D = pair[1]
+		spin_nodes += "%s=%s " % [pair[0], "нет" if node == null else str(node.get_path())]
+	if meshes > 0:
+		_model_bottom = bottom
+	print("MODEL: %smeshes=%d bottom=%.3f top=%.3f wheel_r=%.3f" % [
+		spin_nodes, meshes, bottom, top, spec.wheel_radius,
+	])
+	print("WHEELS: %s" % wheel_report())
+
+
+## Что лежит внутри узлов колёс: если рядом с шиной в том же пивоте окажется
+## маятник или суппорт, при вращении они поедут вместе с колесом.
+func wheel_report() -> String:
+	var out := ""
+	for pair in [["front", front_visual], ["rear", rear_visual]]:
+		var node: Node3D = pair[1]
+		var label: String = pair[0]
+		if node == null:
+			out += "%s=нет " % label
+			continue
+		var meshes: Array[MeshInstance3D] = []
+		if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+			meshes.append(node as MeshInstance3D)
+		_gather_meshes(node, meshes)
+		var box := AABB()
+		var parts: Array[String] = []
+		var to_local := node.global_transform.affine_inverse()
+		for index in meshes.size():
+			var mesh_instance: MeshInstance3D = meshes[index]
+			var local: AABB = to_local * mesh_instance.global_transform \
+				* mesh_instance.mesh.get_aabb()
+			box = local if index == 0 else box.merge(local)
+			parts.append(str(mesh_instance.name))
+		out += "%s=%s parts=%d size=(%.2f, %.2f, %.2f) [%s] " % [
+			label, str(node.name), parts.size(),
+			box.size.x, box.size.y, box.size.z, ", ".join(parts),
+		]
+		# Что осталось на оси, но вне пивота: крыло, суппорт.
+		var holder: Node = node.get_parent()
+		var fixed_node := holder.get_node_or_null("%sStatic" % str(node.name)) if holder != null else null
+		if fixed_node != null:
+			var fixed_meshes: Array[MeshInstance3D] = []
+			_gather_meshes(fixed_node, fixed_meshes)
+			var fixed_box := AABB()
+			for index in fixed_meshes.size():
+				var part: AABB = fixed_meshes[index].mesh.get_aabb()
+				fixed_box = part if index == 0 else fixed_box.merge(part)
+			out += "[вне пивота: %d дет., size=(%.2f, %.2f, %.2f)] " % [
+				fixed_meshes.size(), fixed_box.size.x, fixed_box.size.y, fixed_box.size.z,
+			]
+	return out
+
+
+func _gather_meshes(node: Node, out: Array[MeshInstance3D]) -> void:
+	for child in node.get_children():
+		if child is MeshInstance3D and child.mesh != null:
+			out.append(child as MeshInstance3D)
+		_gather_meshes(child, out)
+
+
+## Диагностика посадки на дорогу: низ модели, земля под самокатом и зазор.
+func visual_report() -> String:
+	if _visual_root() == null:
+		return "нет модели"
+	var bottom := INF
+	for mesh in _visual_meshes():
+		var box: AABB = mesh.global_transform * mesh.mesh.get_aabb()
+		bottom = minf(bottom, box.position.y)
+	var query := PhysicsRayQueryParameters3D.create(
+		global_position + Vector3.UP * 0.45, global_position - Vector3.UP * 0.85)
+	var exclude_rids: Array[RID] = [get_rid()]
+	query.exclude = exclude_rids
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	var ground := NAN
+	if not hit.is_empty():
+		var point: Vector3 = hit["position"]
+		ground = point.y
+	return "bottom=%.3f ground=%.3f gap=%.3f offset=%.3f y=%.3f" % [
+		bottom, ground, bottom - ground, _ground_offset, global_position.y,
+	]
+
+
+## Меши самой модели без райдера: до первой позы его суставы стоят в нуле,
+## и его геометрия утаскивает «низ модели» на полметра вниз.
+func _visual_meshes() -> Array[MeshInstance3D]:
+	var out: Array[MeshInstance3D] = []
+	var visual := _visual_root()
+	if visual == null:
+		return out
+	for mesh in _all_meshes(visual):
+		if rider != null and rider.is_ancestor_of(mesh):
+			continue
+		out.append(mesh)
+	return out
+
+
+func _all_meshes(node: Node) -> Array[MeshInstance3D]:
+	var out: Array[MeshInstance3D] = []
+	for child in node.get_children():
+		if child is MeshInstance3D and (child as MeshInstance3D).mesh != null:
+			out.append(child as MeshInstance3D)
+		out.append_array(_all_meshes(child))
+	return out
 
 
 # ---- публичные свойства -----------------------------------------------------
@@ -161,7 +345,8 @@ func signed_speed_kmh() -> float:
 
 
 func battery_percent() -> float:
-	return clampf(battery_wh / maxf(1.0, spec.battery_wh), 0.0, 1.0) * 100.0
+	# Батарея отключена в игре; оставлено для совместимости старых вызовов.
+	return 100.0
 
 
 func is_grounded() -> bool:
@@ -246,7 +431,6 @@ func _physics_process(delta: float) -> void:
 	_apply_balance()
 	_anti_sink()
 	_tick_wheelie(delta)
-	_update_battery(delta)
 	_check_failures()
 	_update_rider(delta)
 	_update_audio()
@@ -265,6 +449,7 @@ func _update_kinematics(delta: float) -> void:
 	pitch_rate = angular_velocity.dot(basis.x)
 	# yaw_rate в градусах/с — так его ждёт система трюков (SPIN).
 	yaw_rate = rad_to_deg(angular_velocity.y)
+	_track_jerk(delta, basis)
 
 	var front_hit := _ground_ray(Vector3(0.0, 0.0, -spec.wheel_base * 0.5))
 	var rear_hit := _ground_ray(Vector3(0.0, 0.0, spec.wheel_base * 0.5))
@@ -301,7 +486,7 @@ func _update_kinematics(delta: float) -> void:
 		max_air_time = maxf(max_air_time, air_time)
 		_fall_speed = maxf(_fall_speed, -linear_velocity.y)
 
-	if wheelie != null and wheelie.in_balance_zone:
+	if wheelie != null and wheelie.active and pitch_deg >= Wheelie.SCORE_MIN_ANGLE:
 		wheelie_balance_time += delta
 	if stoppie_active():
 		stoppie_time += delta
@@ -362,16 +547,10 @@ func _apply_drive(delta: float) -> void:
 	var active_motors := 2 if is_awd else 1
 	var top_speed_mps := max_speed_kmh() / 3.6
 
-	var battery_scale := 1.0
-	var percent := battery_percent()
-	if percent <= 0.01:
-		battery_scale = 0.0
-	elif percent < GameConfig.LOW_BATTERY_PERCENT:
-		battery_scale = GameConfig.LOW_BATTERY_POWER_SCALE
-
+	# Системы батареи больше нет — тяга всегда полная.
 	var target_force := 0.0
-	if throttle_input > 0.001 and speed_mps < top_speed_mps and battery_scale > 0.0:
-		var power := spec.power_per_motor_watts * active_motors * battery_scale
+	if throttle_input > 0.001 and speed_mps < top_speed_mps:
+		var power := spec.power_per_motor_watts * active_motors
 		var v_safe := maxf(absf(speed_mps), 1.5)
 		var force := minf(power / v_safe, spec.max_traction_force_per_motor * active_motors)
 		var taper := 1.0 - inverse_lerp(top_speed_mps * 0.9, top_speed_mps + 0.001, speed_mps)
@@ -382,9 +561,17 @@ func _apply_drive(delta: float) -> void:
 	var grip := lerpf(spec.grip_road, spec.grip_off_road, off_road_amount)
 	if throttle_input > 0.75 and speed_kmh() < 25.0 and grip < 1.2:
 		target_force *= 0.72
-		# пробуксовка рыскает: RWD с большим моментом теряет курс сильнее
-		var wheelspin := (target_force / maxf(1.0, normal_load())) * 0.9
-		apply_torque(Vector3.UP * randf_range(-wheelspin, wheelspin) * 6.0)
+		# Пробуксовка рыскает: RWD с большим моментом теряет курс сильнее.
+		# Случайный знак каждый кадр давал дрожь и крен под 30° на старте —
+		# теперь перекос меняется плавно (случайное блуждание за ~0.5 с).
+		# Сила перекоса подобрана по автотесту: при множителе 4 самокат на полном
+		# газу с места уводило с полосы на 6 м за 17 м разгона, он съезжал с
+		# асфальта и не доезжал до трамплина. Теперь это лёгкая рыскающая искра.
+		_spin_bias = lerpf(_spin_bias, randf_range(-1.0, 1.0), clampf(delta * 2.5, 0.0, 1.0))
+		var wheelspin := clampf(target_force / maxf(1.0, normal_load()) * 0.9, 0.0, 1.2)
+		apply_torque(Vector3.UP * _spin_bias * wheelspin * 1.2)
+	else:
+		_spin_bias = lerpf(_spin_bias, 0.0, clampf(delta * 3.0, 0.0, 1.0))
 
 	var ramp := spec.motor_ramp_rate * (spec.torque_ceiling / maxf(0.05, spec.wheel_radius)) * delta
 	current_force = move_toward(current_force, target_force, ramp)
@@ -455,20 +642,56 @@ func _anti_sink() -> void:
 			fixed.origin.y = minimum
 			global_transform = fixed
 			linear_velocity.y = maxf(linear_velocity.y, 1.5)
+	_apply_wheel_limit()
+
+
+## Колёса по отдельности: при вилли/стоппи рама наклонена, и общая проверка по
+## центру тела пропускала заднее колесо сквозь дорогу.
+func _apply_wheel_limit() -> void:
+	for side in [-1.0, 1.0]:
+		var local := Vector3(0.0, 0.0, side * spec.wheel_base * 0.5)
+		var probe := global_transform * local
+		var reach := spec.wheel_radius + 0.60
+		var q := PhysicsRayQueryParameters3D.create(probe + Vector3.UP * 0.30,
+			probe + Vector3.DOWN * reach, 0xFFFFFFFF, [get_rid()])
+		var hit := get_world_3d().direct_space_state.intersect_ray(q)
+		if hit.is_empty():
+			continue
+		var need: float = hit["position"].y + spec.wheel_radius * 0.94
+		if probe.y >= need:
+			continue
+		# Только реальный провал: иначе на поворотах сила дёргала самокат.
+		var depth_in := need - probe.y
+		if depth_in < 0.035:
+			continue
+		var push := minf(depth_in, 0.10)
+		apply_central_force(Vector3.UP * push * spec.mass_kg * 90.0)
+		linear_velocity.y = maxf(linear_velocity.y, 0.0)
 
 
 func _apply_balance() -> void:
 	# Наклон в поворот.
 	var speed_abs := absf(speed_mps)
 	var lean_factor := clampf(speed_abs / GameConfig.LEAN_INTO_TURN_FULL_SPEED, 0.0, 1.0)
-	var target_roll := -steer_input * GameConfig.LEAN_INTO_TURN_MAX_ANGLE * lean_factor
+	# Руль догоняет ввод плавно и тем медленнее, чем выше скорость, а на скорости
+	# угол ещё и подрезается — иначе самокат дёргало и швыряло в поворотах.
+	var dt := get_physics_process_delta_time()
+	# Руль должен слушаться: раньше ввод догонялся слишком медленно и на
+	# скорости подрезался — поворот ощущался «тугим».
+	var steer_rate: float = lerpf(8.5, 4.0, clampf(speed_abs / 20.0, 0.0, 1.0))
+	_steer_smooth = move_toward(_steer_smooth, steer_input, dt * steer_rate)
+	var steer_gain: float = lerpf(1.0, 0.86, clampf(speed_abs / 24.0, 0.0, 1.0))
+	var steer_use: float = _steer_smooth * steer_gain
+	var target_roll := -steer_use * GameConfig.LEAN_INTO_TURN_MAX_ANGLE * lean_factor
 	var roll_error := deg_to_rad(target_roll - roll_deg)
 	# Момент крена положителен вокруг локальной +Z, поэтому и скорость крена
 	# считаем по +Z: со знаком минус демпфирование превращалось в раскачку.
 	var roll_rate := angular_velocity.dot(global_transform.basis.z)
+	# Дополнительное демпфирование крена: убирает раскачку «дёргается и летает».
+	var roll_damp := -roll_rate * spec.mass_kg * 0.06
 	var support := 1.0 if is_grounded() else 0.12
 
-	var roll_torque := roll_error * GameConfig.ROLL_STABILITY_GAIN - roll_rate * GameConfig.ROLL_STABILITY_DAMPING
+	var roll_torque := roll_error * GameConfig.ROLL_STABILITY_GAIN - roll_rate * GameConfig.ROLL_STABILITY_DAMPING + roll_damp
 	roll_torque *= support
 	var roll_limit := GameConfig.ROLL_MAX_TORQUE
 	# Самокат не падает от потери равновесия: сильный завал вытягиваем
@@ -478,25 +701,40 @@ func _apply_balance() -> void:
 		roll_torque -= signf(roll_deg) * over * GameConfig.ROLL_RECOVERY_TORQUE
 		roll_limit = GameConfig.ROLL_MAX_TORQUE + GameConfig.ROLL_RECOVERY_TORQUE
 	roll_torque = clampf(roll_torque, -roll_limit, roll_limit)
-	apply_torque(global_transform.basis * Vector3(0.0, 0.0, roll_torque))
+	# Момент набирается за ~0.2 с: мгновенный скачок бил по корпусу и выглядел
+	# как рывок «самокат дёргается».
+	_roll_torque_out = _slew(_roll_torque_out, roll_torque, dt)
+	apply_torque(global_transform.basis * Vector3(0.0, 0.0, _roll_torque_out))
 
-	# Стабилизация тангажа, когда вилли не активно.
-	var wheelie_active := wheelie != null and wheelie.active
-	if wheelie_active:
-		# Заброс выше цели (кочка, приземление) гасим, но только пока игрок
-		# не перегазовывает: перегазовка должна валить самокат.
-		if wheelie.overdrive < 0.2 and pitch_deg > GameConfig.WHEELIE_SAVE_ANGLE:
-			var save := clampf((pitch_deg - GameConfig.WHEELIE_SAVE_ANGLE) * 30.0, 0.0, 900.0)
-			apply_nose_up_torque(-save)
-	elif is_grounded():
+	# Стабилизация тангажа — только когда стант не активен, и включается она
+	# плавно: возврат носа на оба колеса больше не бьёт моментом в полную силу.
+	var assist_target := 0.0 if (wheelie != null and wheelie.active) else 1.0
+	var fade := GameConfig.PITCH_ASSIST_FADE
+	_pitch_assist = move_toward(_pitch_assist, assist_target,
+		dt * (1.0 / maxf(0.02, fade)))
+	if _pitch_assist > 0.001 and is_grounded():
 		var slope_pitch := _slope_pitch()
 		var pitch_error := deg_to_rad(slope_pitch - pitch_deg)
 		var stability := 0.5 if (brake_front_input > 0.8 and speed_kmh() > GameConfig.ENDO_RISK_SPEED_KMH) else 1.0
-		var nose_up := pitch_error * GameConfig.PITCH_STABILITY_GAIN * stability - pitch_rate * GameConfig.PITCH_STABILITY_DAMPING
+		var nose_up := pitch_error * GameConfig.PITCH_STABILITY_GAIN * stability * _pitch_assist
+		# Демпфирование живёт всегда: оно гасит скорость, а не держит угол.
+		nose_up -= pitch_rate * GameConfig.PITCH_STABILITY_DAMPING * maxf(_pitch_assist, 0.4)
 		nose_up = clampf(nose_up, -GameConfig.PITCH_MAX_TORQUE, GameConfig.PITCH_MAX_TORQUE)
-		apply_nose_up_torque(nose_up)
+		_pitch_torque_out = _slew(_pitch_torque_out, nose_up, dt)
+	else:
+		# В станте и в воздухе стабилизация не работает — момент плавно в ноль.
+		_pitch_torque_out = _slew(_pitch_torque_out, 0.0, dt)
+	apply_nose_up_torque(_pitch_torque_out)
 
-	apply_torque(Vector3.UP * (-angular_velocity.y * GameConfig.YAW_DAMPING * 8.0))
+	# Демпфирование рыскания оставлено только для стабильности на прямой:
+	# прежний коэффициент гасил сам поворот, и самокат «не хотел» рулиться.
+	apply_torque(Vector3.UP * (-angular_velocity.y * GameConfig.YAW_DAMPING * 3.0))
+
+
+## Ограничить скорость изменения момента: за кадр не больше TORQUE_SLEW*dt.
+func _slew(current: float, target: float, dt: float) -> float:
+	var step := GameConfig.TORQUE_SLEW * maxf(dt, 0.0)
+	return move_toward(current, target, step)
 
 
 func _slope_pitch() -> float:
@@ -544,7 +782,7 @@ func _check_failures() -> void:
 		# Единственное падение в вилли. Случайный заброс от кочки гасится,
 		# а вот удержанная перегазовка или слишком долгий заброс — падение.
 		_loop_out_time += get_physics_process_delta_time()
-		if wheelie.overdrive > 0.25 or _loop_out_time > 0.5:
+		if _loop_out_time > 0.35:
 			crash("Loop out — переворот через заднее колесо")
 	elif (is_grounded() and brake_front_input > 0.5 and speed_kmh() > 20.0
 			and pitch_deg < GameConfig.ENDO_CRASH_ANGLE):
@@ -613,7 +851,9 @@ func respawn() -> void:
 	if wheelie != null:
 		wheelie.reset()
 
-	var brought := Transform3D(respawn_basis, respawn_position + Vector3.UP * 0.12)
+	# Подъём на 4 см, а не 12: при 0.12 каждый респаун давал приземление
+	# в счётчике прыжков и толчок по корпусу.
+	var brought := Transform3D(respawn_basis, respawn_position + Vector3.UP * 0.04)
 	global_transform = brought
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
@@ -642,10 +882,108 @@ func _update_rider(delta: float) -> void:
 		wheelie_blend, throttle_input, pitch_rate)
 
 
+## Прижать модель к дороге.
+##
+## Опора — самое низкое колесо модели (на вилли это заднее): его шину ставим
+## ровно на асфальт, высоту которого даёт луч вниз. Смещение считается через
+## поворот корпуса, поэтому на поднятом носу колесо не уходит в дорогу.
+func _align_visual_to_ground(delta: float) -> void:
+	if model_root == null or spec == null:
+		return
+	var tyre := -_model_bottom
+	if tyre <= 0.01:
+		return
+	var basis := global_transform.basis
+	# Корпус почти лёг на бок — не считаем.
+	if absf(basis.y.y) < 0.25:
+		return
+	if not is_grounded():
+		return
+	var axles: Array[float] = [-spec.wheel_base * 0.5, spec.wheel_base * 0.5]
+	var pick_z := axles[0]
+	var pick_bottom := INF
+	for z in axles:
+		var bottom := (basis * Vector3(0.0, -tyre, z)).y
+		if bottom < pick_bottom:
+			pick_bottom = bottom
+			pick_z = z
+	var probe := global_transform * Vector3(0.0, 0.0, pick_z)
+	var query := PhysicsRayQueryParameters3D.create(
+		probe + Vector3.UP * 0.45, probe - Vector3.UP * 0.85)
+	var exclude_rids: Array[RID] = [get_rid()]
+	query.exclude = exclude_rids
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return
+	var point: Vector3 = hit["position"]
+	# Шина в системе корпуса — (0, offset - tyre, z); её высота в мире
+	# = y корпуса + (ось колеса по вертикали) + (offset - tyre) * basis.y.y.
+	var axle_height := (basis * Vector3(0.0, 0.0, pick_z)).y
+	var wanted := tyre + (point.y - global_position.y - axle_height) / basis.y.y
+	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.45, 0.35), clampf(delta * 12.0, 0.0, 1.0))
+	model_root.position.y = _ground_offset
+
+
+## Рывок = производная угловой скорости. Нужен, чтобы ловить «дёргается» числами.
+func _track_jerk(delta: float, basis: Basis) -> void:
+	var dt := maxf(delta, 0.0001)
+	var roll_rate := angular_velocity.dot(basis.z)
+	max_pitch_jerk = maxf(max_pitch_jerk, absf(rad_to_deg(pitch_rate - _prev_pitch_rate) / dt))
+	max_roll_jerk = maxf(max_roll_jerk, absf(rad_to_deg(roll_rate - _prev_roll_rate) / dt))
+	_prev_pitch_rate = pitch_rate
+	_prev_roll_rate = roll_rate
+
+
+## Скорость качения колёс для логов: м/с, независимо от качания корпуса.
+func roll_speed_front() -> float:
+	return _front_roll
+
+
+func roll_speed_rear() -> float:
+	return _rear_roll
+
+
+func reset_jerk_stats() -> void:
+	max_pitch_jerk = 0.0
+	max_roll_jerk = 0.0
+	_prev_pitch_rate = pitch_rate
+	_prev_roll_rate = angular_velocity.dot(global_transform.basis.z)
+
+
+## Скорость качения колеса. Считаем по точке оси, а не по центру масс: когда
+## самокат качается на заднем колесе (вилли, «маятник»), корпус двигается и
+## раньше колёса прокручивались туда-обратно, хотя не катились. У колеса,
+## стоящего на земле, скорость точки оси при таком качании ≈ 0.
+## В воздухе колесо крутится по инерции — вызывающий код гасит её плавно.
+func _roll_speed(axle_local: Vector3) -> float:
+	if spec == null:
+		return 0.0
+	var axle_world := global_transform * axle_local
+	var point_velocity := linear_velocity + angular_velocity.cross(axle_world - global_position)
+	var forward := -global_transform.basis.z
+	forward.y = 0.0
+	if forward.length() < 0.02:
+		return 0.0
+	var flat := Vector3(point_velocity.x, 0.0, point_velocity.z)
+	return flat.dot(forward.normalized())
+
+
 func _update_wheel_visuals(delta: float) -> void:
-	var spin_delta := (speed_mps / maxf(0.02, spec.wheel_radius)) * delta
-	_front_spin += spin_delta
-	_rear_spin += spin_delta
+	_align_visual_to_ground(delta)
+	var radius := maxf(0.02, spec.wheel_radius if spec != null else 0.15)
+	if spec != null and front_grounded:
+		_front_roll = lerpf(_front_roll, _roll_speed(Vector3(0.0, 0.0, -spec.wheel_base * 0.5)),
+			clampf(delta * 20.0, 0.0, 1.0))
+	else:
+		# В воздухе — по инерции, медленно затухает.
+		_front_roll = lerpf(_front_roll, 0.0, clampf(delta * 0.7, 0.0, 1.0))
+	if spec != null and rear_grounded:
+		_rear_roll = lerpf(_rear_roll, _roll_speed(Vector3(0.0, 0.0, spec.wheel_base * 0.5)),
+			clampf(delta * 20.0, 0.0, 1.0))
+	else:
+		_rear_roll = lerpf(_rear_roll, 0.0, clampf(delta * 0.7, 0.0, 1.0))
+	_front_spin += _front_roll / radius * delta
+	_rear_spin += _rear_roll / radius * delta
 
 	# Качение вперёд — вращение вокруг -X, поэтому спин берём со знаком минус.
 	if front_visual != null:

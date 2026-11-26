@@ -5,7 +5,7 @@ class_name GameConfig
 extends RefCounted
 
 enum GameMode { FREE_RIDE, TIME_ATTACK, FREESTYLE }
-enum MapId { STRAIGHT_TRACK, CITY }
+enum MapId { STRAIGHT_TRACK, CITY, JUMP_PARK }
 enum DriveMode { RWD, AWD }
 
 const PRODUCT_NAME := "Kugoo Freeride"
@@ -40,9 +40,9 @@ const ROLLING_RESISTANCE_TORQUE := 0.5
 const AIR_DRAG_COEFFICIENT := 0.160
 
 # ---- Руль -------------------------------------------------------------------
-const STEER_FALLOFF_START := 2.0
-const STEER_FALLOFF_END := 22.0
-const STEER_MIN_FACTOR := 0.42
+const STEER_FALLOFF_START := 4.0
+const STEER_FALLOFF_END := 30.0
+const STEER_MIN_FACTOR := 0.62
 const REAR_STEER_FACTOR := 0.3
 
 # ---- Баланс (искусственная устойчивость) ------------------------------------
@@ -53,13 +53,19 @@ const ROLL_MAX_TORQUE := 520.0
 ## равновесия нельзя, самокат просто вытягивает обратно.
 const ROLL_ASSIST_ANGLE := 26.0
 const ROLL_RECOVERY_TORQUE := 620.0
-const LEAN_INTO_TURN_MAX_ANGLE := 21.0
+const LEAN_INTO_TURN_MAX_ANGLE := 24.0
 const LEAN_INTO_TURN_FULL_SPEED := 14.0
 
 const PITCH_STABILITY_GAIN := 120.0
 const PITCH_STABILITY_DAMPING := 26.0
 const PITCH_MAX_TORQUE := 380.0
 const YAW_DAMPING := 6.0
+## Скорость нарастания момента стабилизации, Н·м/с. Момент, который включается
+## за один кадр на полную, — это удар: самокат «дёргало» при возврате на оба
+## колеса и при повороте на вилли. Теперь любой момент набирается плавно.
+const TORQUE_SLEW := 1500.0
+## Стабилизация тангажа включается после вилли не мгновенно, а за это время, с.
+const PITCH_ASSIST_FADE := 0.28
 
 # ---- Тормоза ----------------------------------------------------------------
 const REAR_BRAKE_SHARE := 0.85
@@ -69,18 +75,20 @@ const ENDO_RISK_TORQUE := 55.0
 const ENDO_CRASH_ANGLE := -26.0
 
 # ---- Аварии -----------------------------------------------------------------
+## Выше этого угла самокат валится через заднее колесо. Полный газ держит
+## угол ниже (Wheelie.MAX_ANGLE), так что переворот — только от кочки или
+## слишком долгого заброса.
 const LOOP_OUT_ANGLE := 76.0
-## Выше этого угла вилли-контроллер сам гасит случайный заброс
-## (но не перегазовку — она и должна валить).
-const WHEELIE_SAVE_ANGLE := 66.0
 const HARD_IMPACT_SPEED := 8.5
+## Time Attack: каждые CHECKPOINT_STEP метров даёт CHECKPOINT_BONUS секунд.
+## Без этого режим кончался раньше, чем игрок успевал разогнаться.
+const CHECKPOINT_STEP := 300.0
+const CHECKPOINT_BONUS := 10.0
 
 # ---- Батарея ----------------------------------------------------------------
 const MOTOR_EFFICIENCY := 0.80
 const MOTOR_SPINUP_LOSS_WATTS := 260.0
 const IDLE_DRAIN_WATTS := 0.6
-const LOW_BATTERY_PERCENT := 8.0
-const LOW_BATTERY_POWER_SCALE := 0.4
 
 # ---- Камера -----------------------------------------------------------------
 const CAMERA_DISTANCE := 3.9
