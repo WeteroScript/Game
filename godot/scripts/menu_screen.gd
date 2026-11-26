@@ -107,8 +107,10 @@ func _build_left() -> void:
 	y += 28.0
 	for index in MAP_NAMES.size():
 		var captured_map := index
-		var button := UiFactory.button(MAP_NAMES[index], 18, Vector2(168.0, 54.0))
-		UiFactory.place(button, 50.0 + index * 174.0, y, 168.0, 54.0)
+		# Три карты должны помещаться в левую колонку, не заезжая под карточку
+		# характеристик (она начинается на x=660).
+		var button := UiFactory.button(MAP_NAMES[index], 16, Vector2(150.0, 54.0))
+		UiFactory.place(button, 50.0 + index * 158.0, y, 150.0, 54.0)
 		button.pressed.connect(func() -> void: _select_map(captured_map))
 		_left.add_child(button)
 		_map_buttons.append(button)

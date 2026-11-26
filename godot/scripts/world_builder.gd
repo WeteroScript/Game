@@ -224,11 +224,13 @@ func _build_jump_park(parent: Node3D) -> Dictionary:
 
 ## Пять трамплинов: от маленького разминочного до большого.
 func _add_jump_line(parent: Node3D) -> void:
-	_add_ramp(parent, FLAT_START_Z - 120.0, 10.0, 5.0, 5.6)
-	_add_ramp(parent, FLAT_START_Z - 280.0, 14.0, 6.4, 5.2)
-	_add_ramp(parent, FLAT_START_Z - 460.0, 18.0, 8.0, 4.8)
-	_add_ramp(parent, FLAT_START_Z - 660.0, 8.0, 4.6, 6.0)
-	_add_ramp(parent, FLAT_START_Z - 850.0, 16.0, 7.2, 5.0)
+	# Углы подобраны по реальному отрыву: на 10° самокат почти не улетал
+	# (0.2 с в воздухе), на 16–20° уже хватает на JUMP и вращение.
+	_add_ramp(parent, FLAT_START_Z - 120.0, 12.0, 5.2, 5.6)
+	_add_ramp(parent, FLAT_START_Z - 280.0, 16.0, 6.2, 5.2)
+	_add_ramp(parent, FLAT_START_Z - 460.0, 20.0, 7.0, 4.8)
+	_add_ramp(parent, FLAT_START_Z - 660.0, 14.0, 5.6, 6.0)
+	_add_ramp(parent, FLAT_START_Z - 850.0, 18.0, 6.6, 5.0)
 
 
 ## Лес по обе стороны: три линии деревьев в MultiMesh.
