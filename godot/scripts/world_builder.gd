@@ -49,6 +49,8 @@ func _init() -> void:
 	# и в городе набегали сотни лишних материалов.
 	_window = _mat(Color(0.15, 0.2, 0.26), 0.3, 0.2)
 	_ramp = _mat(Color(0.93, 0.72, 0.12), 0.05, 0.55)
+	# Клин собирается SurfaceTool'ом: не хотим зависеть от порядка обхода вершин.
+	_ramp.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_ramp_dark = _mat(Color(0.24, 0.25, 0.27), 0.35, 0.6)
 
 
@@ -193,34 +195,67 @@ func _build_straight_track(parent: Node3D, with_landings := false) -> Dictionary
 	return {"spawn": Vector3(0.0, 0.14, FLAT_START_Z - 20.0), "basis": Basis.IDENTITY}
 
 
-## Трамплин: наклонная плита, подпорка под верхней кромкой и разметка
-## приземления. Низ верхней грани лежит ровно на асфальте — иначе на въезде
-## получается ступенька, и самокат на ней глохнет (в автотесте скорость
-## падала с 37 до 3 км/ч, а на второй версии он вообще проваливался под дорогу).
+## Трамплин — цельный клин (ConvexPolygonShape3D) вместо тонкой плиты.
+##
+## Тонкая наклонная плита на 38 км/ч пробивалась насквозь: за один шаг физики
+## самокат проходит 17 см, колесо оказывалось внутри 22-см плиты, и решатель
+## выталкивал его вниз — сквозь асфальт (в автотесте y=-0.31 при норме 0.18).
+## Клин — монолит от верха до низа дороги, поэтому выталкивание всегда вверх.
 func _add_ramp(parent: Node3D, z: float, angle_deg := RAMP_ANGLE,
 		length := RAMP_LENGTH, width := RAMP_WIDTH) -> void:
-	var thickness := 0.22
 	var angle := deg_to_rad(angle_deg)
 	var half := length * 0.5
-	var half_thickness := thickness * 0.5
-	# Геометрия с проверкой: верхняя грань наклонённой плиты поднимается над
-	# её центром на half_thickness * cos(угла) — это вертикальная проекция
-	# нормали. Низ верхней грани должен касаться асфальта, иначе на въезде
-	# ступенька (сначала 11 см, потом 22 см — самокат на ней глох и проваливался).
-	var center_y: float = ROAD_TOP + sin(angle) * half - half_thickness * cos(angle)
-	_solid(parent, Vector3(width, thickness, length),
-		Vector3(0.0, center_y, z), _ramp, Vector3(angle, 0.0, 0.0))
+	var half_w := width * 0.5
+	# length — горизонтальный забег клина, поэтому подъём через тангенс.
+	var lip: float = tan(angle) * length
+	var depth := 0.6
 
-	# Губа: высота верхней грани на дальнем крае = sin(угла) * длина.
-	var lip_y: float = ROAD_TOP + sin(angle) * length
-	# Подпорка под высоким краем: без неё плита висит в воздухе.
-	_decor(parent, Vector3(width, lip_y - 0.12, 0.6),
-		Vector3(0.0, (lip_y - 0.12) * 0.5, z - half + 0.35), _ramp_dark)
-	# Полосы по краям плиты — трамплин читается с ходу даже в сумерках.
+	var corners := [
+		Vector3(-half_w, 0.0, half), Vector3(half_w, 0.0, half),
+		Vector3(half_w, lip, -half), Vector3(-half_w, lip, -half),
+		Vector3(-half_w, -depth, half), Vector3(half_w, -depth, half),
+		Vector3(half_w, -depth, -half), Vector3(-half_w, -depth, -half),
+	]
+
+	var body := StaticBody3D.new()
+	body.position = Vector3(0.0, ROAD_TOP, z)
+	parent.add_child(body)
+
+	var shape := CollisionShape3D.new()
+	var convex := ConvexPolygonShape3D.new()
+	convex.points = PackedVector3Array(corners)
+	shape.shape = convex
+	body.add_child(shape)
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(-1)
+	for tri in [
+		[0, 1, 2], [0, 2, 3],      # верхняя (наклонная) грань
+		[0, 4, 5], [0, 5, 1],      # низкий торец
+		[3, 6, 7], [3, 7, 2],      # высокий торец
+		[4, 5, 6], [4, 6, 7],      # низ
+		[0, 3, 7], [0, 7, 4],      # левая сторона
+		[1, 5, 6], [1, 6, 2],      # правая сторона
+	]:
+		for index in tri:
+			st.add_vertex(corners[index])
+	st.generate_normals()
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.mesh = st.commit()
+	mesh_instance.material_override = _ramp
+	body.add_child(mesh_instance)
+
+	# Полосы по краям наклонной грани — трамплин читается с ходу.
+	var slope := sqrt(length * length + lip * lip)
 	for side in [-1.0, 1.0]:
-		_decor(parent, Vector3(0.22, 0.06, length),
-			Vector3(side * (width * 0.5 - 0.2), center_y + half_thickness * cos(angle) + 0.03, z),
-			_white, Vector3(angle, 0.0, 0.0))
+		_decor(parent, Vector3(0.22, 0.06, slope),
+			Vector3(side * (half_w - 0.2), ROAD_TOP + lip * 0.5 + 0.03, z), _white,
+			Vector3(angle, 0.0, 0.0))
+	# Подпорка под высоким торцом.
+	var post_h: float = maxf(0.2, lip * (1.0 - 0.7 / length))
+	_decor(parent, Vector3(width, post_h, 0.6),
+		Vector3(0.0, ROAD_TOP + post_h * 0.5, z - half + 0.35), _ramp_dark)
 	# Разметка приземления: белая полоса за трамплином.
 	_decor(parent, Vector3(width, 0.02, 0.25),
 		Vector3(0.0, ROAD_TOP + 0.014, z - half - 9.0), _white)
