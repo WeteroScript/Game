@@ -50,6 +50,10 @@ var _smoke_timer := 0.0
 var _smoke_crashed := false
 var _smoke_ramp_wait := 0.0
 var _smoke_ramp_placed := false
+var _smoke_jumps_before := 0
+## Вилли в автотесте взводим ровно один раз: раньше лесенка if/elif
+## перещёлкивала его каждый кадр после 9.5 с.
+var _smoke_wheelie_done := false
 var _smoke_phase := 0
 var _smoke_wheelie_on := false
 # Проверка знака руля: вправо (+) должен давать поворот по часовой (yaw вниз).
@@ -363,7 +367,12 @@ func _tick_smoke(delta: float) -> void:
 		_smoke_phase = 1
 		_smoke_ramp_wait = 0.0
 		print("SMOKE phase 1 end: %s" % _telemetry())
-		print("SMOKE ramp map: Джамп-парк, трамплины %s" % str(_ramp_positions()))
+		# Самокат один раз приземлялся уже на спауне (падал с 0.12 м), поэтому
+		# сравниваем с базой, а не с нулём.
+		_smoke_jumps_before = scooter.landing_counter if scooter != null else 0
+		print("SMOKE ramp map: Джамп-парк, трамплины %s, база прыжков=%d" % [
+			str(_ramp_positions()), _smoke_jumps_before,
+		])
 		_start_run("g4", GameConfig.MapId.JUMP_PARK, GameConfig.GameMode.FREE_RIDE)
 		return
 
@@ -384,9 +393,10 @@ func _tick_smoke(delta: float) -> void:
 			return
 		input_state.touch_throttle = 1.0
 		input_state.touch_steer = 0.0
-		var jumped: bool = scooter != null and scooter.landing_counter > 0
+		var jumped: bool = scooter != null and scooter.landing_counter > _smoke_jumps_before
 		if jumped:
 			print("SMOKE ramp jump OK: %s" % _telemetry())
+			print("SMOKE ramp jump points=%d last_trick=%s" % [tricks.score, tricks.last_trick])
 		if not jumped:
 			# Пока в воздухе, печатаем телеметрию каждые 0.5 с.
 			if fmod(_smoke_ramp_wait, 0.5) < delta:
@@ -457,12 +467,13 @@ func _tick_smoke(delta: float) -> void:
 	input_state.touch_steer = sin(_smoke_timer * 0.7) * 0.35 if _smoke_phase == 0 else 0.0
 
 	if _smoke_phase == 0:
-		if not _smoke_wheelie_on and _smoke_timer > 3.0:
+		if not _smoke_wheelie_done and not _smoke_wheelie_on and _smoke_timer > 3.0:
 			_smoke_wheelie_on = true
 			input_state.request_wheelie_toggle()
 			print("SMOKE wheelie toggle ON")
 		elif _smoke_wheelie_on and _smoke_timer > 9.5:
 			_smoke_wheelie_on = false
+			_smoke_wheelie_done = true
 			input_state.request_wheelie_toggle()
 			print("SMOKE wheelie toggle OFF")
 		if not _smoke_crashed and _smoke_timer > 10.5 and scooter != null:

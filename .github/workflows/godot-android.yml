@@ -275,7 +275,10 @@ jobs:
           {
             echo "### Автотест заезда"
             echo '```'
-            grep -E "SMOKE" /tmp/run.log || echo "нет строк SMOKE"
+            # SMOKE — прогон заездов, PLAYTEST — проверки инвариантов и HUD,
+            # RECORD — рекорды, WORLD — кадры мира и прыжок.
+            grep -E "SMOKE|PLAYTEST|RECORD|WORLD|SCRIPT ERROR|Parse Error" /tmp/run.log \
+              || echo "нет строк SMOKE"
             echo '```'
           } > /tmp/smoke.md
           gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/smoke.md
