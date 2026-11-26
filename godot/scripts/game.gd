@@ -576,30 +576,39 @@ func _start_screenshots() -> void:
 	_take_screenshots()
 
 
-## Два кадра заднего колеса с разным углом поворота: если на втором кадре
-## поехал маятник, суппорт или крыло — значит они лежат внутри пивота колеса.
+## Проверка вращения колёс: кадры колеса с разным углом + кадры с выключенным
+## колесом. Если на «выключенном» кадре вместе с шиной пропал маятник или
+## суппорт — значит они лежат внутри пивота колеса и крутятся вместе с ним.
 func _take_spin_shots(shot_dir: String, spec_id: String) -> void:
 	if scooter == null:
 		return
 	print("WHEELS %s: %s" % [spec_id, scooter.wheel_report()])
-	var wheel: Node3D = scooter.rear_visual
-	if wheel == null:
-		return
-	camera_rig.target = null
-	camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
-	camera_rig.fov = 32.0
-	for pair in [["a", 0.0], ["b", 1.05]]:
-		var angle: float = pair[1]
-		wheel.rotation = Vector3(angle, 0.0, 0.0)
+	var pairs := [
+		["rear", scooter.rear_visual, Vector3(1.25, 0.30, 0.05)],
+		["front", scooter.front_visual, Vector3(1.25, 0.30, 0.05)],
+	]
+	for entry in pairs:
+		var label: String = entry[0]
+		var wheel: Node3D = entry[1]
+		var offset: Vector3 = entry[2]
+		if wheel == null:
+			continue
 		var anchor: Vector3 = wheel.global_position
-		camera_rig.global_position = anchor + Vector3(1.25, 0.30, 0.05)
-		camera_rig.look_at(anchor, Vector3.UP)
-		for frame in 4:
-			await get_tree().process_frame
-		await RenderingServer.frame_post_draw
-		_save_shot(shot_dir, "%s_spin_rear_%s" % [spec_id, pair[0]])
-		print("SPIN %s rear_rot=%.2f at=%s" % [spec_id, angle, str(anchor)])
-	wheel.rotation = Vector3.ZERO
+		for pair in [["a", 0.0], ["b", deg_to_rad(60.0)], ["hidden", 0.0]]:
+			var tag: String = pair[0]
+			wheel.rotation = Vector3(float(pair[1]), 0.0, 0.0)
+			wheel.visible = tag != "hidden"
+			camera_rig.target = null
+			camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
+			camera_rig.fov = 32.0
+			camera_rig.global_position = anchor + offset
+			camera_rig.look_at(anchor, Vector3.UP)
+			for frame in 4:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			_save_shot(shot_dir, "%s_spin_%s_%s" % [spec_id, label, tag])
+		wheel.rotation = Vector3.ZERO
+		wheel.visible = true
 
 
 ## Обойти дерево модели и собрать группы деталей: узел с прямыми мешами = деталь.
