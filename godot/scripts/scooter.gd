@@ -792,11 +792,11 @@ func _update_rider(delta: float) -> void:
 		wheelie_blend, throttle_input, pitch_rate)
 
 
-## Прижать модель к дороге по фактической высоте асфальта.
+## Прижать модель к дороге.
 ##
-## Смещение считается отдельно для каждого колеса, которое стоит на земле, и
-## через поворот корпуса: при вилли «плоская» посадка уводит заднее колесо в
-## асфальт на 20–30 см. Затем смещение сглаживается, чтобы не дрожало.
+## Опора — самое низкое колесо модели (на вилли это заднее): его шину ставим
+## ровно на асфальт, высоту которого даёт луч вниз. Смещение считается через
+## поворот корпуса, поэтому на поднятом носу колесо не уходит в дорогу.
 func _align_visual_to_ground(delta: float) -> void:
 	if model_root == null or spec == null:
 		return
@@ -804,38 +804,33 @@ func _align_visual_to_ground(delta: float) -> void:
 	if tyre <= 0.01:
 		return
 	var basis := global_transform.basis
-	# Корпус почти лёг на бок — считать нечего, оставляем прошлое смещение.
+	# Корпус почти лёг на бок — не считаем.
 	if absf(basis.y.y) < 0.25:
 		return
-	var space := get_world_3d().direct_space_state
-	var exclude_rids: Array[RID] = [get_rid()]
-	var wheels := [[front_wheel, -spec.wheel_base * 0.5], [rear_wheel, spec.wheel_base * 0.5]]
-	var needed := -INF
-	var found := 0
-	for entry in wheels:
-		var wheel: VehicleWheel3D = entry[0]
-		if wheel == null or not wheel.is_in_contact():
-			continue
-		var z: float = entry[1]
-		var probe := global_transform * Vector3(0.0, 0.0, z)
-		var query := PhysicsRayQueryParameters3D.create(
-			probe + Vector3.UP * 0.45, probe - Vector3.UP * 0.75)
-		query.exclude = exclude_rids
-		var hit := space.intersect_ray(query)
-		if hit.is_empty():
-			continue
-		var point: Vector3 = hit["position"]
-		# Низ колеса в системе корпуса — (0, offset - tyre, z); его высота в мире
-		# = y корпуса + (ось колеса по вертикали) + (offset - tyre) * basis.y.y.
-		var axle_height := (basis * Vector3(0.0, 0.0, z)).y
-		var offset := tyre + (point.y - global_position.y - axle_height) / basis.y.y
-		needed = maxf(needed, offset)
-		found += 1
-	if found == 0:
+	if not is_grounded():
 		return
-	# Из двух колёс берём максимум: модель садится по тому, которому нужен
-	# больший подъём, иначе второе колесо уходит в асфальт.
-	_ground_offset = lerpf(_ground_offset, clampf(needed, -0.35, 0.20), clampf(delta * 12.0, 0.0, 1.0))
+	var axles: Array[float] = [-spec.wheel_base * 0.5, spec.wheel_base * 0.5]
+	var pick_z := axles[0]
+	var pick_bottom := INF
+	for z in axles:
+		var bottom := (basis * Vector3(0.0, -tyre, z)).y
+		if bottom < pick_bottom:
+			pick_bottom = bottom
+			pick_z = z
+	var probe := global_transform * Vector3(0.0, 0.0, pick_z)
+	var query := PhysicsRayQueryParameters3D.create(
+		probe + Vector3.UP * 0.45, probe - Vector3.UP * 0.85)
+	var exclude_rids: Array[RID] = [get_rid()]
+	query.exclude = exclude_rids
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return
+	var point: Vector3 = hit["position"]
+	# Шина в системе корпуса — (0, offset - tyre, z); её высота в мире
+	# = y корпуса + (ось колеса по вертикали) + (offset - tyre) * basis.y.y.
+	var axle_height := (basis * Vector3(0.0, 0.0, pick_z)).y
+	var wanted := tyre + (point.y - global_position.y - axle_height) / basis.y.y
+	_ground_offset = lerpf(_ground_offset, clampf(wanted, -0.45, 0.35), clampf(delta * 12.0, 0.0, 1.0))
 	model_root.position.y = _ground_offset
 
 
