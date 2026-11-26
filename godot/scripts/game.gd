@@ -596,10 +596,11 @@ func _take_spin_shots(shot_dir: String, spec_id: String) -> void:
 		if wheel == null:
 			continue
 		var anchor: Vector3 = wheel.global_position
-		for pair in [["a", 0.0], ["b", deg_to_rad(60.0)], ["hidden", 0.0]]:
+		for pair in [["a", 0.0, true], ["b", deg_to_rad(60.0), true],
+				["hidden", 0.0, false], ["hidden_b", deg_to_rad(60.0), false]]:
 			var tag: String = pair[0]
 			wheel.rotation = Vector3(float(pair[1]), 0.0, 0.0)
-			wheel.visible = tag != "hidden"
+			wheel.visible = bool(pair[2])
 			camera_rig.target = null
 			camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
 			camera_rig.fov = 32.0
