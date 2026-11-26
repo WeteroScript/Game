@@ -55,6 +55,7 @@ var _smoke_jumps_before := -1
 ## того, как счётчик приземлений вырос.
 var _smoke_jump_report := -1.0
 var _smoke_checkpoints_total := 0
+var _smoke_ramp_jumps := 0
 ## Вилли в автотесте взводим ровно один раз: раньше лесенка if/elif
 ## перещёлкивала его каждый кадр после 9.5 с.
 var _smoke_wheelie_done := false
@@ -440,6 +441,7 @@ func _tick_smoke(delta: float) -> void:
 		# Приземление поймали: даём трюкам один тик, чтобы начислить очки,
 		# и только потом печатаем результат.
 		if jumped and _smoke_jump_report < 0.0:
+			_smoke_ramp_jumps += 1
 			print("SMOKE ramp jump OK: %s" % _telemetry())
 			_smoke_jump_report = 0.0
 			return
@@ -498,8 +500,7 @@ func _tick_smoke(delta: float) -> void:
 		var under_map := pos.y < -2.0
 		var hud_ok := not hud.debug_clock().contains("dist=0.00")
 		print("PLAYTEST checks nan=%s under_map=%s hud_ok=%s checkpoints=%d ramp_jumps=%d" % [
-			str(nan_pos), str(under_map), str(hud_ok), _smoke_checkpoints_total,
-			scooter.landing_counter if scooter != null else -1,
+			str(nan_pos), str(under_map), str(hud_ok), _smoke_checkpoints_total, _smoke_ramp_jumps,
 		])
 		get_tree().quit()
 		return
@@ -931,6 +932,20 @@ func _take_world_shots(shot_dir: String) -> void:
 		_telemetry(),
 	])
 
+	# Трамплин сбоку: по кадру видно форму клина и высоту губы.
+	camera_rig.target = null
+	var ramp_z: float = WorldBuilder.FLAT_START_Z - 120.0
+	camera_rig.global_position = Vector3(10.0, 2.6, ramp_z + 7.0)
+	camera_rig.look_at(Vector3(0.0, 0.9, ramp_z - 1.2), Vector3.UP)
+	camera_rig.fov = 46.0
+	for frame in 6:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "world_ramp_side")
+
+	camera_rig.target = scooter
+	camera_rig.snap_behind()
+
 	# Разгон в трамплин и кадр в воздухе.
 	input_state.touch_throttle = 1.0
 	var airborne := false
@@ -942,6 +957,16 @@ func _take_world_shots(shot_dir: String) -> void:
 			airborne = true
 			await RenderingServer.frame_post_draw
 			_save_shot(shot_dir, "world_jump")
+			# Тот же кадр сбоку: видно высоту отрыва над дорогой.
+			var air_pos: Vector3 = scooter.global_position
+			camera_rig.target = null
+			camera_rig.global_position = air_pos + Vector3(8.0, 1.4, 2.4)
+			camera_rig.look_at(air_pos + Vector3(0.0, 0.3, 0.0), Vector3.UP)
+			camera_rig.fov = 40.0
+			for side_frame in 3:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			_save_shot(shot_dir, "world_jump_side")
 	print("WORLD jump air=%s %s" % [str(airborne), _telemetry()])
 	input_state.touch_throttle = 0.0
 	await get_tree().create_timer(1.6).timeout
