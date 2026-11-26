@@ -94,6 +94,10 @@ var _rear_spin := 0.0
 ## Скорость качения колёс (м/с) — своя у каждого колеса.
 var _front_roll := 0.0
 var _rear_roll := 0.0
+## Сглаженные моменты стабилизации — набираются с ограниченной скоростью.
+var _roll_torque_out := 0.0
+var _pitch_torque_out := 0.0
+var _pitch_assist := 0.0
 ## Рывки для автотеста: максимальное угловое ускорение, град/с².
 var max_pitch_jerk := 0.0
 var max_roll_jerk := 0.0
@@ -697,22 +701,40 @@ func _apply_balance() -> void:
 		roll_torque -= signf(roll_deg) * over * GameConfig.ROLL_RECOVERY_TORQUE
 		roll_limit = GameConfig.ROLL_MAX_TORQUE + GameConfig.ROLL_RECOVERY_TORQUE
 	roll_torque = clampf(roll_torque, -roll_limit, roll_limit)
-	apply_torque(global_transform.basis * Vector3(0.0, 0.0, roll_torque))
+	# Момент набирается за ~0.2 с: мгновенный скачок бил по корпусу и выглядел
+	# как рывок «самокат дёргается».
+	_roll_torque_out = _slew(_roll_torque_out, roll_torque, dt)
+	apply_torque(global_transform.basis * Vector3(0.0, 0.0, _roll_torque_out))
 
-	# Стабилизация тангажа — только когда стант не активен. В станте тангаж
-	# целиком на газе, без «спасательных» моментов: иначе самокат держится сам,
-	# и газ перестаёт что-либо решать.
-	if not (wheelie != null and wheelie.active) and is_grounded():
+	# Стабилизация тангажа — только когда стант не активен, и включается она
+	# плавно: возврат носа на оба колеса больше не бьёт моментом в полную силу.
+	var assist_target := 0.0 if (wheelie != null and wheelie.active) else 1.0
+	var fade := GameConfig.PITCH_ASSIST_FADE
+	_pitch_assist = move_toward(_pitch_assist, assist_target,
+		dt * (1.0 / maxf(0.02, fade)))
+	if _pitch_assist > 0.001 and is_grounded():
 		var slope_pitch := _slope_pitch()
 		var pitch_error := deg_to_rad(slope_pitch - pitch_deg)
 		var stability := 0.5 if (brake_front_input > 0.8 and speed_kmh() > GameConfig.ENDO_RISK_SPEED_KMH) else 1.0
-		var nose_up := pitch_error * GameConfig.PITCH_STABILITY_GAIN * stability - pitch_rate * GameConfig.PITCH_STABILITY_DAMPING
+		var nose_up := pitch_error * GameConfig.PITCH_STABILITY_GAIN * stability * _pitch_assist
+		# Демпфирование живёт всегда: оно гасит скорость, а не держит угол.
+		nose_up -= pitch_rate * GameConfig.PITCH_STABILITY_DAMPING * maxf(_pitch_assist, 0.4)
 		nose_up = clampf(nose_up, -GameConfig.PITCH_MAX_TORQUE, GameConfig.PITCH_MAX_TORQUE)
-		apply_nose_up_torque(nose_up)
+		_pitch_torque_out = _slew(_pitch_torque_out, nose_up, dt)
+	else:
+		# В станте и в воздухе стабилизация не работает — момент плавно в ноль.
+		_pitch_torque_out = _slew(_pitch_torque_out, 0.0, dt)
+	apply_nose_up_torque(_pitch_torque_out)
 
 	# Демпфирование рыскания оставлено только для стабильности на прямой:
 	# прежний коэффициент гасил сам поворот, и самокат «не хотел» рулиться.
 	apply_torque(Vector3.UP * (-angular_velocity.y * GameConfig.YAW_DAMPING * 3.0))
+
+
+## Ограничить скорость изменения момента: за кадр не больше TORQUE_SLEW*dt.
+func _slew(current: float, target: float, dt: float) -> float:
+	var step := GameConfig.TORQUE_SLEW * maxf(dt, 0.0)
+	return move_toward(current, target, step)
 
 
 func _slope_pitch() -> float:

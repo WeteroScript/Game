@@ -61,6 +61,7 @@ var _smoke_ramp_jumps := 0
 var _smoke_wheelie_done := false
 var _smoke_phase := 0
 var _smoke_wheelie_on := false
+var _smoke_landing_reported := false
 # Проверка знака руля: вправо (+) должен давать поворот по часовой (yaw вниз).
 
 # Перетаскивание камеры.
@@ -400,10 +401,6 @@ func _tick_smoke(delta: float) -> void:
 		_smoke_phase = 1
 		_smoke_ramp_wait = 0.0
 		print("SMOKE phase 1 end: %s" % _telemetry())
-		if scooter != null:
-			print("SMOKE jerk: pitch=%.0f roll=%.0f град/с² (макс за вилли с рулём)" % [
-				scooter.max_pitch_jerk, scooter.max_roll_jerk,
-			])
 		# Самокат один раз приземлялся уже на спауне (падал с 0.12 м), поэтому
 		# сравниваем с базой, а не с нулём.
 		_smoke_jumps_before = scooter.landing_counter if scooter != null else 0
@@ -539,6 +536,16 @@ func _tick_smoke(delta: float) -> void:
 			_smoke_wheelie_done = true
 			input_state.request_wheelie_toggle()
 			print("SMOKE wheelie toggle OFF")
+			if scooter != null:
+				print("SMOKE jerk: pitch=%.0f roll=%.0f град/с² (вилли с рулём)" % [
+					scooter.max_pitch_jerk, scooter.max_roll_jerk,
+				])
+				scooter.reset_jerk_stats()
+		if _smoke_wheelie_done and _smoke_timer > 10.4 and not _smoke_landing_reported and scooter != null:
+			_smoke_landing_reported = true
+			print("SMOKE jerk landing: pitch=%.0f roll=%.0f град/с² (возврат на два колеса)" % [
+				scooter.max_pitch_jerk, scooter.max_roll_jerk,
+			])
 		if not _smoke_crashed and _smoke_timer > 10.5 and scooter != null:
 			_smoke_crashed = true
 			scooter.crash("smoke test")
