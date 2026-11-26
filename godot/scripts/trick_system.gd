@@ -50,8 +50,10 @@ func tick(delta: float, scooter: Scooter) -> void:
 
 
 func _tick_wheelie(delta: float, scooter: Scooter) -> void:
-	var in_zone: bool = scooter.wheelie != null and scooter.wheelie.in_balance_zone
-	if in_zone:
+	# Никакой зоны баланса: засчитывается любое время с поднятым носом.
+	var nose_up: bool = scooter.wheelie != null and scooter.wheelie.active \
+		and scooter.pitch_deg >= Wheelie.SCORE_MIN_ANGLE
+	if nose_up:
 		_wheelie_accum += delta
 		var floors := int(floor(_wheelie_accum / 0.5))
 		if floors > _last_wheelie_floors:

@@ -36,7 +36,6 @@ var _countdown_label: Label
 var _crash_label: Label
 var _hint_label: Label
 var _pitch_track: ColorRect
-var _pitch_zone: ColorRect
 var _pitch_marker: ColorRect
 var _pitch_label: Label
 
@@ -151,14 +150,6 @@ func _build_pitch_gauge(root: Control) -> void:
 	_pitch_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_pitch_track)
 
-	_pitch_zone = ColorRect.new()
-	_pitch_zone.color = Color(0.30, 0.85, 0.40, 0.50)
-	var zone_x: float = GAUGE_X + GAUGE_W * (Wheelie.BALANCE_MIN_ANGLE / PITCH_SCALE)
-	var zone_w: float = GAUGE_W * ((Wheelie.BALANCE_MAX_ANGLE - Wheelie.BALANCE_MIN_ANGLE) / PITCH_SCALE)
-	UiFactory.place(_pitch_zone, zone_x, GAUGE_Y, zone_w, 10.0)
-	_pitch_zone.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(_pitch_zone)
-
 	_pitch_marker = ColorRect.new()
 	_pitch_marker.color = Color(1.0, 0.62, 0.15, 0.95)
 	UiFactory.place(_pitch_marker, GAUGE_X, GAUGE_Y - 3.0, 4.0, 16.0)
@@ -170,7 +161,6 @@ func _build_pitch_gauge(root: Control) -> void:
 	root.add_child(_pitch_label)
 
 	_pitch_track.visible = false
-	_pitch_zone.visible = false
 	_pitch_marker.visible = false
 	_pitch_label.visible = false
 
@@ -341,15 +331,16 @@ func _update_pitch_gauge(scooter: Scooter) -> void:
 	var show := wheelie_on or scooter.pitch_deg > 6.0
 	if _pitch_track.visible != show:
 		_pitch_track.visible = show
-		_pitch_zone.visible = show
 		_pitch_marker.visible = show
 		_pitch_label.visible = show
 	if not show:
 		return
 	var t := clampf(scooter.pitch_deg / PITCH_SCALE, 0.0, 1.0)
 	_pitch_marker.position = Vector2(GAUGE_X + GAUGE_W * t - 2.0, GAUGE_Y - 3.0)
-	var in_zone: bool = scooter.wheelie != null and scooter.wheelie.in_balance_zone
-	_pitch_marker.color = Color(0.35, 1.0, 0.45, 0.95) if in_zone else Color(1.0, 0.62, 0.15, 0.95)
+	# Нос поднят — маркер ярче; никакой «зоны, которую надо держать», нет.
+	var scoring: bool = scooter.wheelie != null and scooter.wheelie.active \
+		and scooter.pitch_deg >= Wheelie.SCORE_MIN_ANGLE
+	_pitch_marker.color = Color(1.0, 0.78, 0.25, 0.95) if scoring else Color(1.0, 0.62, 0.15, 0.75)
 	_pitch_label.text = "ВИЛЛИ %d°" % int(round(scooter.pitch_deg))
 
 

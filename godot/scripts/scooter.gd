@@ -222,6 +222,42 @@ func _report_model() -> void:
 	print("MODEL: %smeshes=%d bottom=%.3f top=%.3f wheel_r=%.3f" % [
 		spin_nodes, meshes, bottom, top, spec.wheel_radius,
 	])
+	print("WHEELS: %s" % wheel_report())
+
+
+## Что лежит внутри узлов колёс: если рядом с шиной в том же пивоте окажется
+## маятник или суппорт, при вращении они поедут вместе с колесом.
+func wheel_report() -> String:
+	var out := ""
+	for pair in [["front", front_visual], ["rear", rear_visual]]:
+		var node: Node3D = pair[1]
+		var label: String = pair[0]
+		if node == null:
+			out += "%s=нет " % label
+			continue
+		var meshes: Array[MeshInstance3D] = []
+		_gather_meshes(node, meshes)
+		var box := AABB()
+		var parts: Array[String] = []
+		var to_local := node.global_transform.affine_inverse()
+		for index in meshes.size():
+			var mesh_instance: MeshInstance3D = meshes[index]
+			var local: AABB = to_local * mesh_instance.global_transform \
+				* mesh_instance.mesh.get_aabb()
+			box = local if index == 0 else box.merge(local)
+			parts.append(str(mesh_instance.name))
+		out += "%s=%s parts=%d size=(%.2f, %.2f, %.2f) [%s] " % [
+			label, str(node.name), parts.size(),
+			box.size.x, box.size.y, box.size.z, ", ".join(parts),
+		]
+	return out
+
+
+func _gather_meshes(node: Node, out: Array[MeshInstance3D]) -> void:
+	for child in node.get_children():
+		if child is MeshInstance3D and child.mesh != null:
+			out.append(child as MeshInstance3D)
+		_gather_meshes(child, out)
 
 
 ## Диагностика посадки на дорогу: низ модели, земля под самокатом и зазор.
@@ -419,7 +455,7 @@ func _update_kinematics(delta: float) -> void:
 		max_air_time = maxf(max_air_time, air_time)
 		_fall_speed = maxf(_fall_speed, -linear_velocity.y)
 
-	if wheelie != null and wheelie.in_balance_zone:
+	if wheelie != null and wheelie.active and pitch_deg >= Wheelie.SCORE_MIN_ANGLE:
 		wheelie_balance_time += delta
 	if stoppie_active():
 		stoppie_time += delta

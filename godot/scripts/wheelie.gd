@@ -18,13 +18,12 @@ const MIN_SPEED_KMH := 4.0
 const END_ANGLE := 5.0
 ## Скорость перекладки цели, град/с: нос идёт за газом, но без рывка.
 const ANGLE_RATE := 320.0
-## Зона, в которой трюковая система считает вилли удержанным.
-const BALANCE_MIN_ANGLE := 24.0
-const BALANCE_MAX_ANGLE := 60.0
+## Нос поднят выше этого угла — вилли засчитывается как удержанный.
+## Никакой «зелёной зоны» нет: держать надо просто нос поднятым, угол задаёт газ.
+const SCORE_MIN_ANGLE := 15.0
 var active := false
 ## Кнопка ВИЛЛИ включена.
 var armed := false
-var in_balance_zone := false
 ## 0..1 — насколько поднят нос (для позы райдера и индикации).
 var lift_progress := 0.0
 var target_pitch := 0.0
@@ -43,14 +42,9 @@ func _init(scooter) -> void:
 func reset() -> void:
 	active = false
 	armed = false
-	in_balance_zone = false
 	lift_progress = 0.0
 	target_pitch = 0.0
 	finished = false
-
-
-func in_danger_zone() -> bool:
-	return _scooter != null and _scooter.pitch_deg > BALANCE_MAX_ANGLE + 6.0
 
 
 ## armed_input — кнопка ВИЛЛИ, throttle — газ 0..1.
@@ -73,7 +67,6 @@ func tick(delta: float, armed_input: bool, throttle: float, body_pitch_input: fl
 		active = false
 		armed = false
 		finished = true
-		in_balance_zone = false
 		lift_progress = 0.0
 		target_pitch = 0.0
 		return
@@ -87,7 +80,6 @@ func tick(delta: float, armed_input: bool, throttle: float, body_pitch_input: fl
 	wanted += body_pitch_input * 12.0
 	target_pitch = move_toward(target_pitch, wanted, delta * ANGLE_RATE)
 	lift_progress = clampf(pitch / MAX_ANGLE, 0.0, 1.0)
-	in_balance_zone = pitch >= BALANCE_MIN_ANGLE and pitch <= BALANCE_MAX_ANGLE
 
 	# Прямое управление: момент пропорционален разнице «угол по газу − угол
 	# сейчас» и гасится скоростью тангажа. Никаких подпорок моментом тяжести и

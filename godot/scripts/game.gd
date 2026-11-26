@@ -374,8 +374,8 @@ func _telemetry() -> String:
 	var wheelie_state := "off"
 	if scooter.wheelie != null:
 		wheelie_state = "on" if scooter.wheelie.active else "off"
-		if scooter.wheelie.in_balance_zone:
-			wheelie_state = "zone"
+		if scooter.wheelie.active and scooter.pitch_deg >= Wheelie.SCORE_MIN_ANGLE:
+			wheelie_state = "up"
 	return "%s speed=%.1f dist=%.1f x=%.2f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s air=%.2f jumps=%d gas=%.2f score=%d combo=%.2f crashes=%d last=%s" % [
 		scooter.spec.id, scooter.speed_kmh(), scooter.distance_meters, pos.x, pos.y,
 		scooter.pitch_deg, scooter.max_pitch_deg, scooter.roll_deg, contact,
@@ -574,6 +574,32 @@ func _start_screenshots() -> void:
 	# HUD не должен затирать виртуальные касания нулями при съёмке.
 	hud.set_process(false)
 	_take_screenshots()
+
+
+## Два кадра заднего колеса с разным углом поворота: если на втором кадре
+## поехал маятник, суппорт или крыло — значит они лежат внутри пивота колеса.
+func _take_spin_shots(shot_dir: String, spec_id: String) -> void:
+	if scooter == null:
+		return
+	print("WHEELS %s: %s" % [spec_id, scooter.wheel_report()])
+	var wheel: Node3D = scooter.rear_visual
+	if wheel == null:
+		return
+	camera_rig.target = null
+	camera_rig.projection = Camera3D.PROJECTION_PERSPECTIVE
+	camera_rig.fov = 32.0
+	for pair in [["a", 0.0], ["b", 1.05]]:
+		var angle: float = pair[1]
+		wheel.rotation = Vector3(angle, 0.0, 0.0)
+		var anchor: Vector3 = wheel.global_position
+		camera_rig.global_position = anchor + Vector3(1.25, 0.30, 0.05)
+		camera_rig.look_at(anchor, Vector3.UP)
+		for frame in 4:
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		_save_shot(shot_dir, "%s_spin_rear_%s" % [spec_id, pair[0]])
+		print("SPIN %s rear_rot=%.2f at=%s" % [spec_id, angle, str(anchor)])
+	wheel.rotation = Vector3.ZERO
 
 
 ## Обойти дерево модели и собрать группы деталей: узел с прямыми мешами = деталь.
@@ -788,6 +814,9 @@ func _take_screenshots() -> void:
 				image.save_png("%s/g4_fixed_%d_%s.png" % [shot_dir, index, shot["name"]])
 			if shot.get("hide_world", false) and world_root != null:
 				world_root.visible = true
+
+		# Проверка вращения колёс: два кадра с разными углами.
+		await _take_spin_shots(shot_dir, spec_id)
 
 		# Кадры каждой группы деталей: только для модели пользователя.
 		if spec_id == "g4":

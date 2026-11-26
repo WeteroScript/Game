@@ -591,6 +591,14 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 	pivot.position = pos
 	parent.add_child(pivot)
 
+	# Неподвижная часть колеса: суппорт тормоза и гайки оси. Раньше они лежали
+	# в самом пивоте и крутились вместе с колесом — со стороны это выглядело как
+	# «колесо крутится вместе с маятником».
+	var fixed := Node3D.new()
+	fixed.name = "%sMount" % node_name
+	fixed.position = pos
+	parent.add_child(fixed)
+
 	var r := radius
 	var half_w := 0.056
 	# Покрышка — тело вращения: округлые плечи и беговая дорожка, как у
@@ -638,9 +646,9 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 			_rbox(pivot, Vector3(half_w * 0.86, 0.008, 0.014),
 				Vector3(0.0, cos(a), sin(a)) * hub_radius * 1.02, _rim,
 				Vector3(a, 0.0, 0.0), 0.002)
-	# Гайки оси.
+	# Гайки оси — на неподвижной части.
 	for side in [-1.0, 1.0]:
-		_cyl(pivot, r * 0.070, 0.014, Vector3(side * half_w * 0.48, 0.0, 0.0), _steel,
+		_cyl(fixed, r * 0.070, 0.014, Vector3(side * half_w * 0.48, 0.0, 0.0), _steel,
 			Vector3(0.0, 0.0, deg_to_rad(90.0)), 6)
 	# Тормозной диск с перфорацией и суппорт.
 	if absf(disc_side) > 0.01:
@@ -652,7 +660,7 @@ func _wheel(parent: Node3D, pos: Vector3, node_name: String, motor: bool,
 			_cyl(pivot, 0.0045, 0.008,
 				Vector3(disc_x, cos(a2) * r * 0.455, sin(a2) * r * 0.455), _rubber_dark,
 				Vector3(0.0, 0.0, deg_to_rad(90.0)), 8)
-		var caliper := _rbox(pivot, Vector3(0.032, 0.070, 0.044),
+		var caliper := _rbox(fixed, Vector3(0.032, 0.070, 0.044),
 			Vector3(disc_side * (half_w * 0.44 + 0.014), r * 0.44, r * 0.30),
 			_caliper, Vector3(deg_to_rad(-18.0), 0.0, 0.0), 0.006)
 		caliper.name = "Caliper"
