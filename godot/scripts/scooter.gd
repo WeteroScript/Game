@@ -35,6 +35,8 @@ var first_person_view := false
 # Визуальная посадка на асфальт: низ модели (отрицательный, в системе самоката)
 # и текущее смещение, которое её прижимает к фактической точке контакта колеса.
 var model_root: Node3D
+## Отчёт о разделении колёс (только у user-модели G4).
+var model_split := ""
 var _model_bottom := -0.16
 var _ground_offset := 0.0
 
@@ -155,6 +157,7 @@ func _ready() -> void:
 	bar_right = model["bar_right"]
 	foot_left = model["foot_left"]
 	foot_right = model["foot_right"]
+	model_split = str(model.get("split_report", ""))
 
 	rider = RiderModel.create(spec.deck_height, spec.accent_color, bar_left, bar_right)
 	model["root"].add_child(rider)

@@ -316,6 +316,8 @@ func _start_smoke() -> void:
 	hud.set_process(false)
 	print("SMOKE start")
 	_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.FREE_RIDE)
+	if scooter != null:
+		print("SMOKE wheels: %s%s" % [scooter.model_split, scooter.wheel_report()])
 
 
 ## Позиции трамплинов — для логов автотеста.

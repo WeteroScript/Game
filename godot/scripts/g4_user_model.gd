@@ -26,6 +26,8 @@ const DECK_TOP := 0.243
 const AXLE_Y := 0.156
 
 var spec: ScooterSpec
+## Что вынесено из пивотов колёс — попадает в лог автотеста.
+var split_report := ""
 var _bytes_cache: PackedByteArray
 
 
@@ -98,6 +100,7 @@ func _split_static_parts(wheel: Node3D, parent: Node3D) -> int:
 	_gather_meshes(wheel, targets)
 	var static_node: Node3D = null
 	var moved := 0
+	var spin_tris := 0
 	for target in targets:
 		var mesh: Mesh = target.mesh
 		if mesh == null or mesh.get_surface_count() == 0:
@@ -124,6 +127,8 @@ func _split_static_parts(wheel: Node3D, parent: Node3D) -> int:
 				moved += int((still_arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() / 3.0)
 		if spin.get_surface_count() == 0:
 			continue
+		for surface_index in spin.get_surface_count():
+			spin_tris += int(spin.surface_get_array_len(surface_index) / 3.0)
 		target.mesh = spin
 		if still.get_surface_count() == 0:
 			continue
@@ -140,6 +145,9 @@ func _split_static_parts(wheel: Node3D, parent: Node3D) -> int:
 		instance.material_override = target.material_override
 		instance.cast_shadow = target.cast_shadow
 		static_node.add_child(instance)
+	split_report += "%s: крутится %d тр., стоит %d тр.; " % [
+		str(wheel.name), spin_tris - moved, moved,
+	]
 	return moved
 
 
@@ -362,6 +370,7 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 	# В файле крыло заднего колеса лежит в том же меше, что и шина: при
 	# вращении колеса крыло крутилось вместе с ним (со стороны — «колесо
 	# крутится вместе с маятником»). Разделяем детали по углу вокруг оси.
+	split_report = ""
 	var rear_moved := _split_static_parts(rear, inst)
 	var front_moved := _split_static_parts(front, inst)
 	print("G4UserModel: неподвижных деталей вынесено из колёс: rear=%d front=%d" % [
@@ -398,4 +407,5 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 		"bar_right": bar_right,
 		"foot_left": foot_left,
 		"foot_right": foot_right,
+		"split_report": split_report,
 	}
