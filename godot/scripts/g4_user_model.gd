@@ -134,10 +134,14 @@ func _split_static_parts(wheel: Node3D, parent: Node3D) -> int:
 			continue
 		# Статичная часть живёт на той же оси, но вне пивота колеса.
 		if static_node == null:
+			# Живёт рядом с колесом, на той же оси, но вне его пивота.
+			var holder: Node = wheel.get_parent()
+			if holder == null:
+				holder = parent
 			static_node = Node3D.new()
 			static_node.name = "%sStatic" % str(wheel.name)
 			static_node.position = wheel.position
-			parent.add_child(static_node)
+			holder.add_child(static_node)
 		var instance := MeshInstance3D.new()
 		instance.name = "%sStatic" % str(target.name)
 		instance.mesh = still
