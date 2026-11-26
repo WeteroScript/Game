@@ -934,6 +934,15 @@ func _track_jerk(delta: float, basis: Basis) -> void:
 	_prev_roll_rate = roll_rate
 
 
+## Скорость качения колёс для логов: м/с, независимо от качания корпуса.
+func roll_speed_front() -> float:
+	return _front_roll
+
+
+func roll_speed_rear() -> float:
+	return _rear_roll
+
+
 func reset_jerk_stats() -> void:
 	max_pitch_jerk = 0.0
 	max_roll_jerk = 0.0
@@ -945,10 +954,10 @@ func reset_jerk_stats() -> void:
 ## самокат качается на заднем колесе (вилли, «маятник»), корпус двигается и
 ## раньше колёса прокручивались туда-обратно, хотя не катились. У колеса,
 ## стоящего на земле, скорость точки оси при таком качании ≈ 0.
-## В воздухе колесо крутится по инерции — с прежней скоростью.
-func _roll_speed(axle_local: Vector3, grounded: bool, current: float) -> float:
-	if not grounded or spec == null:
-		return current
+## В воздухе колесо крутится по инерции — вызывающий код гасит её плавно.
+func _roll_speed(axle_local: Vector3) -> float:
+	if spec == null:
+		return 0.0
 	var axle_world := global_transform * axle_local
 	var point_velocity := linear_velocity + angular_velocity.cross(axle_world - global_position)
 	var forward := -global_transform.basis.z
@@ -962,11 +971,17 @@ func _roll_speed(axle_local: Vector3, grounded: bool, current: float) -> float:
 func _update_wheel_visuals(delta: float) -> void:
 	_align_visual_to_ground(delta)
 	var radius := maxf(0.02, spec.wheel_radius if spec != null else 0.15)
-	var front_target := _roll_speed(Vector3(0.0, 0.0, -spec.wheel_base * 0.5), front_grounded, _front_roll) if spec != null else 0.0
-	var rear_target := _roll_speed(Vector3(0.0, 0.0, spec.wheel_base * 0.5), rear_grounded, _rear_roll) if spec != null else 0.0
-	var blend := clampf(delta * 20.0, 0.0, 1.0)
-	_front_roll = lerpf(_front_roll, front_target, blend)
-	_rear_roll = lerpf(_rear_roll, rear_target, blend)
+	if spec != null and front_grounded:
+		_front_roll = lerpf(_front_roll, _roll_speed(Vector3(0.0, 0.0, -spec.wheel_base * 0.5)),
+			clampf(delta * 20.0, 0.0, 1.0))
+	else:
+		# В воздухе — по инерции, медленно затухает.
+		_front_roll = lerpf(_front_roll, 0.0, clampf(delta * 0.7, 0.0, 1.0))
+	if spec != null and rear_grounded:
+		_rear_roll = lerpf(_rear_roll, _roll_speed(Vector3(0.0, 0.0, spec.wheel_base * 0.5)),
+			clampf(delta * 20.0, 0.0, 1.0))
+	else:
+		_rear_roll = lerpf(_rear_roll, 0.0, clampf(delta * 0.7, 0.0, 1.0))
 	_front_spin += _front_roll / radius * delta
 	_rear_spin += _rear_roll / radius * delta
 

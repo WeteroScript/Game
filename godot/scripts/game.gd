@@ -380,13 +380,14 @@ func _telemetry() -> String:
 		wheelie_state = "on" if scooter.wheelie.active else "off"
 		if scooter.wheelie.active and scooter.pitch_deg >= Wheelie.SCORE_MIN_ANGLE:
 			wheelie_state = "up"
-	return "%s speed=%.1f dist=%.1f x=%.2f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s air=%.2f jumps=%d gas=%.2f score=%d combo=%.2f crashes=%d last=%s" % [
+	return "%s speed=%.1f dist=%.1f x=%.2f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s air=%.2f jumps=%d gas=%.2f score=%d combo=%.2f crashes=%d wheels=%.1f/%.1f last=%s" % [
 		scooter.spec.id, scooter.speed_kmh(), scooter.distance_meters, pos.x, pos.y,
 		scooter.pitch_deg, scooter.max_pitch_deg, scooter.roll_deg, contact,
 		wheelie_state, scooter.max_air_time, scooter.landing_counter,
 		scooter.throttle_input, tricks.score,
 		tricks.combo_multiplier(),
-		scooter.crash_count, scooter.last_crash_reason,
+		scooter.crash_count, scooter.roll_speed_front(), scooter.roll_speed_rear(),
+		scooter.last_crash_reason,
 	]
 
 
