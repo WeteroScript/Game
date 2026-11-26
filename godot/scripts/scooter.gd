@@ -497,9 +497,12 @@ func _apply_drive(delta: float) -> void:
 		# Пробуксовка рыскает: RWD с большим моментом теряет курс сильнее.
 		# Случайный знак каждый кадр давал дрожь и крен под 30° на старте —
 		# теперь перекос меняется плавно (случайное блуждание за ~0.5 с).
+		# Сила перекоса подобрана по автотесту: при множителе 4 самокат на полном
+		# газу с места уводило с полосы на 6 м за 17 м разгона, он съезжал с
+		# асфальта и не доезжал до трамплина. Теперь это лёгкая рыскающая искра.
 		_spin_bias = lerpf(_spin_bias, randf_range(-1.0, 1.0), clampf(delta * 2.5, 0.0, 1.0))
-		var wheelspin := clampf(target_force / maxf(1.0, normal_load()) * 0.9, 0.0, 2.0)
-		apply_torque(Vector3.UP * _spin_bias * wheelspin * 4.0)
+		var wheelspin := clampf(target_force / maxf(1.0, normal_load()) * 0.9, 0.0, 1.2)
+		apply_torque(Vector3.UP * _spin_bias * wheelspin * 1.2)
 	else:
 		_spin_bias = lerpf(_spin_bias, 0.0, clampf(delta * 3.0, 0.0, 1.0))
 
