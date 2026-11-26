@@ -50,7 +50,8 @@ var _smoke_timer := 0.0
 var _smoke_crashed := false
 var _smoke_ramp_wait := 0.0
 var _smoke_ramp_placed := false
-var _smoke_jumps_before := 0
+var _smoke_jumps_before := -1
+var _smoke_checkpoints_total := 0
 ## Вилли в автотесте взводим ровно один раз: раньше лесенка if/elif
 ## перещёлкивала его каждый кадр после 9.5 с.
 var _smoke_wheelie_done := false
@@ -385,11 +386,20 @@ func _tick_smoke(delta: float) -> void:
 		if not _smoke_ramp_placed:
 			_smoke_ramp_placed = true
 			_smoke_ramp_wait = 0.0
+			_smoke_jumps_before = -1
 			if scooter != null:
 				scooter.respawn_position = Vector3(0.0, 0.6, WorldBuilder.FLAT_START_Z - 102.0)
 				scooter.respawn_basis = Basis.IDENTITY
 				scooter.respawn()
 				print("SMOKE ramp approach: %s" % _telemetry())
+			return
+		# Телепорт роняет самокат с 0.7 м: это тоже «приземление». Даём ему
+		# встать и только потом считаем базу прыжков.
+		if _smoke_ramp_wait < 1.2:
+			return
+		if _smoke_jumps_before < 0:
+			_smoke_jumps_before = scooter.landing_counter if scooter != null else 0
+			print("SMOKE ramp base jumps=%d" % _smoke_jumps_before)
 			return
 		input_state.touch_throttle = 1.0
 		input_state.touch_steer = 0.0
@@ -418,6 +428,7 @@ func _tick_smoke(delta: float) -> void:
 		input_state.touch_throttle = 1.0
 		input_state.touch_steer = 0.0
 		if _checkpoints_taken > 0:
+			_smoke_checkpoints_total += _checkpoints_taken
 			print("SMOKE checkpoint OK: %s time_left=%.1f" % [_telemetry(), time_left])
 			_enter_city_phase()
 			return
@@ -443,8 +454,9 @@ func _tick_smoke(delta: float) -> void:
 		var nan_pos := is_nan(pos.x) or is_nan(pos.y) or is_nan(pos.z)
 		var under_map := pos.y < -2.0
 		var hud_ok := not hud.debug_clock().contains("dist=0.00")
-		print("PLAYTEST checks nan=%s under_map=%s hud_ok=%s checkpoints=%d" % [
-			str(nan_pos), str(under_map), str(hud_ok), _checkpoints_taken,
+		print("PLAYTEST checks nan=%s under_map=%s hud_ok=%s checkpoints=%d ramp_jumps=%d" % [
+			str(nan_pos), str(under_map), str(hud_ok), _smoke_checkpoints_total,
+			scooter.landing_counter if scooter != null else -1,
 		])
 		get_tree().quit()
 		return
