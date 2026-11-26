@@ -81,6 +81,9 @@ const SPIN_BINS := 36
 ## Деталь, описанная почти полным кругом, — это само колесо. Дуга (крыло,
 ## кожух, суппорт) крутиться не должна.
 const SPIN_MIN_BINS := 30
+## Мелкие детали (болты диска, ниппель) занимают узкий сектор, но всё-таки
+## крепятся к колесу и должны крутиться: статичными считаем только крупные.
+const STATIC_MIN_TRIS := 400
 
 
 ## Вынести из пивота колеса всё, что не описано полным кругом вокруг оси:
@@ -229,7 +232,11 @@ func _split_surface(mesh: Mesh, surface: int) -> Array:
 		if c != a:
 			parent[c] = a
 
-	# Сколько секторов вокруг оси занимает деталь: полный круг — это колесо.
+	# Сколько треугольников в детали и сколько она занимает секторов.
+	var tri_counts := {}
+	for t in tri_count:
+		var root_of_tri := _find(parent, ids[t * 3])
+		tri_counts[root_of_tri] = int(tri_counts.get(root_of_tri, 0)) + 1
 	var masks := {}
 	for id in parent.size():
 		var root := _find(parent, id)
@@ -247,7 +254,10 @@ func _split_surface(mesh: Mesh, surface: int) -> Array:
 	var has_normals := not normals.is_empty()
 	var has_uvs := not uvs.is_empty()
 	for t in tri_count:
-		var turns := _bit_count(int(masks[_find(parent, ids[t * 3])])) >= SPIN_MIN_BINS
+		var root_of_corner := _find(parent, ids[t * 3])
+		var wide := _bit_count(int(masks[root_of_corner])) >= SPIN_MIN_BINS
+		var big := int(tri_counts.get(root_of_corner, 0)) >= STATIC_MIN_TRIS
+		var turns := wide or not big
 		for k in 3:
 			var index := corners[t * 3 + k]
 			if turns:
