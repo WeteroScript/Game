@@ -34,6 +34,9 @@ var menu_angle := 0.0
 ## Результат последнего заезда: побит ли рекорд и сколько было до него.
 var _new_record := false
 var _best_score := 0
+## Time Attack: сколько метров нужно до следующего бонуса времени.
+var _next_checkpoint := 0.0
+var _checkpoints_taken := 0
 ## Показывать персонажа: переключатель в главном меню, по умолчанию — да.
 var rider_shown := true
 var _go_timer := 0.0
@@ -238,6 +241,8 @@ func _start_run(spec_id: String, map_id: int, mode_id: int) -> void:
 		_:
 			time_left = 0.0
 
+	_next_checkpoint = GameConfig.CHECKPOINT_STEP
+	_checkpoints_taken = 0
 	countdown_time = GameConfig.COUNTDOWN_SECONDS
 	_go_timer = 0.0
 	input_state.enabled = false
@@ -288,9 +293,11 @@ func _resume() -> void:
 
 # ---- автотест ---------------------------------------------------------------
 # Сценарий для CI (`godot --headless --fixed-fps 60 -- --smoke`):
-#   1) G4 на прямой трассе: разгон, удержание вилли, принудительное падение;
-#   2) F3 Pro Max в городе с AWD: переключение привода, езда до финиша Freestyle;
-#   3) экран результатов, затем выход с итоговыми числами.
+#   1) G4 на ровной дороге: разгон, вилли, принудительное падение;
+#   2) Джамп-парк: прыжок с трамплина и очки за него;
+#   3) Time Attack: чекпоинт через 300 м добавляет время;
+#   4) F3 Pro Max в городе с AWD: переключение привода, езда до финиша Freestyle;
+#   5) экран результатов, затем выход с итоговыми числами.
 func _start_smoke() -> void:
 	_smoke = true
 	_smoke_timer = 0.0
@@ -308,6 +315,18 @@ func _ramp_positions() -> Array:
 	for entry in [120.0, 280.0, 460.0, 660.0, 850.0]:
 		out.append(round(WorldBuilder.FLAT_START_Z - entry))
 	return out
+
+
+## Фаза 3: F3 Pro Max в городе, Freestyle до конца таймера.
+func _enter_city_phase() -> void:
+	_smoke_phase = 3
+	_smoke_ramp_wait = 0.0
+	_start_run("f3", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
+	if scooter != null:
+		print("SMOKE phase 3: drive=%d (AWD=1)" % scooter.drive_mode)
+		scooter.toggle_drive()
+		print("SMOKE phase 3: after toggle drive=%d (RWD=0)" % scooter.drive_mode)
+		scooter.toggle_drive()
 
 
 func _telemetry() -> String:
@@ -375,18 +394,33 @@ func _tick_smoke(delta: float) -> void:
 		if jumped or _smoke_ramp_wait > 9.0:
 			if not jumped:
 				print("SMOKE ramp jump MISSED: %s" % _telemetry())
+			# Дальше — Time Attack: проверяем чекпоинты, которые добавляют
+			# время за метры.
 			_smoke_phase = 2
-			_start_run("f3", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
-			if scooter != null:
-				print("SMOKE phase 2: drive=%d (AWD=1)" % scooter.drive_mode)
-				scooter.toggle_drive()
-				print("SMOKE phase 2: after toggle drive=%d (RWD=0)" % scooter.drive_mode)
-				scooter.toggle_drive()
+			_smoke_ramp_wait = 0.0
+			_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.TIME_ATTACK)
 		return
 
-	# Фаза 2 → финиш: ждём, пока истечёт таймер Freestyle, и проверяем результаты.
-	if _smoke_phase == 2 and state == State.FINISHED:
-		_smoke_phase = 3
+	# Фаза 2: Time Attack, ждём первый чекпоинт (300 м) или 45 с.
+	if _smoke_phase == 2:
+		if state != State.RUNNING:
+			return
+		input_state.touch_throttle = 1.0
+		input_state.touch_steer = 0.0
+		if _checkpoints_taken > 0:
+			print("SMOKE checkpoint OK: %s time_left=%.1f" % [_telemetry(), time_left])
+			_enter_city_phase()
+			return
+		if _smoke_ramp_wait > 45.0:
+			print("SMOKE checkpoint MISSED: dist=%.1f time_left=%.1f" % [
+				scooter.distance_meters if scooter != null else -1.0, time_left,
+			])
+			_enter_city_phase()
+		return
+
+	# Фаза 3 → финиш: ждём, пока истечёт таймер Freestyle, и проверяем результаты.
+	if _smoke_phase == 3 and state == State.FINISHED:
+		_smoke_phase = 4
 		print("SMOKE finished: %s results_visible=%s time_left=%.1f" % [
 			_telemetry(), str(results_root != null and results_root.visible), time_left,
 		])
@@ -399,13 +433,13 @@ func _tick_smoke(delta: float) -> void:
 		var nan_pos := is_nan(pos.x) or is_nan(pos.y) or is_nan(pos.z)
 		var under_map := pos.y < -2.0
 		var hud_ok := not hud.debug_clock().contains("dist=0.00")
-		print("PLAYTEST checks nan=%s under_map=%s hud_ok=%s" % [
-			str(nan_pos), str(under_map), str(hud_ok),
+		print("PLAYTEST checks nan=%s under_map=%s hud_ok=%s checkpoints=%d" % [
+			str(nan_pos), str(under_map), str(hud_ok), _checkpoints_taken,
 		])
 		get_tree().quit()
 		return
 
-	if _smoke_phase == 3:
+	if _smoke_phase == 4:
 		return
 
 	if _smoke_timer > 170.0:
@@ -907,6 +941,18 @@ func _process_running(delta: float) -> void:
 
 	_handle_actions()
 
+	# Чекпоинты Time Attack: за метры дают секунды, иначе заезд кончается
+	# раньше, чем игрок успевает доехать до трамплинов.
+	if selected_mode == GameConfig.GameMode.TIME_ATTACK and scooter != null:
+		while scooter.distance_meters >= _next_checkpoint:
+			_next_checkpoint += GameConfig.CHECKPOINT_STEP
+			_checkpoints_taken += 1
+			time_left += GameConfig.CHECKPOINT_BONUS
+			if hud != null:
+				hud.show_banner("ЧЕКПОИНТ +%d с" % int(GameConfig.CHECKPOINT_BONUS))
+			if scooter.audio != null:
+				scooter.audio.play_chime()
+
 	if _has_timer():
 		time_left -= delta
 		if time_left <= 0.0:
@@ -1061,10 +1107,15 @@ func _show_results() -> void:
 
 	# Рекорд пишем именно здесь: экран результатов — единственное место, где
 	# заезд уже закончен и все цифры посчитаны.
+	var previous_best := int(Records.best(selected_map, selected_mode).get("score", 0))
 	_new_record = Records.submit(selected_map, selected_mode, tricks.score,
 		scooter.distance_meters if scooter != null else 0.0, run_time, crashes)
-	_best_score = int(Records.best(selected_map, selected_mode).get("score", 0))
-	var record_line := "НОВЫЙ РЕКОРД!" if _new_record else "Рекорд: %d очков" % _best_score
+	_best_score = maxi(previous_best, tricks.score)
+	var record_line: String
+	if _new_record:
+		record_line = "НОВЫЙ РЕКОРД!" if previous_best <= 0 else "НОВЫЙ РЕКОРД! было %d" % previous_best
+	else:
+		record_line = "Рекорд: %d очков" % _best_score
 
 	results_label.text = "Очки: %d\nТрюков: %d\nМножитель комбо: x%.2f\n\nДистанция: %.2f км\nВремя: %d:%02d\nПадений: %d\n\n%s" % [
 		tricks.score, tricks.trick_count, tricks.combo_multiplier(),
@@ -1100,10 +1151,21 @@ func _build_results_ui() -> void:
 	UiFactory.place(results_label, 240.0, 190.0, 800.0, 330.0)
 	results_root.add_child(results_label)
 
+	# Две кнопки: сразу перезапустить тот же заезд или уйти в меню.
+	var retry_button := UiFactory.button("ЕЩЁ РАЗ", 26, Vector2(340.0, 70.0))
+	UiFactory.place(retry_button, 250.0, 560.0, 340.0, 70.0)
+	retry_button.pressed.connect(_restart_run)
+	results_root.add_child(retry_button)
+
 	var back_button := UiFactory.button("В МЕНЮ", 26, Vector2(340.0, 70.0))
-	UiFactory.place(back_button, 470.0, 560.0, 340.0, 70.0)
+	UiFactory.place(back_button, 690.0, 560.0, 340.0, 70.0)
 	back_button.pressed.connect(_back_to_menu)
 	results_root.add_child(back_button)
+
+
+## Перезапуск того же заезда с экрана результатов.
+func _restart_run() -> void:
+	_start_run(selected_spec_id, selected_map, selected_mode)
 
 
 func _hide_results() -> void:

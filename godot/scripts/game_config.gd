@@ -74,6 +74,10 @@ const ENDO_CRASH_ANGLE := -26.0
 ## слишком долгого заброса.
 const LOOP_OUT_ANGLE := 76.0
 const HARD_IMPACT_SPEED := 8.5
+## Time Attack: каждые CHECKPOINT_STEP метров даёт CHECKPOINT_BONUS секунд.
+## Без этого режим кончался раньше, чем игрок успевал разогнаться.
+const CHECKPOINT_STEP := 300.0
+const CHECKPOINT_BONUS := 10.0
 
 # ---- Батарея ----------------------------------------------------------------
 const MOTOR_EFFICIENCY := 0.80

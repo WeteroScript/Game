@@ -376,7 +376,12 @@ func clear_crash() -> void:
 
 
 func show_trick(trick_name: String, points: int) -> void:
-	_trick_label.text = "%s  +%d" % [trick_name, points]
+	show_banner("%s  +%d" % [trick_name, points])
+
+
+## Короткое сообщение по центру: чекпоинт, бонус времени и т.п.
+func show_banner(text: String) -> void:
+	_trick_label.text = text
 	_trick_timer = 1.6
 
 
