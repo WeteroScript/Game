@@ -407,6 +407,10 @@ func _tick_smoke(delta: float) -> void:
 
 	# Фаза 1: газ в пол через трамплин — ждём отрыв и счёт за прыжок.
 	if _smoke_phase == 1:
+		# Руль обнуляем до всех ранних return: иначе сюда приезжает остаток
+		# синусоиды из фазы 0, и самокат уводит с полосы (x=6.4 за 17 м).
+		input_state.touch_steer = 0.0
+		input_state.touch_throttle = 0.0
 		# Ставим самокат в 18 м перед первым трамплином только после отсчёта,
 		# иначе спаун перезапишет телепорт.
 		if state != State.RUNNING:
@@ -461,10 +465,11 @@ func _tick_smoke(delta: float) -> void:
 
 	# Фаза 2: Time Attack, ждём первый чекпоинт (300 м) или 45 с.
 	if _smoke_phase == 2:
+		input_state.touch_steer = 0.0
+		input_state.touch_throttle = 0.0
 		if state != State.RUNNING:
 			return
 		input_state.touch_throttle = 1.0
-		input_state.touch_steer = 0.0
 		if _checkpoints_taken > 0:
 			_smoke_checkpoints_total += _checkpoints_taken
 			print("SMOKE checkpoint OK: %s time_left=%.1f" % [_telemetry(), time_left])
