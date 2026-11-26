@@ -318,6 +318,7 @@ func _start_smoke() -> void:
 	_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.FREE_RIDE)
 	if scooter != null:
 		print("SMOKE wheels: %s%s" % [scooter.model_split, scooter.wheel_report()])
+		scooter.reset_jerk_stats()
 
 
 ## Позиции трамплинов — для логов автотеста.
@@ -399,6 +400,10 @@ func _tick_smoke(delta: float) -> void:
 		_smoke_phase = 1
 		_smoke_ramp_wait = 0.0
 		print("SMOKE phase 1 end: %s" % _telemetry())
+		if scooter != null:
+			print("SMOKE jerk: pitch=%.0f roll=%.0f град/с² (макс за вилли с рулём)" % [
+				scooter.max_pitch_jerk, scooter.max_roll_jerk,
+			])
 		# Самокат один раз приземлялся уже на спауне (падал с 0.12 м), поэтому
 		# сравниваем с базой, а не с нулём.
 		_smoke_jumps_before = scooter.landing_counter if scooter != null else 0

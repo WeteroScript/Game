@@ -91,6 +91,14 @@ var respawn_basis := Basis.IDENTITY
 var _spin_bias := 0.0
 var _front_spin := 0.0
 var _rear_spin := 0.0
+## Скорость качения колёс (м/с) — своя у каждого колеса.
+var _front_roll := 0.0
+var _rear_roll := 0.0
+## Рывки для автотеста: максимальное угловое ускорение, град/с².
+var max_pitch_jerk := 0.0
+var max_roll_jerk := 0.0
+var _prev_pitch_rate := 0.0
+var _prev_roll_rate := 0.0
 
 
 static func create(new_spec: ScooterSpec, new_input: InputState) -> Scooter:
@@ -437,6 +445,7 @@ func _update_kinematics(delta: float) -> void:
 	pitch_rate = angular_velocity.dot(basis.x)
 	# yaw_rate в градусах/с — так его ждёт система трюков (SPIN).
 	yaw_rate = rad_to_deg(angular_velocity.y)
+	_track_jerk(delta, basis)
 
 	var front_hit := _ground_ray(Vector3(0.0, 0.0, -spec.wheel_base * 0.5))
 	var rear_hit := _ground_ray(Vector3(0.0, 0.0, spec.wheel_base * 0.5))
@@ -893,11 +902,51 @@ func _align_visual_to_ground(delta: float) -> void:
 	model_root.position.y = _ground_offset
 
 
+## Рывок = производная угловой скорости. Нужен, чтобы ловить «дёргается» числами.
+func _track_jerk(delta: float, basis: Basis) -> void:
+	var dt := maxf(delta, 0.0001)
+	var roll_rate := angular_velocity.dot(basis.z)
+	max_pitch_jerk = maxf(max_pitch_jerk, absf(rad_to_deg(pitch_rate - _prev_pitch_rate) / dt))
+	max_roll_jerk = maxf(max_roll_jerk, absf(rad_to_deg(roll_rate - _prev_roll_rate) / dt))
+	_prev_pitch_rate = pitch_rate
+	_prev_roll_rate = roll_rate
+
+
+func reset_jerk_stats() -> void:
+	max_pitch_jerk = 0.0
+	max_roll_jerk = 0.0
+	_prev_pitch_rate = pitch_rate
+	_prev_roll_rate = angular_velocity.dot(global_transform.basis.z)
+
+
+## Скорость качения колеса. Считаем по точке оси, а не по центру масс: когда
+## самокат качается на заднем колесе (вилли, «маятник»), корпус двигается и
+## раньше колёса прокручивались туда-обратно, хотя не катились. У колеса,
+## стоящего на земле, скорость точки оси при таком качании ≈ 0.
+## В воздухе колесо крутится по инерции — с прежней скоростью.
+func _roll_speed(axle_local: Vector3, grounded: bool, current: float) -> float:
+	if not grounded or spec == null:
+		return current
+	var axle_world := global_transform * axle_local
+	var point_velocity := linear_velocity + angular_velocity.cross(axle_world - global_position)
+	var forward := -global_transform.basis.z
+	forward.y = 0.0
+	if forward.length() < 0.02:
+		return 0.0
+	var flat := Vector3(point_velocity.x, 0.0, point_velocity.z)
+	return flat.dot(forward.normalized())
+
+
 func _update_wheel_visuals(delta: float) -> void:
 	_align_visual_to_ground(delta)
-	var spin_delta := (speed_mps / maxf(0.02, spec.wheel_radius)) * delta
-	_front_spin += spin_delta
-	_rear_spin += spin_delta
+	var radius := maxf(0.02, spec.wheel_radius if spec != null else 0.15)
+	var front_target := _roll_speed(Vector3(0.0, 0.0, -spec.wheel_base * 0.5), front_grounded, _front_roll) if spec != null else 0.0
+	var rear_target := _roll_speed(Vector3(0.0, 0.0, spec.wheel_base * 0.5), rear_grounded, _rear_roll) if spec != null else 0.0
+	var blend := clampf(delta * 20.0, 0.0, 1.0)
+	_front_roll = lerpf(_front_roll, front_target, blend)
+	_rear_roll = lerpf(_rear_roll, rear_target, blend)
+	_front_spin += _front_roll / radius * delta
+	_rear_spin += _rear_roll / radius * delta
 
 	# Качение вперёд — вращение вокруг -X, поэтому спин берём со знаком минус.
 	if front_visual != null:
