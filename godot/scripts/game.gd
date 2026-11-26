@@ -344,6 +344,24 @@ func _enter_city_phase() -> void:
 		scooter.toggle_drive()
 
 
+## Диагностика: где на самом деле земля под самокатом и что видит модель.
+func _ground_check() -> String:
+	if scooter == null:
+		return "нет самоката"
+	var from: Vector3 = scooter.global_position + Vector3.UP * 3.0
+	var query := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 8.0,
+		0xFFFFFFFF, [scooter.get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return "y=%.3f нет земли %s" % [scooter.global_position.y, scooter.visual_report()]
+	var collider = hit["collider"]
+	var who := str(collider.name) if collider is Node else "?"
+	var point: Vector3 = hit["position"]
+	return "y=%.3f ground=%.3f collider=%s %s" % [
+		scooter.global_position.y, point.y, who, scooter.visual_report(),
+	]
+
+
 func _telemetry() -> String:
 	if scooter == null:
 		return "no scooter"
@@ -435,6 +453,7 @@ func _tick_smoke(delta: float) -> void:
 		# Пока в воздухе, печатаем телеметрию каждые 0.5 с.
 		if fmod(_smoke_ramp_wait, 0.5) < delta:
 			print("SMOKE ramp t=%.1f %s" % [_smoke_ramp_wait, _telemetry()])
+			print("SMOKE ramp ground %s" % _ground_check())
 		if _smoke_ramp_wait > 9.0:
 			print("SMOKE ramp jump MISSED: %s" % _telemetry())
 			_enter_checkpoint_phase()
@@ -519,7 +538,7 @@ func _tick_smoke(delta: float) -> void:
 		# Проверка посадки модели на городской дороге: видно, на сколько низ
 		# модели выше/ниже найденной земли.
 		if _smoke_phase == 3 and scooter != null:
-			print("SMOKE city model %s" % scooter.visual_report())
+			print("SMOKE city ground %s" % _ground_check())
 
 
 # ---- скриншоты для CI --------------------------------------------------------
