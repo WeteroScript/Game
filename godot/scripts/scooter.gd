@@ -85,6 +85,8 @@ var current_force := 0.0
 var respawn_position := Vector3.ZERO
 var respawn_basis := Basis.IDENTITY
 
+## Перекос от пробуксовки: меняется плавно, чтобы корпус не дрожал.
+var _spin_bias := 0.0
 var _front_spin := 0.0
 var _rear_spin := 0.0
 
@@ -492,9 +494,14 @@ func _apply_drive(delta: float) -> void:
 	var grip := lerpf(spec.grip_road, spec.grip_off_road, off_road_amount)
 	if throttle_input > 0.75 and speed_kmh() < 25.0 and grip < 1.2:
 		target_force *= 0.72
-		# пробуксовка рыскает: RWD с большим моментом теряет курс сильнее
-		var wheelspin := (target_force / maxf(1.0, normal_load())) * 0.9
-		apply_torque(Vector3.UP * randf_range(-wheelspin, wheelspin) * 6.0)
+		# Пробуксовка рыскает: RWD с большим моментом теряет курс сильнее.
+		# Случайный знак каждый кадр давал дрожь и крен под 30° на старте —
+		# теперь перекос меняется плавно (случайное блуждание за ~0.5 с).
+		_spin_bias = lerpf(_spin_bias, randf_range(-1.0, 1.0), clampf(delta * 2.5, 0.0, 1.0))
+		var wheelspin := clampf(target_force / maxf(1.0, normal_load()) * 0.9, 0.0, 2.0)
+		apply_torque(Vector3.UP * _spin_bias * wheelspin * 4.0)
+	else:
+		_spin_bias = lerpf(_spin_bias, 0.0, clampf(delta * 3.0, 0.0, 1.0))
 
 	var ramp := spec.motor_ramp_rate * (spec.torque_ceiling / maxf(0.05, spec.wheel_radius)) * delta
 	current_force = move_toward(current_force, target_force, ramp)
@@ -756,7 +763,9 @@ func respawn() -> void:
 	if wheelie != null:
 		wheelie.reset()
 
-	var brought := Transform3D(respawn_basis, respawn_position + Vector3.UP * 0.12)
+	# Подъём на 4 см, а не 12: при 0.12 каждый респаун давал приземление
+	# в счётчике прыжков и толчок по корпусу.
+	var brought := Transform3D(respawn_basis, respawn_position + Vector3.UP * 0.04)
 	global_transform = brought
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO

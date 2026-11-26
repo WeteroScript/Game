@@ -188,7 +188,9 @@ func _build_straight_track(parent: Node3D, with_landings := false) -> Dictionary
 	_multimesh(holder, _unit_box(), _metal, post_xforms)
 	_multimesh(holder, _unit_box(), _white, dash_xforms, false)
 
-	return {"spawn": Vector3(0.0, 0.6, FLAT_START_Z - 20.0), "basis": Basis.IDENTITY}
+	# Спаун почти на асфальте: раньше самокат падал с 0.6 м, бился о дорогу
+	# и начинал заезд с «приземления» в счётчике прыжков.
+	return {"spawn": Vector3(0.0, 0.14, FLAT_START_Z - 20.0), "basis": Basis.IDENTITY}
 
 
 ## Трамплин: наклонная плита, подпорка под верхней кромкой и разметка
@@ -225,7 +227,7 @@ func _add_ramp(parent: Node3D, z: float, angle_deg := RAMP_ANGLE,
 ## Отдельная карта, чтобы «Ровная дорога» оставалась действительно ровной.
 func _build_jump_park(parent: Node3D) -> Dictionary:
 	var info := _build_straight_track(parent, true)
-	info["spawn"] = Vector3(0.0, 0.6, FLAT_START_Z - 18.0)
+	info["spawn"] = Vector3(0.0, 0.14, FLAT_START_Z - 18.0)
 	return info
 
 
@@ -416,7 +418,7 @@ func _build_city(parent: Node3D) -> Dictionary:
 		_decor(holder, Vector3(1.1, 0.02, 6.0), Vector3(-3.5 + stripe * 1.4, 0.02, 8.0), _white)
 		stripe += 1
 
-	return {"spawn": Vector3(0.0, 0.6, 34.0), "basis": Basis.IDENTITY}
+	return {"spawn": Vector3(0.0, 0.14, 34.0), "basis": Basis.IDENTITY}
 
 
 func _add_house(parent: Node3D, base: Vector3, width: float, height: float, use_brick_a: bool) -> void:

@@ -398,7 +398,7 @@ func _tick_smoke(delta: float) -> void:
 			_smoke_ramp_wait = 0.0
 			_smoke_jumps_before = -1
 			if scooter != null:
-				scooter.respawn_position = Vector3(0.0, 0.6, WorldBuilder.FLAT_START_Z - 102.0)
+				scooter.respawn_position = Vector3(0.0, 0.14, WorldBuilder.FLAT_START_Z - 102.0)
 				scooter.respawn_basis = Basis.IDENTITY
 				scooter.respawn()
 				print("SMOKE ramp approach: %s" % _telemetry())
@@ -516,6 +516,10 @@ func _tick_smoke(delta: float) -> void:
 	var period := 1.0 if _smoke_wheelie_on else 3.0
 	if fmod(_smoke_timer, period) < delta:
 		print("SMOKE t=%.1f %s" % [_smoke_timer, _telemetry()])
+		# Проверка посадки модели на городской дороге: видно, на сколько низ
+		# модели выше/ниже найденной земли.
+		if _smoke_phase == 3 and scooter != null:
+			print("SMOKE city model %s" % scooter.visual_report())
 
 
 # ---- скриншоты для CI --------------------------------------------------------
@@ -888,7 +892,7 @@ func _take_world_shots(shot_dir: String) -> void:
 		wait_frames += 1
 		await get_tree().process_frame
 	if scooter != null:
-		scooter.respawn_position = Vector3(0.0, 0.6, WorldBuilder.FLAT_START_Z - 103.0)
+		scooter.respawn_position = Vector3(0.0, 0.14, WorldBuilder.FLAT_START_Z - 103.0)
 		scooter.respawn_basis = Basis.IDENTITY
 		scooter.respawn()
 	camera_rig.target = scooter
