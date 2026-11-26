@@ -239,6 +239,8 @@ func wheel_report() -> String:
 			out += "%s=нет " % label
 			continue
 		var meshes: Array[MeshInstance3D] = []
+		if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+			meshes.append(node as MeshInstance3D)
 		_gather_meshes(node, meshes)
 		var box := AABB()
 		var parts: Array[String] = []
@@ -253,6 +255,19 @@ func wheel_report() -> String:
 			label, str(node.name), parts.size(),
 			box.size.x, box.size.y, box.size.z, ", ".join(parts),
 		]
+		# Что осталось на оси, но вне пивота: крыло, суппорт.
+		var holder: Node = node.get_parent()
+		var fixed_node := holder.get_node_or_null("%sStatic" % str(node.name)) if holder != null else null
+		if fixed_node != null:
+			var fixed_meshes: Array[MeshInstance3D] = []
+			_gather_meshes(fixed_node, fixed_meshes)
+			var fixed_box := AABB()
+			for index in fixed_meshes.size():
+				var part: AABB = fixed_meshes[index].mesh.get_aabb()
+				fixed_box = part if index == 0 else fixed_box.merge(part)
+			out += "[вне пивота: %d дет., size=(%.2f, %.2f, %.2f)] " % [
+				fixed_meshes.size(), fixed_box.size.x, fixed_box.size.y, fixed_box.size.z,
+			]
 	return out
 
 
