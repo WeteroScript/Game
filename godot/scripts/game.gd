@@ -51,6 +51,9 @@ var _smoke_crashed := false
 var _smoke_ramp_wait := 0.0
 var _smoke_ramp_placed := false
 var _smoke_jumps_before := -1
+## Пауза перед печатью очков за прыжок: очки начисляет TrickSystem уже после
+## того, как счётчик приземлений вырос.
+var _smoke_jump_report := -1.0
 var _smoke_checkpoints_total := 0
 ## Вилли в автотесте взводим ровно один раз: раньше лесенка if/elif
 ## перещёлкивала его каждый кадр после 9.5 с.
@@ -322,6 +325,13 @@ func _ramp_positions() -> Array:
 	return out
 
 
+## Фаза 2: Time Attack на ровной дороге — проверяем чекпоинт.
+func _enter_checkpoint_phase() -> void:
+	_smoke_phase = 2
+	_smoke_ramp_wait = 0.0
+	_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.TIME_ATTACK)
+
+
 ## Фаза 3: F3 Pro Max в городе, Freestyle до конца таймера.
 func _enter_city_phase() -> void:
 	_smoke_phase = 3
@@ -404,21 +414,30 @@ func _tick_smoke(delta: float) -> void:
 		input_state.touch_throttle = 1.0
 		input_state.touch_steer = 0.0
 		var jumped: bool = scooter != null and scooter.landing_counter > _smoke_jumps_before
-		if jumped:
+
+		# Приземление поймали: даём трюкам один тик, чтобы начислить очки,
+		# и только потом печатаем результат.
+		if jumped and _smoke_jump_report < 0.0:
 			print("SMOKE ramp jump OK: %s" % _telemetry())
-			print("SMOKE ramp jump points=%d last_trick=%s" % [tricks.score, tricks.last_trick])
-		if not jumped:
-			# Пока в воздухе, печатаем телеметрию каждые 0.5 с.
-			if fmod(_smoke_ramp_wait, 0.5) < delta:
-				print("SMOKE ramp t=%.1f %s" % [_smoke_ramp_wait, _telemetry()])
-		if jumped or _smoke_ramp_wait > 9.0:
-			if not jumped:
-				print("SMOKE ramp jump MISSED: %s" % _telemetry())
-			# Дальше — Time Attack: проверяем чекпоинты, которые добавляют
-			# время за метры.
-			_smoke_phase = 2
-			_smoke_ramp_wait = 0.0
-			_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.TIME_ATTACK)
+			_smoke_jump_report = 0.0
+			return
+		if _smoke_jump_report >= 0.0:
+			_smoke_jump_report += delta
+			if _smoke_jump_report <= 0.6:
+				return
+			print("SMOKE ramp jump points=%d last_trick=%s air=%.2f" % [
+				tricks.score, tricks.last_trick,
+				scooter.last_air_time if scooter != null else 0.0,
+			])
+			_enter_checkpoint_phase()
+			return
+
+		# Пока в воздухе, печатаем телеметрию каждые 0.5 с.
+		if fmod(_smoke_ramp_wait, 0.5) < delta:
+			print("SMOKE ramp t=%.1f %s" % [_smoke_ramp_wait, _telemetry()])
+		if _smoke_ramp_wait > 9.0:
+			print("SMOKE ramp jump MISSED: %s" % _telemetry())
+			_enter_checkpoint_phase()
 		return
 
 	# Фаза 2: Time Attack, ждём первый чекпоинт (300 м) или 45 с.

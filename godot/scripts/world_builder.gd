@@ -191,23 +191,30 @@ func _build_straight_track(parent: Node3D, with_landings := false) -> Dictionary
 	return {"spawn": Vector3(0.0, 0.6, FLAT_START_Z - 20.0), "basis": Basis.IDENTITY}
 
 
-## Трамплин: наклонная плита с подпоркой под верхней кромкой и разметкой
-## «приземление» дальше по ходу. Верх плиты — ровно та высота, с которой
-## самокат улетает; угол подобран так, чтобы жёсткого приземления не было.
+## Трамплин: наклонная плита, подпорка под верхней кромкой и разметка
+## приземления. Низ верхней грани лежит ровно на асфальте — иначе на въезде
+## получается ступенька в пол-толщины плиты (11 см), и самокат на ней глохнет
+## (в автотесте скорость падала с 37 до 3 км/ч).
 func _add_ramp(parent: Node3D, z: float, angle_deg := RAMP_ANGLE,
 		length := RAMP_LENGTH, width := RAMP_WIDTH) -> void:
+	var thickness := 0.22
 	var angle := deg_to_rad(angle_deg)
 	var half := length * 0.5
-	var lip: float = sin(angle) * half
-	_solid(parent, Vector3(width, 0.22, length),
-		Vector3(0.0, ROAD_TOP + lip, z), _ramp, Vector3(angle, 0.0, 0.0))
+	# Подъём полтолщины по вертикали: без него плоскость плиты уходит выше нуля.
+	var lift: float = (thickness * 0.5) / cos(angle)
+	var center_y: float = ROAD_TOP + sin(angle) * half + lift
+	_solid(parent, Vector3(width, thickness, length),
+		Vector3(0.0, center_y, z), _ramp, Vector3(angle, 0.0, 0.0))
+
+	# Верхняя кромка (губа) — с неё самокат и улетает.
+	var lip_y: float = ROAD_TOP + sin(angle) * length + thickness / cos(angle)
 	# Подпорка под высоким краем: без неё плита висит в воздухе.
-	_decor(parent, Vector3(width, lip * 2.0, 0.6),
-		Vector3(0.0, ROAD_TOP + lip, z - half + 0.3), _ramp_dark)
+	_decor(parent, Vector3(width, lip_y, 0.6),
+		Vector3(0.0, lip_y * 0.5, z - half + 0.35), _ramp_dark)
 	# Полосы по краям плиты — трамплин читается с ходу даже в сумерках.
 	for side in [-1.0, 1.0]:
 		_decor(parent, Vector3(0.22, 0.06, length),
-			Vector3(side * (width * 0.5 - 0.2), ROAD_TOP + lip + 0.09, z), _white,
+			Vector3(side * (width * 0.5 - 0.2), center_y + lift + 0.03, z), _white,
 			Vector3(angle, 0.0, 0.0))
 	# Разметка приземления: белая полоса за трамплином.
 	_decor(parent, Vector3(width, 0.02, 0.25),
