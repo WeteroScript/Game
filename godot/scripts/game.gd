@@ -583,6 +583,8 @@ func _take_spin_shots(shot_dir: String, spec_id: String) -> void:
 	if scooter == null:
 		return
 	print("WHEELS %s: %s" % [spec_id, scooter.wheel_report()])
+	# Физика каждый кадр переписывает поворот колёс — на время съёмки глушим её.
+	scooter.set_physics_process(false)
 	var pairs := [
 		["rear", scooter.rear_visual, Vector3(1.25, 0.30, 0.05)],
 		["front", scooter.front_visual, Vector3(1.25, 0.30, 0.05)],
@@ -609,6 +611,7 @@ func _take_spin_shots(shot_dir: String, spec_id: String) -> void:
 			_save_shot(shot_dir, "%s_spin_%s_%s" % [spec_id, label, tag])
 		wheel.rotation = Vector3.ZERO
 		wheel.visible = true
+	scooter.set_physics_process(true)
 
 
 ## Обойти дерево модели и собрать группы деталей: узел с прямыми мешами = деталь.

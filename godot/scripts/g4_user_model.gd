@@ -141,6 +141,15 @@ func build_model(new_spec: ScooterSpec) -> Dictionary:
 		rear.position = Vector3(0.0, 0.0, AXLE_R)
 		root.add_child(rear)
 
+	# В файле крыло заднего колеса лежит в том же меше, что и шина: при
+	# вращении колеса крыло крутилось вместе с ним (со стороны — «колесо
+	# крутится вместе с маятником»). Разделяем детали по углу вокруг оси.
+	var rear_moved := _split_static_parts(rear, inst)
+	var front_moved := _split_static_parts(front, inst)
+	print("G4UserModel: неподвижных деталей вынесено из колёс: rear=%d front=%d" % [
+		rear_moved, front_moved,
+	])
+
 	var bar_left := Node3D.new()
 	bar_left.name = "BarLeft"
 	bar_left.position = Vector3(-BAR_HALF, BAR_Y, BAR_Z)
