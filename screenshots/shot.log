@@ -1,0 +1,117 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:360)
+OpenGL API 4.5 (Core Profile) Mesa 26.0.8-1ubuntu0.3 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 21.1.8, 256 bits)
+libpulse.so.0: cannot open shared object file: No such file or directory
+libpulse.so.0: cannot open shared object file: No such file or directory
+ALSA lib confmisc.c:855:(parse_card) [error.core] cannot find card '0'
+ALSA lib conf.c:5211:(_snd_config_evaluate) [error.core] function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) [error.core] error evaluating strings
+ALSA lib conf.c:5211:(_snd_config_evaluate) [error.core] function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) [error.core] error evaluating name
+ALSA lib conf.c:5211:(_snd_config_evaluate) [error.core] function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5734:(snd_config_expand) [error.core] Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) [error.pcm] Unknown PCM default
+ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
+   at: init_output_device (drivers/alsa/audio_driver_alsa.cpp:90)
+WARNING: All audio drivers failed, falling back to the dummy driver.
+     at: initialize (servers/audio_server.cpp:247)
+
+G4UserModel: body=Body steer=Steer front=WheelFront rear=RearWheel
+G4UserModel: неподвижных деталей вынесено из колёс: rear=8228 front=0
+MODEL: front=/root/Main/Scooter/Model/UserMesh/model/Steer/WheelFront rear=/root/Main/Scooter/Model/UserMesh/model/RearWheel steer=/root/Main/Scooter/Model/UserMesh/model/Steer meshes=5 bottom=-0.156 top=1.065 wheel_r=0.162
+WHEELS: front=WheelFront parts=1 size=(0.10, 0.31, 0.32) [WheelFront] rear=RearWheel parts=1 size=(0.11, 0.31, 0.32) [RearWheel] [вне пивота: 1 дет., size=(0.10, 0.10, 0.11)] 
+G4UserModel: body=Body steer=Steer front=WheelFront rear=RearWheel
+G4UserModel: неподвижных деталей вынесено из колёс: rear=8228 front=0
+MODEL: front=/root/Main/Scooter/Model/UserMesh/model/Steer/WheelFront rear=/root/Main/Scooter/Model/UserMesh/model/RearWheel steer=/root/Main/Scooter/Model/UserMesh/model/Steer meshes=5 bottom=-0.156 top=1.065 wheel_r=0.162
+WHEELS: front=WheelFront parts=1 size=(0.10, 0.31, 0.32) [WheelFront] rear=RearWheel parts=1 size=(0.11, 0.31, 0.32) [RearWheel] [вне пивота: 1 дет., size=(0.10, 0.10, 0.11)] 
+MODEL plane: g4 bottom=0.000 ground=0.000 gap=0.000 offset=-0.024 y=0.182
+SHOT /home/runner/work/Game/Game/shots/g4_0_front.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_1_side.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_2_rear.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_3_bar.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_4_wheel.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_5_dash.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_6_deck.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_7_contact.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_8_o_front.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_9_o_rear.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_10_o_left.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_11_o_right.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_12_o_top.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_13_o_bottom.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_14_o_quarter.png err=0
+WHEELS g4: front=WheelFront parts=1 size=(0.10, 0.31, 0.32) [WheelFront] rear=RearWheel parts=1 size=(0.11, 0.31, 0.32) [RearWheel] [вне пивота: 1 дет., size=(0.10, 0.10, 0.11)] 
+SHOT /home/runner/work/Game/Game/shots/g4_spin_rear_a.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_spin_rear_b.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_spin_rear_hidden.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_spin_rear_hidden_b.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_spin_front_a.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_spin_front_b.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_spin_front_hidden.png err=0
+SHOT /home/runner/work/Game/Game/shots/g4_spin_front_hidden_b.png err=0
+PART SHOTS: групп 19
+PART SHOTS: снято 3
+DETAIL SHOTS: деталей 35
+DETAIL SHOTS: снято 35
+SHOT /home/runner/work/Game/Game/shots/g4_rider.png err=0
+MODEL: front=/root/Main/Scooter/Model/FrontSteer/Wheel rear=/root/Main/Scooter/Model/RearWheel steer=/root/Main/Scooter/Model/FrontSteer meshes=291 bottom=-0.150 top=1.308 wheel_r=0.147
+WHEELS: front=Wheel parts=34 size=(0.11, 0.30, 0.30) [@MeshInstance3D@556, @MeshInstance3D@557, @MeshInstance3D@558, @MeshInstance3D@559, @MeshInstance3D@560, @MeshInstance3D@561, @MeshInstance3D@562, @MeshInstance3D@563, @MeshInstance3D@564, @MeshInstance3D@565, @MeshInstance3D@566, @MeshInstance3D@567, @MeshInstance3D@568, @MeshInstance3D@569, @MeshInstance3D@570, @MeshInstance3D@571, @MeshInstance3D@572, @MeshInstance3D@575, @MeshInstance3D@576, @MeshInstance3D@577, @MeshInstance3D@578, @MeshInstance3D@579, @MeshInstance3D@580, @MeshInstance3D@581, @MeshInstance3D@582, @MeshInstance3D@583, @MeshInstance3D@584, @MeshInstance3D@585, @MeshInstance3D@586, @MeshInstance3D@587, @MeshInstance3D@588, @MeshInstance3D@589, @MeshInstance3D@590, @MeshInstance3D@592] rear=RearWheel parts=34 size=(0.11, 0.30, 0.30) [@MeshInstance3D@406, @MeshInstance3D@407, @MeshInstance3D@408, @MeshInstance3D@409, @MeshInstance3D@410, @MeshInstance3D@411, @MeshInstance3D@412, @MeshInstance3D@413, @MeshInstance3D@414, @MeshInstance3D@415, @MeshInstance3D@416, @MeshInstance3D@417, @MeshInstance3D@418, @MeshInstance3D@419, @MeshInstance3D@420, @MeshInstance3D@421, @MeshInstance3D@422, @MeshInstance3D@425, @MeshInstance3D@426, @MeshInstance3D@427, @MeshInstance3D@428, @MeshInstance3D@429, @MeshInstance3D@430, @MeshInstance3D@431, @MeshInstance3D@432, @MeshInstance3D@433, @MeshInstance3D@434, @MeshInstance3D@435, @MeshInstance3D@436, @MeshInstance3D@437, @MeshInstance3D@438, @MeshInstance3D@439, @MeshInstance3D@440, @MeshInstance3D@442] 
+MODEL plane: f3 bottom=-0.002 ground=0.000 gap=-0.002 offset=-0.015 y=0.166
+SHOT /home/runner/work/Game/Game/shots/f3_0_front.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_1_side.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_2_rear.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_3_bar.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_4_wheel.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_5_dash.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_6_deck.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_7_contact.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_8_o_front.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_9_o_rear.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_10_o_left.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_11_o_right.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_12_o_top.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_13_o_bottom.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_14_o_quarter.png err=0
+WHEELS f3: front=Wheel parts=34 size=(0.11, 0.30, 0.30) [@MeshInstance3D@556, @MeshInstance3D@557, @MeshInstance3D@558, @MeshInstance3D@559, @MeshInstance3D@560, @MeshInstance3D@561, @MeshInstance3D@562, @MeshInstance3D@563, @MeshInstance3D@564, @MeshInstance3D@565, @MeshInstance3D@566, @MeshInstance3D@567, @MeshInstance3D@568, @MeshInstance3D@569, @MeshInstance3D@570, @MeshInstance3D@571, @MeshInstance3D@572, @MeshInstance3D@575, @MeshInstance3D@576, @MeshInstance3D@577, @MeshInstance3D@578, @MeshInstance3D@579, @MeshInstance3D@580, @MeshInstance3D@581, @MeshInstance3D@582, @MeshInstance3D@583, @MeshInstance3D@584, @MeshInstance3D@585, @MeshInstance3D@586, @MeshInstance3D@587, @MeshInstance3D@588, @MeshInstance3D@589, @MeshInstance3D@590, @MeshInstance3D@592] rear=RearWheel parts=34 size=(0.11, 0.30, 0.30) [@MeshInstance3D@406, @MeshInstance3D@407, @MeshInstance3D@408, @MeshInstance3D@409, @MeshInstance3D@410, @MeshInstance3D@411, @MeshInstance3D@412, @MeshInstance3D@413, @MeshInstance3D@414, @MeshInstance3D@415, @MeshInstance3D@416, @MeshInstance3D@417, @MeshInstance3D@418, @MeshInstance3D@419, @MeshInstance3D@420, @MeshInstance3D@421, @MeshInstance3D@422, @MeshInstance3D@425, @MeshInstance3D@426, @MeshInstance3D@427, @MeshInstance3D@428, @MeshInstance3D@429, @MeshInstance3D@430, @MeshInstance3D@431, @MeshInstance3D@432, @MeshInstance3D@433, @MeshInstance3D@434, @MeshInstance3D@435, @MeshInstance3D@436, @MeshInstance3D@437, @MeshInstance3D@438, @MeshInstance3D@439, @MeshInstance3D@440, @MeshInstance3D@442] 
+SHOT /home/runner/work/Game/Game/shots/f3_spin_rear_a.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_spin_rear_b.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_spin_rear_hidden.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_spin_rear_hidden_b.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_spin_front_a.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_spin_front_b.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_spin_front_hidden.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_spin_front_hidden_b.png err=0
+SHOT /home/runner/work/Game/Game/shots/f3_rider.png err=0
+SHOT /home/runner/work/Game/Game/shots/menu.png err=0
+SHOT /home/runner/work/Game/Game/shots/menu_no_rider.png err=0
+G4UserModel: body=Body steer=Steer front=WheelFront rear=RearWheel
+G4UserModel: неподвижных деталей вынесено из колёс: rear=8228 front=0
+MODEL: front=/root/Main/Scooter/Model/UserMesh/model/Steer/WheelFront rear=/root/Main/Scooter/Model/UserMesh/model/RearWheel steer=/root/Main/Scooter/Model/UserMesh/model/Steer meshes=5 bottom=-0.156 top=1.065 wheel_r=0.162
+WHEELS: front=WheelFront parts=1 size=(0.10, 0.31, 0.32) [WheelFront] rear=RearWheel parts=1 size=(0.11, 0.31, 0.32) [RearWheel] [вне пивота: 1 дет., size=(0.10, 0.10, 0.11)] 
+SHOT /home/runner/work/Game/Game/shots/hud_drive.png err=0
+MODEL drive: front=/root/Main/Scooter/Model/UserMesh/model/Steer/WheelFront rear=/root/Main/Scooter/Model/UserMesh/model/RearWheel steer=/root/Main/Scooter/Model/UserMesh/model/Steer front_spin=-20.93 rear_spin=-20.93 steer_vis=-0.00 speed=26.7
+SHOT /home/runner/work/Game/Game/shots/hud_wheelie.png err=0
+SHOT stunt bottom=-0.031 ground=0.000 gap=-0.031 offset=0.258 y=0.082
+SHOT stunt scooter=(0, 0.082346, 4.777084) pitch=19.7 roll=0.0 y=0.08 speed=37.7 lift=0.34 active=true crashed=false
+SHOT /home/runner/work/Game/Game/shots/wheelie_side.png err=0
+SHOT /home/runner/work/Game/Game/shots/pause.png err=0
+SHOT /home/runner/work/Game/Game/shots/hud_fp.png err=0
+G4UserModel: body=Body steer=Steer front=WheelFront rear=RearWheel
+G4UserModel: неподвижных деталей вынесено из колёс: rear=8228 front=0
+MODEL: front=/root/Main/Scooter/Model/UserMesh/model/Steer/WheelFront rear=/root/Main/Scooter/Model/UserMesh/model/RearWheel steer=/root/Main/Scooter/Model/UserMesh/model/Steer meshes=5 bottom=-0.156 top=1.065 wheel_r=0.162
+WHEELS: front=WheelFront parts=1 size=(0.10, 0.31, 0.32) [WheelFront] rear=RearWheel parts=1 size=(0.11, 0.31, 0.32) [RearWheel] [вне пивота: 1 дет., size=(0.10, 0.10, 0.11)] 
+SHOT /home/runner/work/Game/Game/shots/world_ramp.png err=0
+WORLD ramp approach z=-43.0 scooter=g4 speed=0.0 dist=0.0 x=0.00 y=0.18 pitch=0.3 maxPitch=0.5 roll=0.0 contact=true/true wheelie=off air=0.00 jumps=0 gas=0.00 score=0 combo=1.00 crashes=0 wheels=0.0/0.0 last=
+SHOT /home/runner/work/Game/Game/shots/world_ramp_side.png err=0
+SHOT /home/runner/work/Game/Game/shots/world_jump.png err=0
+SHOT /home/runner/work/Game/Game/shots/world_jump_side.png err=0
+WORLD jump air=true g4 speed=37.2 dist=22.7 x=0.00 y=0.17 pitch=3.8 maxPitch=14.2 roll=0.0 contact=true/true wheelie=off air=0.38 jumps=1 gas=1.00 score=42 combo=1.15 crashes=0 wheels=10.3/10.3 last=
+WORLD landing g4 speed=24.9 dist=37.6 x=0.00 y=0.18 pitch=0.3 maxPitch=14.2 roll=0.0 contact=true/true wheelie=off air=0.38 jumps=1 gas=0.00 score=42 combo=1.15 crashes=0 wheels=7.0/7.0 last=
+MODEL: front=/root/Main/Scooter/Model/FrontSteer/Wheel rear=/root/Main/Scooter/Model/RearWheel steer=/root/Main/Scooter/Model/FrontSteer meshes=291 bottom=-0.150 top=1.308 wheel_r=0.147
+WHEELS: front=Wheel parts=34 size=(0.11, 0.30, 0.30) [@MeshInstance3D@1346, @MeshInstance3D@1347, @MeshInstance3D@1348, @MeshInstance3D@1349, @MeshInstance3D@1350, @MeshInstance3D@1351, @MeshInstance3D@1352, @MeshInstance3D@1353, @MeshInstance3D@1354, @MeshInstance3D@1355, @MeshInstance3D@1356, @MeshInstance3D@1357, @MeshInstance3D@1358, @MeshInstance3D@1359, @MeshInstance3D@1360, @MeshInstance3D@1361, @MeshInstance3D@1362, @MeshInstance3D@1365, @MeshInstance3D@1366, @MeshInstance3D@1367, @MeshInstance3D@1368, @MeshInstance3D@1369, @MeshInstance3D@1370, @MeshInstance3D@1371, @MeshInstance3D@1372, @MeshInstance3D@1373, @MeshInstance3D@1374, @MeshInstance3D@1375, @MeshInstance3D@1376, @MeshInstance3D@1377, @MeshInstance3D@1378, @MeshInstance3D@1379, @MeshInstance3D@1380, @MeshInstance3D@1382] rear=RearWheel parts=34 size=(0.11, 0.30, 0.30) [@MeshInstance3D@1196, @MeshInstance3D@1197, @MeshInstance3D@1198, @MeshInstance3D@1199, @MeshInstance3D@1200, @MeshInstance3D@1201, @MeshInstance3D@1202, @MeshInstance3D@1203, @MeshInstance3D@1204, @MeshInstance3D@1205, @MeshInstance3D@1206, @MeshInstance3D@1207, @MeshInstance3D@1208, @MeshInstance3D@1209, @MeshInstance3D@1210, @MeshInstance3D@1211, @MeshInstance3D@1212, @MeshInstance3D@1215, @MeshInstance3D@1216, @MeshInstance3D@1217, @MeshInstance3D@1218, @MeshInstance3D@1219, @MeshInstance3D@1220, @MeshInstance3D@1221, @MeshInstance3D@1222, @MeshInstance3D@1223, @MeshInstance3D@1224, @MeshInstance3D@1225, @MeshInstance3D@1226, @MeshInstance3D@1227, @MeshInstance3D@1228, @MeshInstance3D@1229, @MeshInstance3D@1230, @MeshInstance3D@1232] 
+SHOT /home/runner/work/Game/Game/shots/world_city.png err=0
+WORLD city z=34.0
+SHOTS DONE /home/runner/work/Game/Game/shots
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+     at: cleanup (core/object/object.cpp:2284)
