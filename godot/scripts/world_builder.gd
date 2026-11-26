@@ -195,29 +195,32 @@ func _build_straight_track(parent: Node3D, with_landings := false) -> Dictionary
 
 ## Трамплин: наклонная плита, подпорка под верхней кромкой и разметка
 ## приземления. Низ верхней грани лежит ровно на асфальте — иначе на въезде
-## получается ступенька в пол-толщины плиты (11 см), и самокат на ней глохнет
-## (в автотесте скорость падала с 37 до 3 км/ч).
+## получается ступенька, и самокат на ней глохнет (в автотесте скорость
+## падала с 37 до 3 км/ч, а на второй версии он вообще проваливался под дорогу).
 func _add_ramp(parent: Node3D, z: float, angle_deg := RAMP_ANGLE,
 		length := RAMP_LENGTH, width := RAMP_WIDTH) -> void:
 	var thickness := 0.22
 	var angle := deg_to_rad(angle_deg)
 	var half := length * 0.5
-	# Подъём полтолщины по вертикали: без него плоскость плиты уходит выше нуля.
-	var lift: float = (thickness * 0.5) / cos(angle)
-	var center_y: float = ROAD_TOP + sin(angle) * half + lift
+	var half_thickness := thickness * 0.5
+	# Геометрия с проверкой: верхняя грань наклонённой плиты поднимается над
+	# её центром на half_thickness * cos(угла) — это вертикальная проекция
+	# нормали. Низ верхней грани должен касаться асфальта, иначе на въезде
+	# ступенька (сначала 11 см, потом 22 см — самокат на ней глох и проваливался).
+	var center_y: float = ROAD_TOP + sin(angle) * half - half_thickness * cos(angle)
 	_solid(parent, Vector3(width, thickness, length),
 		Vector3(0.0, center_y, z), _ramp, Vector3(angle, 0.0, 0.0))
 
-	# Верхняя кромка (губа) — с неё самокат и улетает.
-	var lip_y: float = ROAD_TOP + sin(angle) * length + thickness / cos(angle)
+	# Губа: высота верхней грани на дальнем крае = sin(угла) * длина.
+	var lip_y: float = ROAD_TOP + sin(angle) * length
 	# Подпорка под высоким краем: без неё плита висит в воздухе.
-	_decor(parent, Vector3(width, lip_y, 0.6),
-		Vector3(0.0, lip_y * 0.5, z - half + 0.35), _ramp_dark)
+	_decor(parent, Vector3(width, lip_y - 0.12, 0.6),
+		Vector3(0.0, (lip_y - 0.12) * 0.5, z - half + 0.35), _ramp_dark)
 	# Полосы по краям плиты — трамплин читается с ходу даже в сумерках.
 	for side in [-1.0, 1.0]:
 		_decor(parent, Vector3(0.22, 0.06, length),
-			Vector3(side * (width * 0.5 - 0.2), center_y + lift + 0.03, z), _white,
-			Vector3(angle, 0.0, 0.0))
+			Vector3(side * (width * 0.5 - 0.2), center_y + half_thickness * cos(angle) + 0.03, z),
+			_white, Vector3(angle, 0.0, 0.0))
 	# Разметка приземления: белая полоса за трамплином.
 	_decor(parent, Vector3(width, 0.02, 0.25),
 		Vector3(0.0, ROAD_TOP + 0.014, z - half - 9.0), _white)
