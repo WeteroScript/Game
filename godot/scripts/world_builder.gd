@@ -8,6 +8,10 @@ const ROAD_WIDTH := 12.0
 const FLAT_LENGTH := 1500.0
 const FLAT_START_Z := 60.0
 const ROAD_TOP := 0.0
+## Трамплины на прямой трассе: длина плиты, угол подъёма и ширина.
+const RAMP_LENGTH := 5.6
+const RAMP_ANGLE := 12.0
+const RAMP_WIDTH := 5.2
 
 var _asphalt: StandardMaterial3D
 var _concrete: StandardMaterial3D
@@ -20,6 +24,9 @@ var _brick_b: StandardMaterial3D
 var _roof: StandardMaterial3D
 var _bark: StandardMaterial3D
 var _pine: StandardMaterial3D
+var _window: StandardMaterial3D
+var _ramp: StandardMaterial3D
+var _ramp_dark: StandardMaterial3D
 
 ## Очередь «добора» сцены: тяжёлые куски (лес, дома) строятся по одному за кадр,
 ## а не всей картой сразу — прогрузка идёт плавно, без длинного фриза.
@@ -38,6 +45,11 @@ func _init() -> void:
 	_roof = _mat(Color(0.35, 0.18, 0.16), 0.0, 0.8)
 	_bark = _mat(Color(0.28, 0.21, 0.15), 0.0, 0.95)
 	_pine = _mat(Color(0.13, 0.27, 0.15), 0.0, 0.9)
+	# Одно окно на все дома: раньше материал создавался на каждое окно,
+	# и в городе набегали сотни лишних материалов.
+	_window = _mat(Color(0.15, 0.2, 0.26), 0.3, 0.2)
+	_ramp = _mat(Color(0.93, 0.72, 0.12), 0.05, 0.55)
+	_ramp_dark = _mat(Color(0.24, 0.25, 0.27), 0.35, 0.6)
 
 
 func _mat(color: Color, metallic: float, roughness: float, emission := false) -> StandardMaterial3D:
@@ -59,9 +71,13 @@ func build(map_id: int, parent: Node3D) -> Dictionary:
 	_solid(parent, Vector3(2400.0, 0.3, 2400.0), Vector3(0.0, -0.55, -400.0),
 		_grass, Vector3.ZERO, true)
 
-	if map_id == GameConfig.MapId.CITY:
-		return _build_city(parent)
-	return _build_straight_track(parent)
+	match map_id:
+		GameConfig.MapId.CITY:
+			return _build_city(parent)
+		GameConfig.MapId.JUMP_PARK:
+			return _build_jump_park(parent)
+		_:
+			return _build_straight_track(parent)
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +136,7 @@ func _post(parent: Node3D, radius: float, height: float, pos: Vector3, mat: Mate
 # ---------------------------------------------------------------------------
 # Карта 1: прямая трасса с трамплинами, обочинами и отбойниками.
 # ---------------------------------------------------------------------------
-func _build_straight_track(parent: Node3D) -> Dictionary:
+func _build_straight_track(parent: Node3D, with_landings := false) -> Dictionary:
 	var holder := Node3D.new()
 	holder.name = "FlatRoad"
 	parent.add_child(holder)
@@ -128,7 +144,8 @@ func _build_straight_track(parent: Node3D) -> Dictionary:
 	var length := FLAT_LENGTH
 	var mid_z := FLAT_START_Z - length * 0.5
 
-	# Асфальт: идеально ровный, во всю длину, без трамплинов и конусов.
+	# Асфальт: идеально ровный, во всю длину; трамплины ставятся отдельно
+	# поверх него, чтобы не ломать основание.
 	_solid(holder, Vector3(ROAD_WIDTH, 0.5, length),
 		Vector3(0.0, ROAD_TOP - 0.25, mid_z), _asphalt)
 
@@ -160,6 +177,10 @@ func _build_straight_track(parent: Node3D) -> Dictionary:
 			Vector3(0.22, 0.02, 3.2)))
 		dash_z -= 9.0
 
+	# Ровная дорога остаётся ровной: трамплины живут на отдельной карте.
+	if with_landings:
+		_add_jump_line(holder)
+
 	_add_forest(holder, length)
 
 	# Столбы отбойника и разметку рисуем одним MultiMesh: на телефоне это
@@ -168,6 +189,46 @@ func _build_straight_track(parent: Node3D) -> Dictionary:
 	_multimesh(holder, _unit_box(), _white, dash_xforms, false)
 
 	return {"spawn": Vector3(0.0, 0.6, FLAT_START_Z - 20.0), "basis": Basis.IDENTITY}
+
+
+## Трамплин: наклонная плита с подпоркой под верхней кромкой и разметкой
+## «приземление» дальше по ходу. Верх плиты — ровно та высота, с которой
+## самокат улетает; угол подобран так, чтобы жёсткого приземления не было.
+func _add_ramp(parent: Node3D, z: float, angle_deg := RAMP_ANGLE,
+		length := RAMP_LENGTH, width := RAMP_WIDTH) -> void:
+	var angle := deg_to_rad(angle_deg)
+	var half := length * 0.5
+	var lip: float = sin(angle) * half
+	_solid(parent, Vector3(width, 0.22, length),
+		Vector3(0.0, ROAD_TOP + lip, z), _ramp, Vector3(angle, 0.0, 0.0))
+	# Подпорка под высоким краем: без неё плита висит в воздухе.
+	_decor(parent, Vector3(width, lip * 2.0, 0.6),
+		Vector3(0.0, ROAD_TOP + lip, z - half + 0.3), _ramp_dark)
+	# Полосы по краям плиты — трамплин читается с ходу даже в сумерках.
+	for side in [-1.0, 1.0]:
+		_decor(parent, Vector3(0.22, 0.06, length),
+			Vector3(side * (width * 0.5 - 0.2), ROAD_TOP + lip + 0.09, z), _white,
+			Vector3(angle, 0.0, 0.0))
+	# Разметка приземления: белая полоса за трамплином.
+	_decor(parent, Vector3(width, 0.02, 0.25),
+		Vector3(0.0, ROAD_TOP + 0.014, z - half - 9.0), _white)
+
+
+## Джамп-парк: та же ровная дорога, но с пятью трамплинами разной высоты.
+## Отдельная карта, чтобы «Ровная дорога» оставалась действительно ровной.
+func _build_jump_park(parent: Node3D) -> Dictionary:
+	var info := _build_straight_track(parent, true)
+	info["spawn"] = Vector3(0.0, 0.6, FLAT_START_Z - 18.0)
+	return info
+
+
+## Пять трамплинов: от маленького разминочного до большого.
+func _add_jump_line(parent: Node3D) -> void:
+	_add_ramp(parent, FLAT_START_Z - 120.0, 10.0, 5.0, 5.6)
+	_add_ramp(parent, FLAT_START_Z - 280.0, 14.0, 6.4, 5.2)
+	_add_ramp(parent, FLAT_START_Z - 460.0, 18.0, 8.0, 4.8)
+	_add_ramp(parent, FLAT_START_Z - 660.0, 8.0, 4.6, 6.0)
+	_add_ramp(parent, FLAT_START_Z - 850.0, 16.0, 7.2, 5.0)
 
 
 ## Лес по обе стороны: три линии деревьев в MultiMesh.
@@ -363,8 +424,8 @@ func _add_house(parent: Node3D, base: Vector3, width: float, height: float, use_
 	while row < int(height / 2.6):
 		_decor(parent, Vector3(width * 0.22, 1.0, 0.12),
 			Vector3(base.x - width * 0.25, base.y + 1.8 + row * 2.4, base.z + width * 0.5 + 0.02),
-			_mat(Color(0.15, 0.2, 0.26), 0.3, 0.2))
+			_window)
 		_decor(parent, Vector3(width * 0.22, 1.0, 0.12),
 			Vector3(base.x + width * 0.25, base.y + 1.8 + row * 2.4, base.z + width * 0.5 + 0.02),
-			_mat(Color(0.15, 0.2, 0.26), 0.3, 0.2))
+			_window)
 		row += 1

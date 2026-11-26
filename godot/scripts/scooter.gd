@@ -478,17 +478,10 @@ func _apply_drive(delta: float) -> void:
 	var active_motors := 2 if is_awd else 1
 	var top_speed_mps := max_speed_kmh() / 3.6
 
-	# Система батареи убрана: тяга всегда полная.
-	var battery_scale := 1.0
-	var percent := 100.0
-	if percent <= 0.01:
-		battery_scale = 0.0
-	elif percent < GameConfig.LOW_BATTERY_PERCENT:
-		battery_scale = GameConfig.LOW_BATTERY_POWER_SCALE
-
+	# Системы батареи больше нет — тяга всегда полная.
 	var target_force := 0.0
-	if throttle_input > 0.001 and speed_mps < top_speed_mps and battery_scale > 0.0:
-		var power := spec.power_per_motor_watts * active_motors * battery_scale
+	if throttle_input > 0.001 and speed_mps < top_speed_mps:
+		var power := spec.power_per_motor_watts * active_motors
 		var v_safe := maxf(absf(speed_mps), 1.5)
 		var force := minf(power / v_safe, spec.max_traction_force_per_motor * active_motors)
 		var taper := 1.0 - inverse_lerp(top_speed_mps * 0.9, top_speed_mps + 0.001, speed_mps)

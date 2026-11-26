@@ -5,7 +5,7 @@ class_name GameConfig
 extends RefCounted
 
 enum GameMode { FREE_RIDE, TIME_ATTACK, FREESTYLE }
-enum MapId { STRAIGHT_TRACK, CITY }
+enum MapId { STRAIGHT_TRACK, CITY, JUMP_PARK }
 enum DriveMode { RWD, AWD }
 
 const PRODUCT_NAME := "Kugoo Freeride"
@@ -79,8 +79,6 @@ const HARD_IMPACT_SPEED := 8.5
 const MOTOR_EFFICIENCY := 0.80
 const MOTOR_SPINUP_LOSS_WATTS := 260.0
 const IDLE_DRAIN_WATTS := 0.6
-const LOW_BATTERY_PERCENT := 8.0
-const LOW_BATTERY_POWER_SCALE := 0.4
 
 # ---- Камера -----------------------------------------------------------------
 const CAMERA_DISTANCE := 3.9

@@ -31,6 +31,9 @@ var selected_mode: int = GameConfig.GameMode.FREE_RIDE
 var countdown_time := 0.0
 var time_left := 0.0
 var menu_angle := 0.0
+## Результат последнего заезда: побит ли рекорд и сколько было до него.
+var _new_record := false
+var _best_score := 0
 ## Показывать персонажа: переключатель в главном меню, по умолчанию — да.
 var rider_shown := true
 var _go_timer := 0.0
@@ -42,6 +45,8 @@ var _shots := false
 var _smoke := false
 var _smoke_timer := 0.0
 var _smoke_crashed := false
+var _smoke_ramp_wait := 0.0
+var _smoke_ramp_placed := false
 var _smoke_phase := 0
 var _smoke_wheelie_on := false
 # Проверка знака руля: вправо (+) должен давать поворот по часовой (yaw вниз).
@@ -297,6 +302,14 @@ func _start_smoke() -> void:
 	_start_run("g4", GameConfig.MapId.STRAIGHT_TRACK, GameConfig.GameMode.FREE_RIDE)
 
 
+## Позиции трамплинов — для логов автотеста.
+func _ramp_positions() -> Array:
+	var out: Array = []
+	for entry in [120.0, 280.0, 460.0, 660.0, 850.0]:
+		out.append(round(WorldBuilder.FLAT_START_Z - entry))
+	return out
+
+
 func _telemetry() -> String:
 	if scooter == null:
 		return "no scooter"
@@ -310,10 +323,11 @@ func _telemetry() -> String:
 		wheelie_state = "on" if scooter.wheelie.active else "off"
 		if scooter.wheelie.in_balance_zone:
 			wheelie_state = "zone"
-	return "%s speed=%.1f dist=%.1f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s gas=%.2f score=%d combo=%.2f crashes=%d last=%s" % [
+	return "%s speed=%.1f dist=%.1f y=%.2f pitch=%.1f maxPitch=%.1f roll=%.1f contact=%s wheelie=%s air=%.2f jumps=%d gas=%.2f score=%d combo=%.2f crashes=%d last=%s" % [
 		scooter.spec.id, scooter.speed_kmh(), scooter.distance_meters, pos.y,
 		scooter.pitch_deg, scooter.max_pitch_deg, scooter.roll_deg, contact,
-		wheelie_state, scooter.throttle_input, tricks.score,
+		wheelie_state, scooter.max_air_time, scooter.landing_counter,
+		scooter.throttle_input, tricks.score,
 		tricks.combo_multiplier(),
 		scooter.crash_count, scooter.last_crash_reason,
 	]
@@ -321,30 +335,80 @@ func _telemetry() -> String:
 
 func _tick_smoke(delta: float) -> void:
 	_smoke_timer += delta
+	_smoke_ramp_wait += delta
 
-	# Фаза 1 → фаза 2: другой самокат, другая карта, режим с таймером.
+	# Фаза 0 → 1: вилли и падение проверены. Ставим самокат в 18 м перед первым
+	# трамплином, чтобы гарантированно проверить прыжок, а не надеяться, что
+	# автотест до него доедет.
 	if _smoke_phase == 0 and _smoke_timer > 12.0:
 		_smoke_phase = 1
+		_smoke_ramp_wait = 0.0
 		print("SMOKE phase 1 end: %s" % _telemetry())
-		_start_run("f3", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
-		if scooter != null:
-			print("SMOKE phase 2: drive=%d (AWD=1)" % scooter.drive_mode)
-			scooter.toggle_drive()
-			print("SMOKE phase 2: after toggle drive=%d (RWD=0)" % scooter.drive_mode)
-			scooter.toggle_drive()
+		print("SMOKE ramp map: Джамп-парк, трамплины %s" % str(_ramp_positions()))
+		_start_run("g4", GameConfig.MapId.JUMP_PARK, GameConfig.GameMode.FREE_RIDE)
+		return
+
+	# Фаза 1: газ в пол через трамплин — ждём отрыв и счёт за прыжок.
+	if _smoke_phase == 1:
+		# Ставим самокат в 18 м перед первым трамплином только после отсчёта,
+		# иначе спаун перезапишет телепорт.
+		if state != State.RUNNING:
+			return
+		if not _smoke_ramp_placed:
+			_smoke_ramp_placed = true
+			_smoke_ramp_wait = 0.0
+			if scooter != null:
+				scooter.respawn_position = Vector3(0.0, 0.6, WorldBuilder.FLAT_START_Z - 102.0)
+				scooter.respawn_basis = Basis.IDENTITY
+				scooter.respawn()
+				print("SMOKE ramp approach: %s" % _telemetry())
+			return
+		input_state.touch_throttle = 1.0
+		input_state.touch_steer = 0.0
+		var jumped: bool = scooter != null and scooter.landing_counter > 0
+		if jumped:
+			print("SMOKE ramp jump OK: %s" % _telemetry())
+		if not jumped:
+			# Пока в воздухе, печатаем телеметрию каждые 0.5 с.
+			if fmod(_smoke_ramp_wait, 0.5) < delta:
+				print("SMOKE ramp t=%.1f %s" % [_smoke_ramp_wait, _telemetry()])
+		if jumped or _smoke_ramp_wait > 9.0:
+			if not jumped:
+				print("SMOKE ramp jump MISSED: %s" % _telemetry())
+			_smoke_phase = 2
+			_start_run("f3", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
+			if scooter != null:
+				print("SMOKE phase 2: drive=%d (AWD=1)" % scooter.drive_mode)
+				scooter.toggle_drive()
+				print("SMOKE phase 2: after toggle drive=%d (RWD=0)" % scooter.drive_mode)
+				scooter.toggle_drive()
 		return
 
 	# Фаза 2 → финиш: ждём, пока истечёт таймер Freestyle, и проверяем результаты.
-	if _smoke_phase == 1 and state == State.FINISHED:
-		_smoke_phase = 2
+	if _smoke_phase == 2 and state == State.FINISHED:
+		_smoke_phase = 3
 		print("SMOKE finished: %s results_visible=%s time_left=%.1f" % [
 			_telemetry(), str(results_root != null and results_root.visible), time_left,
 		])
 		print("SMOKE OK %s" % _telemetry())
+		print("PLAYTEST hud %s" % hud.debug_clock())
+		print("PLAYTEST record %s" % Records.describe(selected_map, selected_mode))
+		# Инварианты, которые ломались на прошлых сборках: улетевшая позиция,
+		# провал под карту и «застывший» HUD.
+		var pos := scooter.global_position if scooter != null else Vector3.ZERO
+		var nan_pos := is_nan(pos.x) or is_nan(pos.y) or is_nan(pos.z)
+		var under_map := pos.y < -2.0
+		var hud_ok := not hud.debug_clock().contains("dist=0.00")
+		print("PLAYTEST checks nan=%s under_map=%s hud_ok=%s" % [
+			str(nan_pos), str(under_map), str(hud_ok),
+		])
 		get_tree().quit()
 		return
 
-	if _smoke_timer > 150.0:
+	if _smoke_phase == 3:
+		return
+
+	if _smoke_timer > 170.0:
 		print("SMOKE TIMEOUT %s" % _telemetry())
 		get_tree().quit(1)
 		return
@@ -720,6 +784,9 @@ func _take_screenshots() -> void:
 	await RenderingServer.frame_post_draw
 	_save_shot(shot_dir, "hud_fp")
 
+	# Мир: трамплин на прямой трассе и город — проверяем геометрию трассы.
+	await _take_world_shots(shot_dir)
+
 	print("SHOTS DONE %s" % shot_dir)
 	get_tree().quit()
 
@@ -729,6 +796,67 @@ func _save_shot(shot_dir: String, shot_name: String) -> void:
 	var path := "%s/%s.png" % [shot_dir, shot_name]
 	var error := image.save_png(path)
 	print("SHOT %s err=%d" % [path, error])
+
+
+## Кадры мира: разгон к трамплину, прыжок и город. Раньше снимали только
+## модель, поэтому проблемы трассы не были видны ни в одном кадре.
+func _take_world_shots(shot_dir: String) -> void:
+	if camera_rig.first_person:
+		camera_rig.toggle_view()
+	_start_run("g4", GameConfig.MapId.JUMP_PARK, GameConfig.GameMode.FREE_RIDE)
+	input_state.touch_throttle = 0.0
+	# Ждём конца отсчёта: он ставит самокат на спаун, и телепорт до него
+	# просто затрётся.
+	var wait_frames := 0
+	while state != State.RUNNING and wait_frames < 600:
+		wait_frames += 1
+		await get_tree().process_frame
+	if scooter != null:
+		scooter.respawn_position = Vector3(0.0, 0.6, WorldBuilder.FLAT_START_Z - 103.0)
+		scooter.respawn_basis = Basis.IDENTITY
+		scooter.respawn()
+	camera_rig.target = scooter
+	camera_rig.snap_behind()
+	hud.visible = true
+	for frame in 6:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "world_ramp")
+	print("WORLD ramp approach z=%.1f scooter=%s" % [
+		scooter.global_position.z if scooter != null else 0.0,
+		_telemetry(),
+	])
+
+	# Разгон в трамплин и кадр в воздухе.
+	input_state.touch_throttle = 1.0
+	var airborne := false
+	var tries := 0
+	while tries < 240 and not airborne:
+		tries += 1
+		await get_tree().create_timer(0.05).timeout
+		if scooter != null and not scooter.is_grounded() and scooter.air_time > 0.10:
+			airborne = true
+			await RenderingServer.frame_post_draw
+			_save_shot(shot_dir, "world_jump")
+	print("WORLD jump air=%s %s" % [str(airborne), _telemetry()])
+	input_state.touch_throttle = 0.0
+	await get_tree().create_timer(1.6).timeout
+	print("WORLD landing %s" % _telemetry())
+
+	# Город: общий вид на старте, чтобы видеть дома, свет и разметку.
+	_start_run("f3", GameConfig.MapId.CITY, GameConfig.GameMode.FREESTYLE)
+	if scooter != null:
+		scooter.respawn()
+	camera_rig.target = null
+	var city_eye: Vector3 = scooter.global_position if scooter != null else Vector3.ZERO
+	camera_rig.global_position = city_eye + Vector3(9.0, 7.5, 16.0)
+	camera_rig.look_at(city_eye + Vector3(0.0, 1.0, -22.0), Vector3.UP)
+	camera_rig.fov = 55.0
+	for frame in 8:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	_save_shot(shot_dir, "world_city")
+	print("WORLD city z=%.1f" % city_eye.z)
 
 
 # ---- кадр -------------------------------------------------------------------
@@ -931,10 +1059,20 @@ func _show_results() -> void:
 		run_time = scooter.run_time
 		crashes = scooter.crash_count
 
-	results_label.text = "Очки: %d\nТрюков: %d\nМножитель комбо: x%.2f\n\nДистанция: %.2f км\nВремя: %d:%02d\nПадений: %d" % [
+	# Рекорд пишем именно здесь: экран результатов — единственное место, где
+	# заезд уже закончен и все цифры посчитаны.
+	_new_record = Records.submit(selected_map, selected_mode, tricks.score,
+		scooter.distance_meters if scooter != null else 0.0, run_time, crashes)
+	_best_score = int(Records.best(selected_map, selected_mode).get("score", 0))
+	var record_line := "НОВЫЙ РЕКОРД!" if _new_record else "Рекорд: %d очков" % _best_score
+
+	results_label.text = "Очки: %d\nТрюков: %d\nМножитель комбо: x%.2f\n\nДистанция: %.2f км\nВремя: %d:%02d\nПадений: %d\n\n%s" % [
 		tricks.score, tricks.trick_count, tricks.combo_multiplier(),
 		distance_km, int(run_time / 60.0), int(run_time) % 60, crashes,
+		record_line,
 	]
+	print("RECORD %s best=%d new=%s" % [Records.describe(selected_map, selected_mode),
+		_best_score, str(_new_record)])
 	results_root.visible = true
 
 

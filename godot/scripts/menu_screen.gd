@@ -9,7 +9,7 @@ signal start_pressed(spec_id: String, map_id: int, mode_id: int)
 ## Переключатель персонажа: игра прячет/показывает райдера и запоминает выбор.
 signal rider_toggled(shown: bool)
 
-const MAP_NAMES := ["Ровная дорога", "Город"]
+const MAP_NAMES := ["Ровная дорога", "Город", "Джамп-парк"]
 const MODE_NAMES := ["Свободная езда", "На время", "Фристайл"]
 
 var spec_id := "g4"
@@ -107,8 +107,8 @@ func _build_left() -> void:
 	y += 28.0
 	for index in MAP_NAMES.size():
 		var captured_map := index
-		var button := UiFactory.button(MAP_NAMES[index], 20, Vector2(250.0, 54.0))
-		UiFactory.place(button, 50.0 + index * 260.0, y, 250.0, 54.0)
+		var button := UiFactory.button(MAP_NAMES[index], 18, Vector2(168.0, 54.0))
+		UiFactory.place(button, 50.0 + index * 174.0, y, 168.0, 54.0)
 		button.pressed.connect(func() -> void: _select_map(captured_map))
 		_left.add_child(button)
 		_map_buttons.append(button)
@@ -193,7 +193,10 @@ func _refresh() -> void:
 		UiFactory.style_button(_rider_button, rider_shown)
 
 	if _spec_info != null and not _specs.is_empty():
-		_spec_info.text = _describe_spec(ScooterSpec.get_by_id(spec_id))
+		# Рекорд относится к выбранной паре «карта + режим», поэтому и обновляется
+		# вместе с выбором.
+		_spec_info.text = _describe_spec(ScooterSpec.get_by_id(spec_id)) \
+			+ "\n\n" + Records.describe(map_id, mode_id)
 
 
 func _describe_spec(spec: ScooterSpec) -> String:

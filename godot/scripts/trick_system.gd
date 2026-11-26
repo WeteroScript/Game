@@ -7,6 +7,10 @@ signal trick_scored(trick_name: String, points: int)
 
 const COMBO_WINDOW := 2.5
 const MAX_MULTIPLIER := 5.0
+## Чистая езда: за каждые N метров без падений дают очки — это стимул не
+## гнать напролом, а держать линию.
+const CLEAN_RUN_STEP := 250.0
+const CLEAN_RUN_POINTS := 40
 
 var score := 0
 var combo := 0
@@ -21,6 +25,8 @@ var _air_yaw := 0.0
 var _last_landing_counter := 0
 var _last_wheelie_floors := 0
 var _last_stoppie_floors := 0
+var _last_crash_count := 0
+var _clean_mark := 0.0
 
 
 func combo_multiplier() -> float:
@@ -40,6 +46,7 @@ func tick(delta: float, scooter: Scooter) -> void:
 	_tick_wheelie(delta, scooter)
 	_tick_stoppie(delta, scooter)
 	_tick_air(delta, scooter)
+	_tick_clean_run(scooter)
 
 
 func _tick_wheelie(delta: float, scooter: Scooter) -> void:
@@ -92,6 +99,27 @@ func _tick_air(delta: float, scooter: Scooter) -> void:
 		_air_yaw = 0.0
 
 
+## Чистая езда: каждые CLEAN_RUN_STEP метров без падений — бонус.
+func _tick_clean_run(scooter: Scooter) -> void:
+	if scooter.is_crashed:
+		return
+	if scooter.crash_count != _last_crash_count:
+		# Упал — счётчик начинается заново с текущей точки.
+		_last_crash_count = scooter.crash_count
+		_clean_mark = scooter.distance_meters
+		return
+	while scooter.distance_meters - _clean_mark >= CLEAN_RUN_STEP:
+		_clean_mark += CLEAN_RUN_STEP
+		_add_score("CLEAN RUN %.1f км" % (_clean_mark / 1000.0), CLEAN_RUN_POINTS)
+
+
+## Сколько ещё метров до следующего бонуса за чистую езду (для HUD).
+func clean_run_progress(scooter: Scooter) -> float:
+	if scooter == null:
+		return 0.0
+	return clampf((scooter.distance_meters - _clean_mark) / CLEAN_RUN_STEP, 0.0, 1.0)
+
+
 func _add_score(trick_name: String, points: int) -> void:
 	if points <= 0:
 		return
@@ -113,3 +141,4 @@ func break_combo() -> void:
 	_last_wheelie_floors = 0
 	_last_stoppie_floors = 0
 	_air_yaw = 0.0
+	_clean_mark = 0.0

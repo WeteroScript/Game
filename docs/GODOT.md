@@ -20,10 +20,10 @@ Android SDK ставится за минуту.
 | `WheelieController` | `scripts/wheelie.gd` |
 | `ScooterFactory` / `MeshUtil` | `scripts/scooter_model.gd` (+ `rider_model.gd` — райдер) |
 | `TrackMap` / `CityMap` / `WorldBuilder` | `scripts/world_builder.gd` |
-| `CameraRig` | `scripts/camera_rig.gd` |
+| `CameraRig` | `scripts/camera_rig.gd` (третье лицо + вид от первого лица) |
 | `TrickSystem` | `scripts/trick_system.gd` |
 | `Hud` / `TouchControls` / `HoldButton` | `scripts/hud.gd` |
-| `MenuScreen` / `UiFactory` | `scripts/menu_screen.gd` / `scripts/ui_factory.gd` |
+| `MenuScreen` / `PauseScreen` / `UiFactory` | `scripts/menu_screen.gd` / `scripts/pause_screen.gd` / `scripts/ui_factory.gd` |
 | `InputController` | `scripts/input_state.gd` |
 | `GameRoot` / `GameBootstrap` | `scripts/game.gd` + `scenes/main.tscn` |
 | `ScooterAudio` | `scripts/scooter_audio.gd` (синтез, без файлов) |
@@ -62,7 +62,8 @@ Android SDK ставится за минуту.
 2. `godot --check-only --script res://scripts/<file>.gd` для **каждого** скрипта — синтаксис и
    разрешение классов.
 3. `godot --headless --fixed-fps 60 -- --smoke` — автотест `Game._tick_smoke()`:
-   * фаза 1: G4 на прямой трассе — разгон, удержание вилли, принудительное падение;
+   * фаза 1: G4 на ровном шоссе — разгон, вилли по кнопке (одно нажатие + газ)
+     с управлением углом газом, принудительное падение;
    * фаза 2: F3 Pro Max в городе, AWD ⇄ RWD, езда до конца таймера Freestyle;
    * фаза 3: экран результатов, затем `SMOKE OK` с числами (скорость, дистанция, очки, батарея).
    Падение сборки — если в логе есть `SCRIPT ERROR` / `Parse Error` / `Invalid call` или нет `SMOKE OK`.

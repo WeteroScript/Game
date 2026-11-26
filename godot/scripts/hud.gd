@@ -1,4 +1,5 @@
-## Игровой интерфейс: спидометр, батарея, режимы, трюки и экранные кнопки.
+## Игровой интерфейс: спидометр, дистанция, время, трюки, шкала вилли и
+## экранные кнопки.
 ## Кнопки газа/тормозов/руля сделаны мультитач-зонами: обычные Button в Godot
 ## получают только одно касание, а игроку нужно держать газ и руль одновременно.
 class_name Hud
@@ -11,6 +12,12 @@ signal respawn_pressed
 signal view_toggled
 
 const DESIGN_WIDTH := 1280.0
+## Верхняя граница шкалы вилли, градусы.
+const PITCH_SCALE := 70.0
+## Геометрия шкалы вилли (совпадает с местом под счётом).
+const GAUGE_X := 490.0
+const GAUGE_W := 300.0
+const GAUGE_Y := 132.0
 
 var input: InputState
 
@@ -28,6 +35,10 @@ var _trick_timer := 0.0
 var _countdown_label: Label
 var _crash_label: Label
 var _hint_label: Label
+var _pitch_track: ColorRect
+var _pitch_zone: ColorRect
+var _pitch_marker: ColorRect
+var _pitch_label: Label
 
 var _zones := {}
 var _zone_rects := {}
@@ -118,6 +129,8 @@ func _build_center(root: Control) -> void:
 	UiFactory.place(_crash_label, 240.0, 300.0, 800.0, 80.0)
 	root.add_child(_crash_label)
 
+	_build_pitch_gauge(root)
+
 	_hint_label = UiFactory.label("ВИЛЛИ — одно нажатие и газ · камера — свайп · ВИД — первое лицо",
 		16, UiFactory.MUTED_COLOR, HORIZONTAL_ALIGNMENT_CENTER)
 	UiFactory.place(_hint_label, 240.0, 668.0, 800.0, 24.0)
@@ -129,6 +142,37 @@ func _build_center(root: Control) -> void:
 	_add_zone(root, "respawn", Rect2(18.0, 230.0, 142.0, 40.0), "РЕСПАУН")
 	_add_zone(root, "menu", Rect2(176.0, 230.0, 142.0, 40.0), "МЕНЮ")
 	_add_zone(root, "view", Rect2(18.0, 278.0, 142.0, 40.0), "ВИД")
+
+
+## Шкала вилли: где сейчас нос и где «полка» баланса, за которую дают очки.
+func _build_pitch_gauge(root: Control) -> void:
+	_pitch_track = UiFactory.panel(Color(0.05, 0.06, 0.09, 0.55))
+	UiFactory.place(_pitch_track, GAUGE_X, GAUGE_Y, GAUGE_W, 10.0)
+	_pitch_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_pitch_track)
+
+	_pitch_zone = ColorRect.new()
+	_pitch_zone.color = Color(0.30, 0.85, 0.40, 0.50)
+	var zone_x: float = GAUGE_X + GAUGE_W * (Wheelie.BALANCE_MIN_ANGLE / PITCH_SCALE)
+	var zone_w: float = GAUGE_W * ((Wheelie.BALANCE_MAX_ANGLE - Wheelie.BALANCE_MIN_ANGLE) / PITCH_SCALE)
+	UiFactory.place(_pitch_zone, zone_x, GAUGE_Y, zone_w, 10.0)
+	_pitch_zone.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_pitch_zone)
+
+	_pitch_marker = ColorRect.new()
+	_pitch_marker.color = Color(1.0, 0.62, 0.15, 0.95)
+	UiFactory.place(_pitch_marker, GAUGE_X, GAUGE_Y - 3.0, 4.0, 16.0)
+	_pitch_marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_pitch_marker)
+
+	_pitch_label = UiFactory.label("", 16, UiFactory.ACCENT_COLOR, HORIZONTAL_ALIGNMENT_CENTER)
+	UiFactory.place(_pitch_label, GAUGE_X, GAUGE_Y + 16.0, GAUGE_W, 20.0)
+	root.add_child(_pitch_label)
+
+	_pitch_track.visible = false
+	_pitch_zone.visible = false
+	_pitch_marker.visible = false
+	_pitch_label.visible = false
 
 
 func _build_touch_controls(root: Control) -> void:
@@ -276,11 +320,42 @@ func update_stats(scooter: Scooter, tricks: TrickSystem, time_left: float, show_
 		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
 
 	_wheelie_active = scooter.wheelie != null and scooter.wheelie.active
+	# Дистанция и время: раньше эти подписи так и висели на нулях весь заезд.
+	_distance_label.text = "%.2f км" % (scooter.distance_meters / 1000.0)
+	var clock := time_left if show_timer else scooter.run_time
+	_time_label.text = ("до финиша " if show_timer else "") + _format_time(clock)
+
+	_update_pitch_gauge(scooter)
 	_score_label.text = "%d" % tricks.score
 	if tricks.combo > 1:
 		_combo_label.text = "КОМБО x%.2f · %.1f с" % [tricks.combo_multiplier(), tricks.combo_time_left]
 	else:
 		_combo_label.text = ""
+
+
+## Стрелка шкалы вилли: видна, когда нос поднят, и зеленеет в очковой зоне.
+func _update_pitch_gauge(scooter: Scooter) -> void:
+	if _pitch_marker == null:
+		return
+	var wheelie_on: bool = scooter.wheelie != null and scooter.wheelie.active
+	var show := wheelie_on or scooter.pitch_deg > 6.0
+	if _pitch_track.visible != show:
+		_pitch_track.visible = show
+		_pitch_zone.visible = show
+		_pitch_marker.visible = show
+		_pitch_label.visible = show
+	if not show:
+		return
+	var t := clampf(scooter.pitch_deg / PITCH_SCALE, 0.0, 1.0)
+	_pitch_marker.position = Vector2(GAUGE_X + GAUGE_W * t - 2.0, GAUGE_Y - 3.0)
+	var in_zone: bool = scooter.wheelie != null and scooter.wheelie.in_balance_zone
+	_pitch_marker.color = Color(0.35, 1.0, 0.45, 0.95) if in_zone else Color(1.0, 0.62, 0.15, 0.95)
+	_pitch_label.text = "ВИЛЛИ %d°" % int(round(scooter.pitch_deg))
+
+
+## Для автотеста: что реально написано в подписях дистанции и времени.
+func debug_clock() -> String:
+	return "dist=%s time=%s" % [_distance_label.text, _time_label.text]
 
 
 func _format_time(seconds: float) -> String:
